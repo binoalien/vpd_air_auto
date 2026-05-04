@@ -1,0 +1,90 @@
+{
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Only one VPD Air Auto instance is allowed."
+    },
+    "step": {
+      "user": {
+        "title": "Set up VPD Air Auto",
+        "description": "Automatically create VPDair, VPDleaf and absolute humidity sensors for each Home Assistant device that exposes both a temperature sensor and a humidity sensor.",
+        "data": {
+          "scan_interval": "Topology rescan interval (seconds)",
+          "enable_air": "Create VPDair sensors",
+          "enable_leaf": "Create VPDleaf sensors",
+          "icon": "Global VPDair icon (for example: mdi:water-opacity)",
+          "display_name": "Global VPDair sensor name (for example: VPDair or Air VPD)",
+          "leaf_offset": "Global VPDleaf temperature offset in °C (for example: -2.0 means leaf = air - 2.0 °C)",
+          "leaf_icon": "Global VPDleaf icon (for example: mdi:leaf)",
+          "leaf_display_name": "Global VPDleaf sensor name (for example: VPDleaf or Leaf VPD)",
+          "enable_absolute_humidity": "Create absolute humidity sensors",
+          "absolute_humidity_icon": "Global absolute humidity icon (for example: mdi:water)",
+          "absolute_humidity_display_name": "Global absolute humidity sensor name (for example: Absolute Humidity)",
+          "enable_dew_point": "Create dew point sensors",
+          "dew_point_icon": "Global dew point icon (for example: mdi:thermometer-water)",
+          "dew_point_display_name": "Global dew point sensor name (for example: Dew Point)"
+        }
+      }
+    },
+    "error": {
+      "invalid_icon": "Enter a valid non-empty icon string.",
+      "invalid_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_leaf_offset": "Enter a valid leaf temperature offset between -20.0 and 20.0 °C.",
+      "invalid_leaf_icon": "Enter a valid non-empty icon string.",
+      "invalid_leaf_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_absolute_humidity_icon": "Enter a valid non-empty icon string.",
+      "invalid_absolute_humidity_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_dew_point_icon": "Enter a valid non-empty icon string.",
+      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "VPD Air Auto options",
+        "data": {
+          "scan_interval": "Topology rescan interval (seconds)",
+          "enable_air": "Create VPDair sensors",
+          "enable_leaf": "Create VPDleaf sensors",
+          "icon": "Global VPDair icon (for example: mdi:water-opacity)",
+          "display_name": "Global VPDair sensor name (for example: VPDair or Air VPD)",
+          "leaf_offset": "Global VPDleaf temperature offset in °C (for example: -2.0 means leaf = air - 2.0 °C)",
+          "leaf_icon": "Global VPDleaf icon (for example: mdi:leaf)",
+          "leaf_display_name": "Global VPDleaf sensor name (for example: VPDleaf or Leaf VPD)",
+          "enable_absolute_humidity": "Create absolute humidity sensors",
+          "absolute_humidity_icon": "Global absolute humidity icon (for example: mdi:water)",
+          "absolute_humidity_display_name": "Global absolute humidity sensor name (for example: Absolute Humidity)",
+          "enable_dew_point": "Create dew point sensors",
+          "dew_point_icon": "Global dew point icon (for example: mdi:thermometer-water)",
+          "dew_point_display_name": "Global dew point sensor name (for example: Dew Point)"
+        }
+      }
+    },
+    "error": {
+      "invalid_icon": "Enter a valid non-empty icon string.",
+      "invalid_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_leaf_offset": "Enter a valid leaf temperature offset between -20.0 and 20.0 °C.",
+      "invalid_leaf_icon": "Enter a valid non-empty icon string.",
+      "invalid_leaf_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_absolute_humidity_icon": "Enter a valid non-empty icon string.",
+      "invalid_absolute_humidity_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_dew_point_icon": "Enter a valid non-empty icon string.",
+      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "vpdair": {
+        "name": "VPDair"
+      },
+      "vpdleaf": {
+        "name": "VPDleaf"
+      },
+      "absolute_humidity": {
+        "name": "Absolute Humidity"
+      },
+      "dew_point": {
+        "name": "Dew Point"
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--strict-markers"
+
+[tool.coverage.run]
+source = ["custom_components.vpd_air_auto"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "D", "PIE", "RUF", "SLF"]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.pylint.main]
+py-version = "3.14"
+init-hook = "import sys; sys.path.insert(0, '.')"
+
+[tool.pylint.messages_control]
+disable = [
+  "duplicate-code",
+  "too-many-lines",
+]

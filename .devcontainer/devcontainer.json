@@ -1,0 +1,55 @@
+{
+  "name": "VPD Air Auto",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "workspaceFolder": "/workspaces/vpd_air_auto",
+  "remoteUser": "vscode",
+  "forwardPorts": [9123, 5678],
+  "portsAttributes": {
+    "9123": {
+      "label": "Home Assistant",
+      "onAutoForward": "notify"
+    },
+    "5678": {
+      "label": "debugpy",
+      "onAutoForward": "silent"
+    }
+  },
+  "containerEnv": {
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/workspaces/vpd_air_auto/.venv/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "python.analysis.typeCheckingMode": "basic",
+        "editor.formatOnSave": true,
+        "files.exclude": {
+          "**/__pycache__": true,
+          ".pytest_cache": true,
+          ".ruff_cache": true,
+          ".mypy_cache": true,
+          ".coverage": true,
+          ".devcontainer/config/.storage": true,
+          ".venv": true
+        }
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        "github.vscode-github-actions"
+      ]
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post_create.sh"
+}

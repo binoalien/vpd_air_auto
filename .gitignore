@@ -1,0 +1,16 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+.env
+*.pyc
+*.pyo
+*.swp
+.qodo/
+.DS_Store
+.devcontainer/config/.storage/
+.devcontainer/config/home-assistant.log
+.devcontainer/config/*.db
+.devcontainer/config/*.db-*

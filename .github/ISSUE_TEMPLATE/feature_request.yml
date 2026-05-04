@@ -1,0 +1,12 @@
+name: Feature request
+description: Suggest an improvement for VPD Air Auto
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature
+      description: Describe the requested improvement.
+    validations:
+      required: true

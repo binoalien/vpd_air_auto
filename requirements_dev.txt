@@ -1,0 +1,6 @@
+-r requirements_test.txt
+homeassistant==2026.4.2
+pre-commit
+ruff
+pylint
+debugpy

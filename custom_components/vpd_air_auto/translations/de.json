@@ -1,0 +1,90 @@
+{
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Es ist nur eine Instanz von VPD Air Auto erlaubt."
+    },
+    "step": {
+      "user": {
+        "title": "VPD Air Auto einrichten",
+        "description": "Erstellt automatisch VPDair-, VPDleaf- und Absolute-Humidity-Sensoren für jedes Home-Assistant-Gerät, das sowohl einen Temperatur- als auch einen Feuchtesensor besitzt.",
+        "data": {
+          "scan_interval": "Intervall für Topologie-Rescan (Sekunden)",
+          "enable_air": "VPDair-Sensoren erzeugen",
+          "enable_leaf": "VPDleaf-Sensoren erzeugen",
+          "icon": "Globales VPDair-Icon (zum Beispiel: mdi:water-opacity)",
+          "display_name": "Globaler Name für den VPDair-Sensor (zum Beispiel: VPDair oder Luft-VPD)",
+          "leaf_offset": "Globaler Temperatur-Offset für VPDleaf in °C (zum Beispiel: -2,0 bedeutet Blatt = Luft - 2,0 °C)",
+          "leaf_icon": "Globales VPDleaf-Icon (zum Beispiel: mdi:leaf)",
+          "leaf_display_name": "Globaler Name für den VPDleaf-Sensor (zum Beispiel: VPDleaf oder Blatt-VPD)",
+          "enable_absolute_humidity": "Absolute-Humidity-Sensoren erzeugen",
+          "absolute_humidity_icon": "Globales Absolute-Humidity-Icon (zum Beispiel: mdi:water)",
+          "absolute_humidity_display_name": "Globaler Name für den Absolute-Humidity-Sensor (zum Beispiel: Absolute Humidity oder Absolute Luftfeuchte)",
+          "enable_dew_point": "Taupunkt-Sensoren erzeugen",
+          "dew_point_icon": "Globales Taupunkt-Icon (zum Beispiel: mdi:thermometer-water)",
+          "dew_point_display_name": "Globaler Name für den Taupunkt-Sensor (zum Beispiel: Taupunkt oder Dew Point)"
+        }
+      }
+    },
+    "error": {
+      "invalid_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_leaf_offset": "Bitte einen gültigen Blatt-Temperatur-Offset zwischen -20,0 und 20,0 °C eingeben.",
+      "invalid_leaf_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_leaf_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_absolute_humidity_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_absolute_humidity_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_dew_point_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "VPD Air Auto Optionen",
+        "data": {
+          "scan_interval": "Intervall für Topologie-Rescan (Sekunden)",
+          "enable_air": "VPDair-Sensoren erzeugen",
+          "enable_leaf": "VPDleaf-Sensoren erzeugen",
+          "icon": "Globales VPDair-Icon (zum Beispiel: mdi:water-opacity)",
+          "display_name": "Globaler Name für den VPDair-Sensor (zum Beispiel: VPDair oder Luft-VPD)",
+          "leaf_offset": "Globaler Temperatur-Offset für VPDleaf in °C (zum Beispiel: -2,0 bedeutet Blatt = Luft - 2,0 °C)",
+          "leaf_icon": "Globales VPDleaf-Icon (zum Beispiel: mdi:leaf)",
+          "leaf_display_name": "Globaler Name für den VPDleaf-Sensor (zum Beispiel: VPDleaf oder Blatt-VPD)",
+          "enable_absolute_humidity": "Absolute-Humidity-Sensoren erzeugen",
+          "absolute_humidity_icon": "Globales Absolute-Humidity-Icon (zum Beispiel: mdi:water)",
+          "absolute_humidity_display_name": "Globaler Name für den Absolute-Humidity-Sensor (zum Beispiel: Absolute Humidity oder Absolute Luftfeuchte)",
+          "enable_dew_point": "Taupunkt-Sensoren erzeugen",
+          "dew_point_icon": "Globales Taupunkt-Icon (zum Beispiel: mdi:thermometer-water)",
+          "dew_point_display_name": "Globaler Name für den Taupunkt-Sensor (zum Beispiel: Taupunkt oder Dew Point)"
+        }
+      }
+    },
+    "error": {
+      "invalid_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_leaf_offset": "Bitte einen gültigen Blatt-Temperatur-Offset zwischen -20,0 und 20,0 °C eingeben.",
+      "invalid_leaf_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_leaf_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_absolute_humidity_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_absolute_humidity_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_dew_point_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
+      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "vpdair": {
+        "name": "VPDair"
+      },
+      "vpdleaf": {
+        "name": "VPDleaf"
+      },
+      "absolute_humidity": {
+        "name": "Absolute Humidity"
+      },
+      "dew_point": {
+        "name": "Taupunkt"
+      }
+    }
+  }
+}

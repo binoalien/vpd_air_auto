@@ -1,0 +1,10 @@
+default_config:
+
+homeassistant:
+  name: VPD Air Auto Dev
+
+http:
+  server_port: 9123
+
+logger:
+  default: info

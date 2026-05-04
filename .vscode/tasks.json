@@ -1,0 +1,45 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Home Assistant on port 9123",
+      "type": "shell",
+      "command": "bash .devcontainer/run_homeassistant.sh",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Home Assistant configuration against /config",
+      "type": "shell",
+      "command": "bash .devcontainer/check_config.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Home Assistant with debugpy",
+      "type": "shell",
+      "command": "bash .devcontainer/run_homeassistant_debug.sh",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Upgrade Home Assistant to latest",
+      "type": "shell",
+      "command": "bash .devcontainer/install_latest_homeassistant.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install a specific version of Home Assistant",
+      "type": "shell",
+      "command": "bash .devcontainer/install_homeassistant_version.sh ${input:haVersion}",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "haVersion",
+      "type": "promptString",
+      "description": "Home Assistant version to install",
+      "default": "2026.4.2"
+    }
+  ]
+}
