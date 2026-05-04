@@ -100,17 +100,6 @@ pytest --cov=custom_components.vpd_air_auto --cov-report=term-missing
 
 Run Hassfest in CI through the included GitHub workflow.
 
-## Publishing checklist
-
-Before publishing this repository publicly:
-
-- Replace `YOUR_GITHUB_USERNAME` in `manifest.json`.
-- Replace placeholder author/license information if needed.
-- Add a GitHub repository description.
-- Add GitHub topics such as `home-assistant`, `hacs`, `custom-component`, `vpd`.
-- Ensure CI is green.
-- Create a GitHub release tag matching the manifest version, for example `v1.5.2`.
-
 ## License
 
 See [`LICENSE`](LICENSE).
