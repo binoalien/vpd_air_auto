@@ -1,15 +1,15 @@
 {
   "domain": "vpd_air_auto",
   "name": "VPD Air Auto",
-  "version": "1.5.5",
+  "version": "1.5.8",
   "codeowners": [
-    "@YOUR_GITHUB_USERNAME"
+    "@binoalien"
   ],
   "config_flow": true,
   "single_config_entry": true,
   "integration_type": "helper",
   "iot_class": "calculated",
   "requirements": [],
-  "documentation": "https://github.com/YOUR_GITHUB_USERNAME/vpd_air_auto#readme",
-  "issue_tracker": "https://github.com/YOUR_GITHUB_USERNAME/vpd_air_auto/issues"
+  "documentation": "https://github.com/binoalien/vpd_air_auto#readme",
+  "issue_tracker": "https://github.com/binoalien/vpd_air_auto/issues"
 }
