@@ -13,10 +13,10 @@ from .options import resolve_options
 
 type VpdAirConfigEntry = ConfigEntry[VpdAirCoordinator]
 
-CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)  # pylint: disable=invalid-name
 
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(_hass: HomeAssistant, _config: ConfigType) -> bool:
     """Set up the integration from YAML."""
     return True
 

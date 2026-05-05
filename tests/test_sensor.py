@@ -1,5 +1,7 @@
 """Tests for VPD Air Auto sensor entities."""
 
+# pylint: disable=protected-access
+
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -176,7 +178,7 @@ def test_sensor_unavailable_without_snapshot(hass: HomeAssistant) -> None:
 
     assert sensor.available is False
     assert sensor.native_value is None
-    assert sensor.extra_state_attributes == {}
+    assert not sensor.extra_state_attributes
 
 
 def test_registry_entry_kind_and_parallel_updates() -> None:
@@ -255,9 +257,9 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
 
     def _capture_add_entities(
         new_entities: Iterable[Entity],
-        update_before_add: bool = False,
+        _update_before_add: bool = False,
         *,
-        config_subentry_id: str | None = None,
+        _config_subentry_id: str | None = None,
     ) -> None:
         added_entities.extend(new_entities)
 

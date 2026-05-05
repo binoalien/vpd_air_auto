@@ -66,8 +66,8 @@ UNRECORDED_ATTRIBUTE_HUMIDITY_ENTITY_ID = "humidity_entity_id"
 UNRECORDED_ATTRIBUTE_LEAF_TEMPERATURE_OFFSET_C = "leaf_temperature_offset_c"
 
 
-@dataclass(frozen=True, slots=True)
-class IntegrationOptions:
+@dataclass(frozen=True, slots=True)  # pylint: disable=too-many-instance-attributes
+class IntegrationOptions:  # pylint: disable=too-many-instance-attributes
     """Resolved options for one loaded config entry."""
 
     scan_interval_seconds: int

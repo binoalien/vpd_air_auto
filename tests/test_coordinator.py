@@ -1,5 +1,7 @@
 """Tests for the VPD Air Auto coordinator."""
 
+# pylint: disable=protected-access,too-many-arguments
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -159,7 +161,7 @@ async def test_async_update_data_returns_empty_when_all_sensor_types_disabled(
         result = await coordinator._async_update_data()
 
     assert result == {}
-    assert coordinator._topology == {}
+    assert not coordinator._topology
     assert coordinator._source_to_device == {}
     mock_refresh.assert_called_once()
 
@@ -591,7 +593,7 @@ def test_discover_topology_skips_devices_without_complete_source_pair(
     ):
         topology = coordinator._discover_topology()
 
-    assert topology == {}
+    assert not topology
 
 
 def test_build_snapshot_for_topology_computes_all_values(hass: HomeAssistant) -> None:

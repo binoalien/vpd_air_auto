@@ -54,7 +54,7 @@ _LOGGER = logging.getLogger(__name__)
 _ABSOLUTE_HUMIDITY_DEVICE_CLASS = "absolute_humidity"
 
 
-class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
+class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # pylint: disable=too-many-instance-attributes
     """Discover valid source devices and compute sensor values efficiently."""
 
     config_entry: ConfigEntry

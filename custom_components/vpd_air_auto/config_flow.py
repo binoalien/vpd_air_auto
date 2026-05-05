@@ -40,6 +40,10 @@ class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def is_matching(self, other_flow: ConfigFlow) -> bool:
+        """Return whether another flow is for this integration."""
+        return other_flow.handler == DOMAIN
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
