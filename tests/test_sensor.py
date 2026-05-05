@@ -202,11 +202,13 @@ def test_unique_id_building_matches_public_helpers(hass: HomeAssistant) -> None:
     sensor_dew = _build_sensor(hass, SENSOR_KIND_DEW_POINT)
 
     assert sensor_air.unique_id == make_vpdair_unique_id(sensor_air._device_id)
-    assert sensor_leaf.unique_id == make_vpdleaf_unique_id(sensor_leaf._device_id)
+    assert sensor_leaf.unique_id == make_vpdleaf_unique_id(
+        sensor_leaf._device_id)
     assert sensor_abs.unique_id == make_absolute_humidity_unique_id(
         sensor_abs._device_id
     )
-    assert sensor_dew.unique_id == make_dew_point_unique_id(sensor_dew._device_id)
+    assert sensor_dew.unique_id == make_dew_point_unique_id(
+        sensor_dew._device_id)
 
 
 async def test_sensor_added_and_removed_notifies_context_tracking(
@@ -257,9 +259,9 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
 
     def _capture_add_entities(
         new_entities: Iterable[Entity],
-        _update_before_add: bool = False,
+        update_before_add: bool = False,
         *,
-        _config_subentry_id: str | None = None,
+        config_subentry_id: str | None = None,
     ) -> None:
         added_entities.extend(new_entities)
 
