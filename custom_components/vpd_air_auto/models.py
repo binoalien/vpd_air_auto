@@ -17,7 +17,7 @@ class DeviceTopology:
 
 
 @dataclass(frozen=True, slots=True)  # pylint: disable=too-many-instance-attributes
-class DeviceSnapshot:
+class DeviceSnapshot:  # pylint: disable=too-many-instance-attributes
     """Computed inputs and outputs for one Home Assistant device."""
 
     device_id: str

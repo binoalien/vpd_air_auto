@@ -67,7 +67,7 @@ UNRECORDED_ATTRIBUTE_LEAF_TEMPERATURE_OFFSET_C = "leaf_temperature_offset_c"
 
 
 @dataclass(frozen=True, slots=True)  # pylint: disable=too-many-instance-attributes
-class IntegrationOptions:
+class IntegrationOptions:  # pylint: disable=too-many-instance-attributes
     """Resolved options for one loaded config entry."""
 
     scan_interval_seconds: int

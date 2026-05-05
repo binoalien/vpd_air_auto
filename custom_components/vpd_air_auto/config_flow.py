@@ -40,8 +40,7 @@ class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    @staticmethod
-    def is_matching(other_flow: ConfigFlow) -> bool:
+    def is_matching(self, other_flow: ConfigFlow) -> bool:
         """Return whether another flow is for this integration."""
         return other_flow.handler == DOMAIN
 

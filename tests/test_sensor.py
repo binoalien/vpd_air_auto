@@ -257,9 +257,9 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
 
     def _capture_add_entities(
         new_entities: Iterable[Entity],
-        update_before_add: bool = False,
+        _update_before_add: bool = False,
         *,
-        config_subentry_id: str | None = None,
+        _config_subentry_id: str | None = None,
     ) -> None:
         added_entities.extend(new_entities)
 
