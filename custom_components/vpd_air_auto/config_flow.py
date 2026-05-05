@@ -7,11 +7,11 @@ from typing import Any
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
+    ConfigFlowResult,
     OptionsFlow,
     OptionsFlowWithReload,
 )
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
     DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
@@ -40,7 +40,9 @@ class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
@@ -50,7 +52,9 @@ class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             normalized_input, errors = normalize_user_input(user_input)
             if not errors:
-                return self.async_create_entry(title=DEFAULT_NAME, data=normalized_input)
+                return self.async_create_entry(
+                    title=DEFAULT_NAME, data=normalized_input
+                )
 
         defaults = IntegrationOptions(
             scan_interval_seconds=DEFAULT_SCAN_INTERVAL,
@@ -84,7 +88,9 @@ class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
 class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     """Handle options for VPD Air Auto."""
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         """Manage the integration options."""
         errors: dict[str, str] = {}
 

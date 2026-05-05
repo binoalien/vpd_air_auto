@@ -62,7 +62,10 @@ def choose_best_entity_id(
     if not candidates:
         return None
 
-    best = max(candidates, key=lambda candidate: candidate_score(candidate, target_device_class))
+    best = max(
+        candidates,
+        key=lambda candidate: candidate_score(candidate, target_device_class),
+    )
     return best.entity_id
 
 
@@ -72,7 +75,9 @@ def candidate_score(
 ) -> tuple[int, int, int, int, int, int, int, str]:
     """Return a stable sortable score for one source candidate."""
     expected_tokens = (
-        _TEMPERATURE_TOKENS if target_device_class == TARGET_TEMPERATURE else _HUMIDITY_TOKENS
+        _TEMPERATURE_TOKENS
+        if (target_device_class == TARGET_TEMPERATURE)
+        else _HUMIDITY_TOKENS
     )
     unit_score = _unit_score(candidate.unit_of_measurement, target_device_class)
     suffix_score = _suffix_score(candidate.entity_id, target_device_class)
@@ -105,7 +110,11 @@ def _unit_score(unit: str | None, target_device_class: str) -> int:
 
 def _suffix_score(entity_id: str, target_device_class: str) -> int:
     entity_name = entity_id.split(".", 1)[1] if "." in entity_id else entity_id
-    suffixes = _TEMPERATURE_SUFFIXES if target_device_class == TARGET_TEMPERATURE else _HUMIDITY_SUFFIXES
+    suffixes = (
+        _TEMPERATURE_SUFFIXES
+        if (target_device_class == TARGET_TEMPERATURE)
+        else _HUMIDITY_SUFFIXES
+    )
     for index, suffix in enumerate(suffixes):
         if entity_name.endswith(suffix):
             return 30 - index

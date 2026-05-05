@@ -16,7 +16,9 @@ from custom_components.vpd_air_auto.diagnostics import (
 from custom_components.vpd_air_auto.models import DeviceSnapshot, DeviceTopology
 
 
-async def test_config_entry_diagnostics_contains_entry_and_coordinator_data(hass: HomeAssistant) -> None:
+async def test_config_entry_diagnostics_contains_entry_and_coordinator_data(
+    hass: HomeAssistant,
+) -> None:
     """Test config entry diagnostics contains entry and coordinator data."""
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -40,10 +42,14 @@ async def test_config_entry_diagnostics_contains_entry_and_coordinator_data(hass
     assert diagnostics["entry"]["title"] == "VPD Air Auto"
     assert diagnostics["entry"]["data"] == {"scan_interval": 300}
     assert diagnostics["entry"]["options"] == {"display_name": "VPDair"}
-    assert diagnostics["coordinator"]["tracked_entity_ids"] == ["sensor.grow_tent_temperature"]
+    assert diagnostics["coordinator"]["tracked_entity_ids"] == [
+        "sensor.grow_tent_temperature"
+    ]
 
 
-async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds(hass: HomeAssistant) -> None:
+async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds(
+    hass: HomeAssistant,
+) -> None:
     """Test device diagnostics contains topology snapshot and creatable kinds."""
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
@@ -108,7 +114,10 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
     assert diagnostics["entry_id"] == entry.entry_id
     assert diagnostics["device"]["id"] == device.id
     assert diagnostics["device"]["name"] == "Grow Tent"
-    assert diagnostics["topology"]["temperature_entity_id"] == "sensor.grow_tent_temperature"
+    assert (
+        diagnostics["topology"]["temperature_entity_id"]
+        == "sensor.grow_tent_temperature"
+    )
     assert diagnostics["topology"]["blocked_sensor_kinds"] == ["leaf"]
     assert diagnostics["snapshot"]["vpd_air_kpa"] == 1.27
     assert diagnostics["snapshot"]["absolute_humidity_gm3"] == 13.8

@@ -20,7 +20,9 @@ from custom_components.vpd_air_auto.calculations import (
 
 def test_saturation_vapor_pressure_returns_expected_reference_value() -> None:
     """Test saturation vapor pressure returns expected reference value."""
-    assert round(saturation_vapor_pressure_kpa(25.0), 3) == 3.168
+    result = saturation_vapor_pressure_kpa(25.0)
+    assert result is not None
+    assert round(result, 3) == 3.168
 
 
 def test_calculate_vpd_air_kpa() -> None:
@@ -62,32 +64,36 @@ def test_coerce_temperature_c_handles_celsius_fahrenheit_and_invalid_units() -> 
     assert coerce_temperature_c(None) is None
     assert (
         coerce_temperature_c(
-            State("sensor.temp_c", "25", {"unit_of_measurement": "°C"}, False)
+            State("sensor.temp_c", "25", {"unit_of_measurement": "°C"}, None)
         )
         == 25.0
     )
-    assert round(
-        coerce_temperature_c(
-            State("sensor.temp_f", "77", {"unit_of_measurement": "°F"}, False)
-        ),
-        3,
-    ) == 25.0
+    result = coerce_temperature_c(
+        State("sensor.temp_f", "77", {"unit_of_measurement": "°F"}, None)
+    )
+    assert result is not None
+    assert round(result, 3) == 25.0
     assert (
         coerce_temperature_c(
-            State("sensor.temp_invalid", "12", {"unit_of_measurement": "K"}, False)
+            State("sensor.temp_invalid", "12", {"unit_of_measurement": "K"}, None)
         )
         is None
     )
-    assert coerce_temperature_c(State("sensor.temp_bad", "bad", {}, False)) is None
+    assert coerce_temperature_c(State("sensor.temp_bad", "bad", {}, None)) is None
 
 
 def test_coerce_humidity_pct_handles_none_invalid_and_out_of_range() -> None:
     """Test coerce humidity pct handles none invalid and out of range."""
     assert coerce_humidity_pct(None) is None
-    assert coerce_humidity_pct(State("sensor.humidity_unknown", STATE_UNKNOWN, {}, False)) is None
-    assert coerce_humidity_pct(State("sensor.humidity_negative", "-1", {}, False)) is None
-    assert coerce_humidity_pct(State("sensor.humidity_over", "101", {}, False)) is None
-    assert coerce_humidity_pct(State("sensor.humidity_valid", "45", {}, False)) == 45.0
+    assert (
+        coerce_humidity_pct(State("sensor.humidity_unknown", STATE_UNKNOWN, {}, None))
+        is None
+    )
+    assert (
+        coerce_humidity_pct(State("sensor.humidity_negative", "-1", {}, None)) is None
+    )
+    assert coerce_humidity_pct(State("sensor.humidity_over", "101", {}, None)) is None
+    assert coerce_humidity_pct(State("sensor.humidity_valid", "45", {}, None)) == 45.0
 
 
 def test_calculation_helpers_return_none_for_missing_inputs() -> None:

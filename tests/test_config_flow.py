@@ -68,9 +68,10 @@ async def test_user_flow_shows_form_with_defaults(hass: HomeAssistant) -> None:
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "user"
-    schema = result["data_schema"]
+    assert result.get("type") is data_entry_flow.FlowResultType.FORM
+    assert result.get("step_id") == "user"
+    schema = result.get("data_schema")
+    assert schema is not None
     assert schema({}) == {
         CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
         CONF_ENABLE_AIR: DEFAULT_ENABLE_AIR,
@@ -97,9 +98,9 @@ async def test_user_flow_creates_entry(hass: HomeAssistant) -> None:
         data=_valid_user_input(),
     )
 
-    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert result["title"] == DEFAULT_NAME
-    assert result["data"] == _valid_user_input()
+    assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result.get("title") == DEFAULT_NAME
+    assert result.get("data") == _valid_user_input()
 
 
 async def test_user_flow_aborts_for_second_instance(hass: HomeAssistant) -> None:
@@ -111,8 +112,8 @@ async def test_user_flow_aborts_for_second_instance(hass: HomeAssistant) -> None
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    assert result["type"] is data_entry_flow.FlowResultType.ABORT
-    assert result["reason"] == "single_instance_allowed"
+    assert result.get("type") is data_entry_flow.FlowResultType.ABORT
+    assert result.get("reason") == "single_instance_allowed"
 
 
 async def test_user_flow_returns_errors_for_invalid_fields(hass: HomeAssistant) -> None:
@@ -127,8 +128,8 @@ async def test_user_flow_returns_errors_for_invalid_fields(hass: HomeAssistant) 
         data=user_input,
     )
 
-    assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result["errors"] == {
+    assert result.get("type") is data_entry_flow.FlowResultType.FORM
+    assert result.get("errors") == {
         CONF_DISPLAY_NAME: "invalid_display_name",
         CONF_LEAF_OFFSET: "invalid_leaf_offset",
     }
@@ -141,9 +142,10 @@ async def test_options_flow_returns_form_with_entry_values(hass: HomeAssistant) 
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
 
-    assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result["step_id"] == "init"
-    schema = result["data_schema"]
+    assert result.get("type") is data_entry_flow.FlowResultType.FORM
+    assert result.get("step_id") == "init"
+    schema = result.get("data_schema")
+    assert schema is not None
     assert schema({}) == _valid_user_input()
 
 
@@ -163,12 +165,14 @@ async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:
     )
     await hass.async_block_till_done()
 
-    assert result["type"] is data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert result["data"] == user_input
+    assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result.get("data") == user_input
     assert entry.options == user_input
 
 
-async def test_options_flow_returns_errors_for_invalid_fields(hass: HomeAssistant) -> None:
+async def test_options_flow_returns_errors_for_invalid_fields(
+    hass: HomeAssistant,
+) -> None:
     """Test options flow returns errors for invalid fields."""
     entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
     entry.add_to_hass(hass)
@@ -183,8 +187,8 @@ async def test_options_flow_returns_errors_for_invalid_fields(hass: HomeAssistan
         init_result["flow_id"], user_input=user_input
     )
 
-    assert result["type"] is data_entry_flow.FlowResultType.FORM
-    assert result["errors"] == {
+    assert result.get("type") is data_entry_flow.FlowResultType.FORM
+    assert result.get("errors") == {
         CONF_ICON: "invalid_icon",
         CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME: "invalid_absolute_humidity_display_name",
         CONF_DEW_POINT_DISPLAY_NAME: "invalid_dew_point_display_name",

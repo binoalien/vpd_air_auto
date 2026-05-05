@@ -12,6 +12,7 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
+    EventStateChangedData,
     async_track_state_change_event,
     async_track_time_interval,
 )
@@ -164,8 +165,14 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
         return {
             "options": asdict(self.options),
             "tracked_entity_ids": sorted(self._tracked_entity_ids),
-            "topology": {device_id: asdict(topology) for device_id, topology in self._topology.items()},
-            "snapshots": {device_id: asdict(snapshot) for device_id, snapshot in (self.data or {}).items()},
+            "topology": {
+                device_id: asdict(topology)
+                for device_id, topology in self._topology.items()
+            },
+            "snapshots": {
+                device_id: asdict(snapshot)
+                for device_id, snapshot in (self.data or {}).items()
+            },
         }
 
     @callback
@@ -174,8 +181,12 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
         return {
             "device_id": device_id,
             "creatable_kinds": sorted(self.creatable_kinds_for_device(device_id)),
-            "topology": asdict(self._topology[device_id]) if device_id in self._topology else None,
-            "snapshot": asdict(self.data[device_id]) if self.data and device_id in self.data else None,
+            "topology": asdict(self._topology[device_id])
+            if device_id in self._topology
+            else None,
+            "snapshot": asdict(self.data[device_id])
+            if self.data and device_id in self.data
+            else None,
         }
 
     @callback
@@ -186,7 +197,10 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
             for device_id in self.async_contexts()
             for topology in [self._topology.get(device_id)]
             if topology is not None
-            for entity_id in (topology.temperature_entity_id, topology.humidity_entity_id)
+            for entity_id in (
+                topology.temperature_entity_id,
+                topology.humidity_entity_id,
+            )
         }
 
         if tracked_entity_ids == self._tracked_entity_ids:
@@ -206,7 +220,9 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
             self._async_handle_source_state_changed,
         )
 
-    async def _async_handle_source_state_changed(self, event: Event) -> None:
+    async def _async_handle_source_state_changed(
+        self, event: Event[EventStateChangedData]
+    ) -> None:
         """Update only the device affected by one source sensor state change."""
         entity_id = event.data.get("entity_id")
         if not isinstance(entity_id, str):
@@ -251,8 +267,12 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
                 )
             )
 
-            temperature_entity_id = self._pick_best_entity(candidates, target_device_class=TARGET_TEMPERATURE)
-            humidity_entity_id = self._pick_best_entity(candidates, target_device_class=TARGET_HUMIDITY)
+            temperature_entity_id = self._pick_best_entity(
+                candidates, target_device_class=TARGET_TEMPERATURE
+            )
+            humidity_entity_id = self._pick_best_entity(
+                candidates, target_device_class=TARGET_HUMIDITY
+            )
 
             if temperature_entity_id is None or humidity_entity_id is None:
                 continue
@@ -262,7 +282,9 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
                 device_name=device.name_by_user or device.name or device.id,
                 temperature_entity_id=temperature_entity_id,
                 humidity_entity_id=humidity_entity_id,
-                blocked_sensor_kinds=self._detect_existing_derived_sensor_kinds(candidates),
+                blocked_sensor_kinds=self._detect_existing_derived_sensor_kinds(
+                    candidates
+                ),
             )
 
         return topology
@@ -290,14 +312,18 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
                     unit_of_measurement=self._entry_unit_of_measurement(entry),
                     entity_category=self._entry_entity_category(entry),
                     value_valid=self._entry_value_valid(entry, target_device_class),
-                    normalized_identifiers=frozenset(self._normalized_entry_identifiers(entry)),
+                    normalized_identifiers=frozenset(
+                        self._normalized_entry_identifiers(entry)
+                    ),
                 )
             )
 
         return choose_best_entity_id(normalized_candidates, target_device_class)
 
-    def _detect_existing_derived_sensor_kinds(self, candidates: list[er.RegistryEntry]) -> frozenset[str]:
-        """Detect foreign sensors on the same device that would duplicate our helpers."""
+    def _detect_existing_derived_sensor_kinds(
+        self, candidates: list[er.RegistryEntry]
+    ) -> frozenset[str]:
+        """Detect foreign sensors on same device that would duplicate our helpers."""
         blocked: set[str] = set()
 
         for entry in candidates:
@@ -312,8 +338,10 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
 
         return frozenset(blocked)
 
-    def _detect_existing_derived_sensor_kind(self, entry: er.RegistryEntry) -> str | None:
-        """Classify a foreign sensor as one of our derived helper kinds when possible."""
+    def _detect_existing_derived_sensor_kind(
+        self, entry: er.RegistryEntry
+    ) -> str | None:
+        """Classify a foreign sensor as our derived helper kinds when possible."""
         entry_device_class = self._entry_device_class(entry)
         if entry_device_class == _ABSOLUTE_HUMIDITY_DEVICE_CLASS:
             return SENSOR_KIND_ABSOLUTE_HUMIDITY
@@ -376,10 +404,10 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
 
     def _normalized_entry_identifiers(self, entry: er.RegistryEntry) -> set[str]:
         """Collect normalized names and IDs for one registry entry."""
-        identifiers = {normalize_identifier(entry.entity_id.split('.', 1)[1])}
+        identifiers = {normalize_identifier(entry.entity_id.split(".", 1)[1])}
         for value in (
-            getattr(entry, 'name', None),
-            getattr(entry, 'original_name', None),
+            getattr(entry, "name", None),
+            getattr(entry, "original_name", None),
             self._state_friendly_name(entry.entity_id),
         ):
             normalized = normalize_identifier(value)
@@ -392,18 +420,18 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
         state = self.hass.states.get(entity_id)
         if state is None:
             return None
-        friendly_name = state.attributes.get('friendly_name')
+        friendly_name = state.attributes.get("friendly_name")
         return friendly_name if isinstance(friendly_name, str) else None
 
     def _entry_device_class(self, entry: er.RegistryEntry) -> str | None:
-        """Resolve the device class for a source entity from state first, then registry."""
+        """Resolve device class for source entity from state first, then registry."""
         state = self.hass.states.get(entry.entity_id)
         if state is not None:
-            device_class = state.attributes.get('device_class')
+            device_class = state.attributes.get("device_class")
             if isinstance(device_class, str):
                 return device_class
 
-        original_device_class = getattr(entry, 'original_device_class', None)
+        original_device_class = getattr(entry, "original_device_class", None)
         if isinstance(original_device_class, str):
             return original_device_class
         return None
@@ -412,41 +440,51 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):
         """Resolve the current or original unit of measurement for one entity."""
         state = self.hass.states.get(entry.entity_id)
         if state is not None:
-            unit = state.attributes.get('unit_of_measurement')
+            unit = state.attributes.get("unit_of_measurement")
             if isinstance(unit, str):
                 return unit
 
-        original_unit = getattr(entry, 'original_unit_of_measurement', None)
+        original_unit = getattr(entry, "original_unit_of_measurement", None)
         if isinstance(original_unit, str):
             return original_unit
         return None
 
     def _entry_entity_category(self, entry: er.RegistryEntry) -> str | None:
         """Return the registry entity_category value as a string when present."""
-        entity_category = getattr(entry, 'entity_category', None)
+        entity_category = getattr(entry, "entity_category", None)
         if entity_category is None:
             return None
         return str(entity_category)
 
-    def _entry_value_valid(self, entry: er.RegistryEntry, target_device_class: str) -> bool:
+    def _entry_value_valid(
+        self, entry: er.RegistryEntry, target_device_class: str
+    ) -> bool:
         """Return true when the current state can be parsed for the target kind."""
         state = self.hass.states.get(entry.entity_id)
         if target_device_class == TARGET_TEMPERATURE:
             return coerce_temperature_c(state) is not None
         return coerce_humidity_pct(state) is not None
 
-    def _build_snapshot_for_topology(self, device_topology: DeviceTopology) -> DeviceSnapshot:
+    def _build_snapshot_for_topology(
+        self, device_topology: DeviceTopology
+    ) -> DeviceSnapshot:
         """Build the current snapshot for one Home Assistant device."""
         temp_state = self.hass.states.get(device_topology.temperature_entity_id)
         humidity_state = self.hass.states.get(device_topology.humidity_entity_id)
 
         temperature_c = coerce_temperature_c(temp_state)
         humidity_pct = coerce_humidity_pct(humidity_state)
-        leaf_temperature_c = calculate_leaf_temperature_c(temperature_c, self.options.leaf_offset_c)
+        leaf_temperature_c = calculate_leaf_temperature_c(
+            temperature_c, self.options.leaf_offset_c
+        )
         dew_point_c = calculate_dew_point_c(temperature_c, humidity_pct)
         vpd_air_kpa = calculate_vpd_air_kpa(temperature_c, humidity_pct)
-        vpd_leaf_kpa = calculate_vpd_leaf_kpa(temperature_c, humidity_pct, leaf_temperature_c)
-        absolute_humidity_gm3 = calculate_absolute_humidity_gm3(temperature_c, humidity_pct)
+        vpd_leaf_kpa = calculate_vpd_leaf_kpa(
+            temperature_c, humidity_pct, leaf_temperature_c
+        )
+        absolute_humidity_gm3 = calculate_absolute_humidity_gm3(
+            temperature_c, humidity_pct
+        )
 
         return DeviceSnapshot(
             device_id=device_topology.device_id,

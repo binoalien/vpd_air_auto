@@ -100,7 +100,9 @@ def resolve_options(entry: ConfigEntry) -> IntegrationOptions:
         enable_absolute_humidity=bool(
             entry.options.get(
                 CONF_ENABLE_ABSOLUTE_HUMIDITY,
-                entry.data.get(CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY),
+                entry.data.get(
+                    CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
+                ),
             )
         ),
         enable_dew_point=bool(
@@ -137,7 +139,9 @@ def resolve_options(entry: ConfigEntry) -> IntegrationOptions:
         absolute_humidity_icon=str(
             entry.options.get(
                 CONF_ABSOLUTE_HUMIDITY_ICON,
-                entry.data.get(CONF_ABSOLUTE_HUMIDITY_ICON, DEFAULT_ABSOLUTE_HUMIDITY_ICON),
+                entry.data.get(
+                    CONF_ABSOLUTE_HUMIDITY_ICON, DEFAULT_ABSOLUTE_HUMIDITY_ICON
+                ),
             )
         ),
         absolute_humidity_display_name=str(
@@ -158,7 +162,9 @@ def resolve_options(entry: ConfigEntry) -> IntegrationOptions:
         dew_point_display_name=str(
             entry.options.get(
                 CONF_DEW_POINT_DISPLAY_NAME,
-                entry.data.get(CONF_DEW_POINT_DISPLAY_NAME, DEFAULT_DEW_POINT_DISPLAY_NAME),
+                entry.data.get(
+                    CONF_DEW_POINT_DISPLAY_NAME, DEFAULT_DEW_POINT_DISPLAY_NAME
+                ),
             )
         ),
     )
@@ -168,7 +174,9 @@ def build_schema(options: IntegrationOptions) -> vol.Schema:
     """Build the shared schema for setup and options."""
     return vol.Schema(
         {
-            vol.Required(CONF_SCAN_INTERVAL, default=options.scan_interval_seconds): vol.All(
+            vol.Required(
+                CONF_SCAN_INTERVAL, default=options.scan_interval_seconds
+            ): vol.All(
                 int,
                 vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
             ),
@@ -186,8 +194,12 @@ def build_schema(options: IntegrationOptions) -> vol.Schema:
             vol.Required(CONF_LEAF_ICON, default=options.leaf_icon): IconSelector(
                 IconSelectorConfig(placeholder=DEFAULT_LEAF_ICON)
             ),
-            vol.Required(CONF_LEAF_DISPLAY_NAME, default=options.leaf_display_name): str,
-            vol.Required(CONF_LEAF_OFFSET, default=options.leaf_offset_c): NumberSelector(
+            vol.Required(
+                CONF_LEAF_DISPLAY_NAME, default=options.leaf_display_name
+            ): str,
+            vol.Required(
+                CONF_LEAF_OFFSET, default=options.leaf_offset_c
+            ): NumberSelector(
                 NumberSelectorConfig(
                     min=MIN_LEAF_OFFSET,
                     max=MAX_LEAF_OFFSET,
@@ -199,7 +211,9 @@ def build_schema(options: IntegrationOptions) -> vol.Schema:
             vol.Required(
                 CONF_ABSOLUTE_HUMIDITY_ICON,
                 default=options.absolute_humidity_icon,
-            ): IconSelector(IconSelectorConfig(placeholder=DEFAULT_ABSOLUTE_HUMIDITY_ICON)),
+            ): IconSelector(
+                IconSelectorConfig(placeholder=DEFAULT_ABSOLUTE_HUMIDITY_ICON)
+            ),
             vol.Required(
                 CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
                 default=options.absolute_humidity_display_name,
@@ -216,7 +230,9 @@ def build_schema(options: IntegrationOptions) -> vol.Schema:
     )
 
 
-def normalize_user_input(user_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+def normalize_user_input(
+    user_input: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
     """Normalize validated config/options form input."""
     normalized_input = dict(user_input)
     errors: dict[str, str] = {}
@@ -234,12 +250,16 @@ def normalize_user_input(user_input: dict[str, Any]) -> tuple[dict[str, Any], di
 
     for field_name, error_key in field_error_map.items():
         try:
-            normalized_input[field_name] = trimmed_nonempty_string(user_input[field_name], error_key)
+            normalized_input[field_name] = trimmed_nonempty_string(
+                user_input[field_name], error_key
+            )
         except vol.Invalid as err:
             errors[field_name] = str(err)
 
     try:
-        normalized_input[CONF_LEAF_OFFSET] = validated_leaf_offset(user_input[CONF_LEAF_OFFSET])
+        normalized_input[CONF_LEAF_OFFSET] = validated_leaf_offset(
+            user_input[CONF_LEAF_OFFSET]
+        )
     except vol.Invalid as err:
         errors[CONF_LEAF_OFFSET] = str(err)
 

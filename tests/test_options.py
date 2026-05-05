@@ -74,8 +74,6 @@ def test_trimmed_nonempty_string_returns_trimmed_value() -> None:
 
 
 @pytest.mark.parametrize("value", [None, 123, "   ", ""])
-
-
 def test_trimmed_nonempty_string_raises_for_invalid_values(value) -> None:
     """Test trimmed nonempty string raises for invalid values."""
     with pytest.raises(vol.Invalid, match="invalid_field"):
@@ -87,9 +85,9 @@ def test_validated_leaf_offset_rounds_to_one_decimal() -> None:
     assert validated_leaf_offset(-1.26) == -1.3
 
 
-@pytest.mark.parametrize("value", [None, "abc", MIN_LEAF_OFFSET - 0.1, MAX_LEAF_OFFSET + 0.1])
-
-
+@pytest.mark.parametrize(
+    "value", [None, "abc", MIN_LEAF_OFFSET - 0.1, MAX_LEAF_OFFSET + 0.1]
+)
 def test_validated_leaf_offset_rejects_invalid_values(value) -> None:
     """Test validated leaf offset rejects invalid values."""
     with pytest.raises(vol.Invalid, match="invalid_leaf_offset"):
@@ -183,17 +181,16 @@ def test_resolve_options_falls_back_to_entry_data_and_defaults() -> None:
 
 def test_build_schema_applies_defaults_and_validates_scan_interval_bounds() -> None:
     """Test build schema applies defaults and validates scan interval bounds."""
-    options = resolve_options(MockConfigEntry(domain="vpd_air_auto", data={}, options={}))
+    options = resolve_options(
+        MockConfigEntry(domain="vpd_air_auto", data={}, options={})
+    )
     schema = build_schema(options)
 
-    normalized = schema({})
+    normalized: dict = schema({})  # type: ignore[assignment]
     assert normalized[CONF_SCAN_INTERVAL] == DEFAULT_SCAN_INTERVAL
     assert normalized[CONF_ENABLE_AIR] is DEFAULT_ENABLE_AIR
     assert normalized[CONF_ENABLE_LEAF] is DEFAULT_ENABLE_LEAF
-    assert (
-        normalized[CONF_ENABLE_ABSOLUTE_HUMIDITY]
-        is DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
-    )
+    assert normalized[CONF_ENABLE_ABSOLUTE_HUMIDITY] is DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
     assert normalized[CONF_ENABLE_DEW_POINT] is DEFAULT_ENABLE_DEW_POINT
     assert normalized[CONF_ICON] == DEFAULT_ICON
     assert normalized[CONF_DISPLAY_NAME] == DEFAULT_DISPLAY_NAME

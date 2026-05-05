@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import Event, HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.const import (
@@ -17,7 +18,10 @@ from custom_components.vpd_air_auto.const import (
     SENSOR_KIND_LEAF,
     IntegrationOptions,
 )
-from custom_components.vpd_air_auto.coordinator import VpdAirCoordinator
+from custom_components.vpd_air_auto.coordinator import (
+    EventStateChangedData,
+    VpdAirCoordinator,
+)
 from custom_components.vpd_air_auto.models import DeviceSnapshot, DeviceTopology
 
 
@@ -89,13 +93,17 @@ def _snapshot(device_id: str, *, humidity_pct: float = 60.0) -> DeviceSnapshot:
     )
 
 
-def _build_coordinator(hass: HomeAssistant, *, options: IntegrationOptions | None = None) -> VpdAirCoordinator:
+def _build_coordinator(
+    hass: HomeAssistant, *, options: IntegrationOptions | None = None
+) -> VpdAirCoordinator:
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.add_to_hass(hass)
     return VpdAirCoordinator(hass, entry, options or _options())
 
 
-async def test_async_setup_registers_periodic_rescan_listener(hass: HomeAssistant) -> None:
+async def test_async_setup_registers_periodic_rescan_listener(
+    hass: HomeAssistant,
+) -> None:
     """Test async setup registers periodic rescan listener."""
     coordinator = _build_coordinator(hass)
     unsub = MagicMock()
@@ -110,7 +118,9 @@ async def test_async_setup_registers_periodic_rescan_listener(hass: HomeAssistan
     assert coordinator._unsub_periodic_rescan is unsub
 
 
-async def test_async_shutdown_cleans_up_registered_listeners(hass: HomeAssistant) -> None:
+async def test_async_shutdown_cleans_up_registered_listeners(
+    hass: HomeAssistant,
+) -> None:
     """Test async shutdown cleans up registered listeners."""
     coordinator = _build_coordinator(hass)
     state_unsub = MagicMock()
@@ -126,13 +136,22 @@ async def test_async_shutdown_cleans_up_registered_listeners(hass: HomeAssistant
     assert coordinator._unsub_periodic_rescan is None
 
 
-async def test_async_update_data_returns_empty_when_all_sensor_types_disabled(hass: HomeAssistant) -> None:
+async def test_async_update_data_returns_empty_when_all_sensor_types_disabled(
+    hass: HomeAssistant,
+) -> None:
     """Test async update data returns empty when all sensor types disabled."""
     coordinator = _build_coordinator(
         hass,
-        options=_options(enable_air=False, enable_leaf=False, enable_absolute_humidity=False, enable_dew_point=False),
+        options=_options(
+            enable_air=False,
+            enable_leaf=False,
+            enable_absolute_humidity=False,
+            enable_dew_point=False,
+        ),
     )
-    coordinator._topology = {"old": DeviceTopology("old", "Old", "sensor.old_temp", "sensor.old_humidity")}
+    coordinator._topology = {
+        "old": DeviceTopology("old", "Old", "sensor.old_temp", "sensor.old_humidity")
+    }
     coordinator._source_to_device = {"sensor.old_temp": "old"}
     coordinator._tracked_entity_ids = {"sensor.old_temp"}
 
@@ -145,7 +164,9 @@ async def test_async_update_data_returns_empty_when_all_sensor_types_disabled(ha
     mock_refresh.assert_called_once()
 
 
-async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_sources(hass: HomeAssistant) -> None:
+async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_sources(
+    hass: HomeAssistant,
+) -> None:
     """Test async update data discovers topology builds snapshots and maps sources."""
     coordinator = _build_coordinator(hass)
     topology = {
@@ -160,8 +181,12 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
     snapshot = _snapshot("device-1")
 
     with (
-        patch.object(coordinator, "_discover_topology", return_value=topology) as mock_discover,
-        patch.object(coordinator, "_build_snapshot_for_topology", return_value=snapshot) as mock_build,
+        patch.object(
+            coordinator, "_discover_topology", return_value=topology
+        ) as mock_discover,
+        patch.object(
+            coordinator, "_build_snapshot_for_topology", return_value=snapshot
+        ) as mock_build,
         patch.object(coordinator, "_refresh_state_listener") as mock_refresh,
     ):
         result = await coordinator._async_update_data()
@@ -187,11 +212,18 @@ async def test_periodic_rescan_requests_refresh(hass: HomeAssistant) -> None:
     coordinator.async_request_refresh.assert_awaited_once()
 
 
-def test_creatable_kinds_for_device_respects_enabled_flags_and_blocked_kinds(hass: HomeAssistant) -> None:
+def test_creatable_kinds_for_device_respects_enabled_flags_and_blocked_kinds(
+    hass: HomeAssistant,
+) -> None:
     """Test creatable kinds for device respects enabled flags and blocked kinds."""
     coordinator = _build_coordinator(
         hass,
-        options=_options(enable_air=True, enable_leaf=False, enable_absolute_humidity=True, enable_dew_point=True),
+        options=_options(
+            enable_air=True,
+            enable_leaf=False,
+            enable_absolute_humidity=True,
+            enable_dew_point=True,
+        ),
     )
     coordinator._topology = {
         "device-1": DeviceTopology(
@@ -209,10 +241,20 @@ def test_creatable_kinds_for_device_respects_enabled_flags_and_blocked_kinds(has
     assert coordinator.creatable_kinds_for_device("missing") == set()
 
 
-def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sources(hass: HomeAssistant) -> None:
-    """Test diagnostics payload contains options topology snapshots and tracked sources."""
+def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sources(
+    hass: HomeAssistant,
+) -> None:
+    """
+    Test diagnostics payload contains options, topology snapshots, and tracked sources.
+
+    This test verifies that the diagnostics payload includes the expected options,
+    topology snapshots, and tracked sources.
+    """
     coordinator = _build_coordinator(hass)
-    coordinator._tracked_entity_ids = {"sensor.grow_tent_temperature", "sensor.grow_tent_humidity"}
+    coordinator._tracked_entity_ids = {
+        "sensor.grow_tent_temperature",
+        "sensor.grow_tent_humidity",
+    }
     coordinator._topology = {
         "device-1": DeviceTopology(
             device_id="device-1",
@@ -224,7 +266,7 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
     }
     coordinator.data = {"device-1": _snapshot("device-1")}
 
-    diagnostics = coordinator.diagnostics_payload()
+    diagnostics: dict[str, Any] = coordinator.diagnostics_payload()
 
     assert diagnostics["options"]["display_name"] == "VPDair"
     assert diagnostics["options"]["dew_point_display_name"] == "Dew Point"
@@ -232,19 +274,20 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
         "sensor.grow_tent_humidity",
         "sensor.grow_tent_temperature",
     ]
-    assert diagnostics["topology"]["device-1"]["blocked_sensor_kinds"] == frozenset({SENSOR_KIND_LEAF})
+    assert diagnostics["topology"]["device-1"]["blocked_sensor_kinds"] == frozenset(
+        {SENSOR_KIND_LEAF}
+    )
     assert diagnostics["snapshots"]["device-1"]["vpd_air_kpa"] == 1.27
     assert diagnostics["snapshots"]["device-1"]["dew_point_c"] == 16.68
 
 
-@callback
+def _contexts(device_ids: set[str]):
+    yield from device_ids
 
 
-def _contexts(device_ids: set[str]) -> set[str]:
-    return device_ids
-
-
-def test_refresh_state_listener_tracks_only_active_context_sources(hass: HomeAssistant) -> None:
+def test_refresh_state_listener_tracks_only_active_context_sources(
+    hass: HomeAssistant,
+) -> None:
     """Test refresh state listener tracks only active context sources."""
     coordinator = _build_coordinator(hass)
     coordinator._topology = {
@@ -283,7 +326,9 @@ def test_refresh_state_listener_tracks_only_active_context_sources(hass: HomeAss
     assert coordinator._tracked_entity_ids == set()
 
 
-async def test_source_state_changed_updates_only_affected_device(hass: HomeAssistant) -> None:
+async def test_source_state_changed_updates_only_affected_device(
+    hass: HomeAssistant,
+) -> None:
     """Test source state changed updates only affected device."""
     coordinator = _build_coordinator(hass)
     topology = DeviceTopology(
@@ -301,14 +346,25 @@ async def test_source_state_changed_updates_only_affected_device(hass: HomeAssis
     coordinator.async_set_updated_data = MagicMock()
 
     await coordinator._async_handle_source_state_changed(
-        SimpleNamespace(data={"entity_id": "sensor.grow_tent_humidity", "old_state": "old", "new_state": "new"})
+        Event(
+            "state_changed",
+            data=EventStateChangedData(
+                entity_id="sensor.grow_tent_humidity",
+                old_state=State("sensor.grow_tent_humidity", state="old"),
+                new_state=State("sensor.grow_tent_humidity", state="new"),
+            ),
+        )
     )
 
     coordinator._build_snapshot_for_topology.assert_called_once_with(topology)
-    coordinator.async_set_updated_data.assert_called_once_with({"device-1": next_snapshot})
+    coordinator.async_set_updated_data.assert_called_once_with(
+        {"device-1": next_snapshot}
+    )
 
 
-async def test_source_state_changed_ignores_unknown_or_unchanged_sources(hass: HomeAssistant) -> None:
+async def test_source_state_changed_ignores_unknown_or_unchanged_sources(
+    hass: HomeAssistant,
+) -> None:
     """Test source state changed ignores unknown or unchanged sources."""
     coordinator = _build_coordinator(hass)
     topology = DeviceTopology(
@@ -325,16 +381,30 @@ async def test_source_state_changed_ignores_unknown_or_unchanged_sources(hass: H
     coordinator.async_set_updated_data = MagicMock()
 
     await coordinator._async_handle_source_state_changed(
-        SimpleNamespace(data={"entity_id": "sensor.unknown"})
+        Event(
+            "state_changed",
+            data=EventStateChangedData(
+                entity_id="sensor.unknown", old_state=None, new_state=None
+            ),
+        )
     )
     await coordinator._async_handle_source_state_changed(
-        SimpleNamespace(data={"entity_id": "sensor.grow_tent_humidity", "old_state": "old", "new_state": "new"})
+        Event(
+            "state_changed",
+            data=EventStateChangedData(
+                entity_id="sensor.grow_tent_humidity",
+                old_state=State("sensor.grow_tent_humidity", state="old"),
+                new_state=State("sensor.grow_tent_humidity", state="new"),
+            ),
+        )
     )
 
     coordinator.async_set_updated_data.assert_not_called()
 
 
-def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kinds(hass: HomeAssistant) -> None:
+def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kinds(
+    hass: HomeAssistant,
+) -> None:
     """Test discover topology selects best sources and blocks duplicate sensor kinds."""
     coordinator = _build_coordinator(hass)
     device = _device("device-1")
@@ -397,22 +467,38 @@ def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kind
     hass.states.async_set(
         "sensor.grow_tent_temperature",
         "25.0",
-        {"device_class": "temperature", "unit_of_measurement": "°C", "friendly_name": "Grow Tent Temperature"},
+        {
+            "device_class": "temperature",
+            "unit_of_measurement": "°C",
+            "friendly_name": "Grow Tent Temperature",
+        },
     )
     hass.states.async_set(
         "sensor.grow_tent_temp_aux",
         "24.8",
-        {"device_class": "temperature", "unit_of_measurement": "°C", "friendly_name": "Aux Temp"},
+        {
+            "device_class": "temperature",
+            "unit_of_measurement": "°C",
+            "friendly_name": "Aux Temp",
+        },
     )
     hass.states.async_set(
         "sensor.grow_tent_humidity",
         "60",
-        {"device_class": "humidity", "unit_of_measurement": "%", "friendly_name": "Grow Tent Humidity"},
+        {
+            "device_class": "humidity",
+            "unit_of_measurement": "%",
+            "friendly_name": "Grow Tent Humidity",
+        },
     )
     hass.states.async_set(
         "sensor.grow_tent_humidity_generic",
         "59",
-        {"device_class": "humidity", "unit_of_measurement": "%", "friendly_name": "Humidity Generic"},
+        {
+            "device_class": "humidity",
+            "unit_of_measurement": "%",
+            "friendly_name": "Humidity Generic",
+        },
     )
     hass.states.async_set(
         "sensor.grow_tent_vpdair_foreign",
@@ -432,12 +518,22 @@ def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kind
     hass.states.async_set(
         "sensor.grow_tent_dew_point_foreign",
         "16.6",
-        {"friendly_name": "Dew Point", "unit_of_measurement": "°C", "device_class": "temperature"},
+        {
+            "friendly_name": "Dew Point",
+            "unit_of_measurement": "°C",
+            "device_class": "temperature",
+        },
     )
 
     with (
-        patch("custom_components.vpd_air_auto.coordinator.dr.async_get", return_value=device_registry),
-        patch("custom_components.vpd_air_auto.coordinator.er.async_get", return_value=entity_registry),
+        patch(
+            "custom_components.vpd_air_auto.coordinator.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.coordinator.er.async_get",
+            return_value=entity_registry,
+        ),
         patch(
             "custom_components.vpd_air_auto.coordinator.er.async_entries_for_device",
             return_value=entries,
@@ -448,11 +544,18 @@ def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kind
     assert topology["device-1"].temperature_entity_id == "sensor.grow_tent_temperature"
     assert topology["device-1"].humidity_entity_id == "sensor.grow_tent_humidity"
     assert topology["device-1"].blocked_sensor_kinds == frozenset(
-        {SENSOR_KIND_AIR, SENSOR_KIND_LEAF, SENSOR_KIND_ABSOLUTE_HUMIDITY, SENSOR_KIND_DEW_POINT}
+        {
+            SENSOR_KIND_AIR,
+            SENSOR_KIND_LEAF,
+            SENSOR_KIND_ABSOLUTE_HUMIDITY,
+            SENSOR_KIND_DEW_POINT,
+        }
     )
 
 
-def test_discover_topology_skips_devices_without_complete_source_pair(hass: HomeAssistant) -> None:
+def test_discover_topology_skips_devices_without_complete_source_pair(
+    hass: HomeAssistant,
+) -> None:
     """Test discover topology skips devices without complete source pair."""
     coordinator = _build_coordinator(hass)
     device = _device("device-1")
@@ -473,8 +576,14 @@ def test_discover_topology_skips_devices_without_complete_source_pair(hass: Home
     )
 
     with (
-        patch("custom_components.vpd_air_auto.coordinator.dr.async_get", return_value=device_registry),
-        patch("custom_components.vpd_air_auto.coordinator.er.async_get", return_value=entity_registry),
+        patch(
+            "custom_components.vpd_air_auto.coordinator.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.coordinator.er.async_get",
+            return_value=entity_registry,
+        ),
         patch(
             "custom_components.vpd_air_auto.coordinator.er.async_entries_for_device",
             return_value=entries,

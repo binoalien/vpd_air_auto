@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from unittest.mock import Mock
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import Entity, MockConfigEntry
 
 from custom_components.vpd_air_auto.const import (
     DOMAIN,
@@ -178,13 +179,15 @@ def test_sensor_unavailable_without_snapshot(hass: HomeAssistant) -> None:
     assert sensor.extra_state_attributes == {}
 
 
-
 def test_registry_entry_kind_and_parallel_updates() -> None:
     """Test registry entry kind and parallel updates."""
     assert PARALLEL_UPDATES == 0
     assert _registry_entry_kind("prefix_vpdair") == SENSOR_KIND_AIR
     assert _registry_entry_kind("prefix_vpdleaf") == SENSOR_KIND_LEAF
-    assert _registry_entry_kind("prefix_absolute_humidity") == SENSOR_KIND_ABSOLUTE_HUMIDITY
+    assert (
+        _registry_entry_kind("prefix_absolute_humidity")
+        == SENSOR_KIND_ABSOLUTE_HUMIDITY
+    )
     assert _registry_entry_kind("prefix_dew_point") == SENSOR_KIND_DEW_POINT
     assert _registry_entry_kind("prefix_unknown") is None
 
@@ -198,11 +201,15 @@ def test_unique_id_building_matches_public_helpers(hass: HomeAssistant) -> None:
 
     assert sensor_air.unique_id == make_vpdair_unique_id(sensor_air._device_id)
     assert sensor_leaf.unique_id == make_vpdleaf_unique_id(sensor_leaf._device_id)
-    assert sensor_abs.unique_id == make_absolute_humidity_unique_id(sensor_abs._device_id)
+    assert sensor_abs.unique_id == make_absolute_humidity_unique_id(
+        sensor_abs._device_id
+    )
     assert sensor_dew.unique_id == make_dew_point_unique_id(sensor_dew._device_id)
 
 
-async def test_sensor_added_and_removed_notifies_context_tracking(hass: HomeAssistant) -> None:
+async def test_sensor_added_and_removed_notifies_context_tracking(
+    hass: HomeAssistant,
+) -> None:
     """Test sensor added and removed notifies context tracking."""
     sensor = _build_sensor(hass, SENSOR_KIND_AIR)
     sensor.coordinator.async_note_context_change = Mock()
@@ -223,7 +230,9 @@ def test_handle_coordinator_update_writes_state(hass: HomeAssistant) -> None:
     sensor.async_write_ha_state.assert_called_once()
 
 
-async def test_async_setup_entry_adds_and_removes_expected_entities(hass: HomeAssistant) -> None:
+async def test_async_setup_entry_adds_and_removes_expected_entities(
+    hass: HomeAssistant,
+) -> None:
     """Test async setup entry adds and removes expected entities."""
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.add_to_hass(hass)
@@ -244,8 +253,13 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(hass: HomeAs
     coordinator.async_add_listener = Mock(return_value=remove_callback)
     added_entities = []
 
-    def _capture_add_entities(entities):
-        added_entities.extend(entities)
+    def _capture_add_entities(
+        new_entities: Iterable[Entity],
+        update_before_add: bool = False,
+        *,
+        config_subentry_id: str | None = None,
+    ) -> None:
+        added_entities.extend(new_entities)
 
     await async_setup_entry(hass, entry, _capture_add_entities)
 
@@ -270,9 +284,11 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(hass: HomeAs
     sync_callback()
 
     entity_registry.async_remove.assert_called_once_with(stale.entity_id)
-
-    unload_callback = entry._on_unload[-1]
-    maybe_result = unload_callback()
-    if hasattr(maybe_result, "__await__"):
-        await maybe_result
-    remove_callback.assert_called_once()
+    if entry._on_unload is not None:
+        unload_callback = entry._on_unload[-1]
+        maybe_result = unload_callback()
+        if maybe_result is not None and hasattr(maybe_result, "__await__"):
+            await maybe_result
+        remove_callback.assert_called_once()
+    else:
+        remove_callback.assert_not_called()

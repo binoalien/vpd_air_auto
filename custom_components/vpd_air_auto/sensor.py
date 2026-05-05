@@ -67,13 +67,19 @@ async def async_setup_entry(
 
     @callback
     def _remove_stale_registry_entities(current_entities: set[tuple[str, str]]) -> None:
-        for registry_entry in er.async_entries_for_config_entry(entity_registry, entry.entry_id):
+        for registry_entry in er.async_entries_for_config_entry(
+            entity_registry, entry.entry_id
+        ):
             if registry_entry.domain != "sensor" or registry_entry.platform != DOMAIN:
                 continue
 
             device_id = device_id_from_unique_id(registry_entry.unique_id)
             kind = _registry_entry_kind(registry_entry.unique_id)
-            entity_key = (device_id, kind) if device_id is not None and kind is not None else None
+            entity_key = (
+                (device_id, kind)
+                if device_id is not None and kind is not None
+                else None
+            )
             if entity_key is not None and entity_key in current_entities:
                 continue
 
@@ -97,7 +103,10 @@ async def async_setup_entry(
             return
 
         async_add_entities(
-            [DerivedValueSensor(hass, coordinator, device_id, kind) for device_id, kind in sorted(new_entity_keys)]
+            [
+                DerivedValueSensor(hass, coordinator, device_id, kind)
+                for device_id, kind in sorted(new_entity_keys)
+            ]
         )
         known_entities.update(new_entity_keys)
 
@@ -238,7 +247,9 @@ class DerivedValueSensor(CoordinatorEntity[VpdAirCoordinator], SensorEntity):
             UNRECORDED_ATTRIBUTE_HUMIDITY_ENTITY_ID: snapshot.humidity_entity_id,
         }
         if self._kind == SENSOR_KIND_LEAF:
-            attributes[UNRECORDED_ATTRIBUTE_LEAF_TEMPERATURE_OFFSET_C] = snapshot.leaf_offset_c
+            attributes[UNRECORDED_ATTRIBUTE_LEAF_TEMPERATURE_OFFSET_C] = (
+                snapshot.leaf_offset_c
+            )
         return attributes
 
     @callback
