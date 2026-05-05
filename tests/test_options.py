@@ -215,7 +215,7 @@ def test_normalize_user_input_returns_trimmed_and_rounded_values() -> None:
     """Test normalize user input returns trimmed and rounded values."""
     normalized, errors = normalize_user_input(_valid_input())
 
-    assert errors == {}
+    assert not errors
     assert normalized[CONF_ICON] == "mdi:water-opacity"
     assert normalized[CONF_DISPLAY_NAME] == "VPDair"
     assert normalized[CONF_LEAF_ICON] == "mdi:leaf"

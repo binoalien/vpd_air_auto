@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # pylint: disable=too-many-instance-attributes
 class DeviceTopology:
     """The source entities selected for one Home Assistant device."""
 
@@ -16,7 +16,7 @@ class DeviceTopology:
     blocked_sensor_kinds: frozenset[str] = field(default_factory=frozenset)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True)  # pylint: disable=too-many-instance-attributes
 class DeviceSnapshot:
     """Computed inputs and outputs for one Home Assistant device."""
 

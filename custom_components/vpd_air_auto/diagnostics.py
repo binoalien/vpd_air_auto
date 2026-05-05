@@ -14,7 +14,7 @@ _TO_REDACT: set[str] = set()
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     entry: VpdAirConfigEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
@@ -36,7 +36,7 @@ async def async_get_config_entry_diagnostics(
 
 
 async def async_get_device_diagnostics(
-    hass: HomeAssistant,
+    _hass: HomeAssistant,
     entry: VpdAirConfigEntry,
     device: DeviceEntry,
 ) -> dict[str, Any]:
