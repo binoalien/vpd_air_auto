@@ -262,7 +262,8 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
         update_before_add: bool = False,
         *,
         config_subentry_id: str | None = None,
-    ) -> None:  # pylint: disable=unused-argument
+    ) -> None:
+        _ = (update_before_add, config_subentry_id)
         added_entities.extend(new_entities)
 
     await async_setup_entry(hass, entry, _capture_add_entities)
