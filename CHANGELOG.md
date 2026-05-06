@@ -1,11 +1,18 @@
 # Changelog
 
-## 1.5.5
-- Fixed the VS Code devcontainer build by removing the inherited Yarn APT repository before `apt-get update`, preventing `NO_PUBKEY 62D54FD4003F6525` failures.
-
-# Changelog
-
 All notable changes to VPD Air Auto are documented in this file.
+
+## 1.5.11
+
+### Changed
+
+- Clean up and normalize this changelog structure by removing duplicated headings and keeping entries in consistent order.
+
+## 1.5.5
+
+### Fixed
+
+- Fixed the VS Code devcontainer build by removing the inherited Yarn APT repository before `apt-get update`, preventing `NO_PUBKEY 62D54FD4003F6525` failures.
 
 ## 1.5.2
 
