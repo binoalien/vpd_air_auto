@@ -2,6 +2,12 @@
 
 All notable changes to VPD Air Auto are documented in this file.
 
+## 1.5.13
+
+### Changed
+
+- Fix pylint errors in test_sensor.py.
+
 ## 1.5.12
 
 ### Changed
