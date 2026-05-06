@@ -1,13 +1,29 @@
 name: Bug report
 description: Report a problem with VPD Air Auto
 title: "[Bug]: "
-labels: [ "bug" ]
+labels: ["bug"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this issue. Please fill in all sections so we can reproduce and fix it faster.
   - type: textarea
     id: problem
     attributes:
       label: Problem
-      description: Describe what happened and what you expected.
+      description: What happened, and what did you expect to happen instead?
+      placeholder: A concise description of the incorrect behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide exact steps so maintainers can reproduce the issue.
+      placeholder: |
+        1. Configure integration with ...
+        2. Set value ...
+        3. Observe ...
     validations:
       required: true
   - type: input
@@ -24,8 +40,25 @@ body:
       placeholder: "1.5.12"
     validations:
       required: true
+  - type: input
+    id: installation_method
+    attributes:
+      label: Installation method
+      description: How did you install the integration?
+      placeholder: "HACS / manual"
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics dump (optional)
+      description: Paste relevant diagnostics JSON if available.
+      render: json
   - type: textarea
     id: logs
     attributes:
       label: Relevant logs
+      description: Copy full stack traces and warnings related to this issue.
       render: text
+    validations:
+      required: true
