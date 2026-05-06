@@ -3,14 +3,35 @@ name: Build release archive
 on:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Create release archive
-        run: zip -r vpd_air_auto_release.zip custom_components README.md CHANGELOG.md LICENSE hacs.json
-      - uses: actions/upload-artifact@v4
+        run: |
+          zip -r vpd_air_auto_release.zip \
+            custom_components \
+            README.md \
+            CHANGELOG.md \
+            LICENSE \
+            hacs.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: vpd_air_auto_release
           path: vpd_air_auto_release.zip
+          if-no-files-found: error
+          retention-days: 14

@@ -2,23 +2,43 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   lint-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.14"
+          cache: "pip"
+          cache-dependency-path: requirements_dev.txt
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements_dev.txt
+
       - name: Ruff
         run: ruff check .
+
       - name: Pylint
         run: pylint custom_components/vpd_air_auto tests
+
       - name: Pytest
         run: pytest --cov=custom_components.vpd_air_auto --cov-report=term-missing

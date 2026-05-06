@@ -3,10 +3,33 @@ description: Suggest an improvement for VPD Air Auto
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
-  - type: textarea
-    id: feature
+  - type: markdown
     attributes:
-      label: Feature
-      description: Describe the requested improvement.
+      value: |
+        Thanks for your idea! Please describe the use case clearly so we can evaluate scope and impact.
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+      placeholder: A clear description of the current limitation.
     validations:
       required: true
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed solution
+      description: Describe the improvement you want to see.
+      placeholder: Explain expected behavior and configuration changes.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you considered another workaround or approach?
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add screenshots, links, or examples that help explain your request.
