@@ -2,6 +2,12 @@
 
 All notable changes to VPD Air Auto are documented in this file.
 
+## 1.5.12
+
+### Changed
+
+- Bump integration version to `1.5.12`.
+
 ## 1.5.11
 
 ### Changed
