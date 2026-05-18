@@ -40,14 +40,14 @@ from .const import (
     SOURCE_DOMAIN_SENSOR,
     IntegrationOptions,
 )
-from .models import DeviceSnapshot, DeviceTopology
-from .selection import (
+from .discovery.selection import (
     TARGET_HUMIDITY,
     TARGET_TEMPERATURE,
     SourceCandidate,
     choose_best_entity_id,
     normalize_identifier,
 )
+from .models import DeviceSnapshot, DeviceTopology
 
 _LOGGER = logging.getLogger(__name__)
 
