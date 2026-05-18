@@ -77,7 +77,7 @@ async def async_setup_entry(
     @callback
     def _sync_entities() -> None:
         current_entities = {
-            (device_id, kind)
+            (device_id, SensorKind(kind))
             for device_id in (coordinator.data or {})
             for kind in coordinator.creatable_kinds_for_device(device_id)
         }
@@ -140,7 +140,9 @@ class DerivedValueSensor(CoordinatorEntity[VpdAirCoordinator], SensorEntity):
             return make_vpdleaf_unique_id(device_id)
         if kind is SensorKind.ABSOLUTE_HUMIDITY:
             return make_absolute_humidity_unique_id(device_id)
-        return make_dew_point_unique_id(device_id)
+        if kind is SensorKind.DEW_POINT:
+            return make_dew_point_unique_id(device_id)
+        raise ValueError(f"Unsupported sensor kind: {kind!r}")
 
     @property
     def _snapshot(self) -> DeviceSnapshot | None:
