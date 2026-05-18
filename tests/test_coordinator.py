@@ -125,16 +125,14 @@ async def test_async_shutdown_cleans_up_registered_listeners(
 ) -> None:
     """Test async shutdown cleans up registered listeners."""
     coordinator = _build_coordinator(hass)
-    state_unsub = MagicMock()
     interval_unsub = MagicMock()
-    coordinator._unsub_state_listener = state_unsub
+    coordinator._subscription_manager.shutdown = AsyncMock()
     coordinator._unsub_periodic_rescan = interval_unsub
 
     await coordinator.async_shutdown()
 
-    state_unsub.assert_called_once()
+    coordinator._subscription_manager.shutdown.assert_awaited_once()
     interval_unsub.assert_called_once()
-    assert coordinator._unsub_state_listener is None
     assert coordinator._unsub_periodic_rescan is None
 
 
@@ -155,8 +153,6 @@ async def test_async_update_data_returns_empty_when_all_sensor_types_disabled(
         "old": DeviceTopology("old", "Old", "sensor.old_temp", "sensor.old_humidity")
     }
     coordinator._source_to_device = {"sensor.old_temp": "old"}
-    coordinator._tracked_entity_ids = {"sensor.old_temp"}
-
     with patch.object(coordinator, "_refresh_state_listener") as mock_refresh:
         result = await coordinator._async_update_data()
 
@@ -253,7 +249,7 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
     topology snapshots, and tracked sources.
     """
     coordinator = _build_coordinator(hass)
-    coordinator._tracked_entity_ids = {
+    coordinator._subscription_manager._tracked_entity_ids = {
         "sensor.grow_tent_temperature",
         "sensor.grow_tent_humidity",
     }
@@ -307,25 +303,14 @@ def test_refresh_state_listener_tracks_only_active_context_sources(
         ),
     }
     coordinator.async_contexts = lambda: _contexts({"device-1"})
-    unsub = MagicMock()
+    coordinator._subscription_manager.refresh = MagicMock()
 
-    with patch(
-        "custom_components.vpd_air_auto.coordinator.async_track_state_change_event",
-        return_value=unsub,
-    ) as mock_track:
-        coordinator._refresh_state_listener()
-
-    assert coordinator._tracked_entity_ids == {
-        "sensor.grow_tent_temperature",
-        "sensor.grow_tent_humidity",
-    }
-    mock_track.assert_called_once()
-    assert coordinator._unsub_state_listener is unsub
-
-    coordinator.async_contexts = lambda: _contexts(set())
     coordinator._refresh_state_listener()
-    unsub.assert_called_once()
-    assert coordinator._tracked_entity_ids == set()
+    coordinator._subscription_manager.refresh.assert_called_once_with(
+        active_device_ids={"device-1"},
+        topology_by_device_id=coordinator._topology,
+        handler=coordinator._async_handle_source_state_changed,
+    )
 
 
 async def test_source_state_changed_updates_only_affected_device(
