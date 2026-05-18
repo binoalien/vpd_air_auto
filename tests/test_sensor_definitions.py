@@ -5,6 +5,22 @@ from __future__ import annotations
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import UnitOfTemperature
 
+from custom_components.vpd_air_auto.const import (
+    DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
+    DEFAULT_ABSOLUTE_HUMIDITY_ICON,
+    DEFAULT_DEW_POINT_DISPLAY_NAME,
+    DEFAULT_DEW_POINT_ICON,
+    DEFAULT_DISPLAY_NAME,
+    DEFAULT_ICON,
+    DEFAULT_LEAF_DISPLAY_NAME,
+    DEFAULT_LEAF_ICON,
+    UNIQUE_ID_SUFFIX_ABSOLUTE_HUMIDITY,
+    UNIQUE_ID_SUFFIX_AIR,
+    UNIQUE_ID_SUFFIX_DEW_POINT,
+    UNIQUE_ID_SUFFIX_LEAF,
+    UNIT_GM3,
+    UNIT_KPA,
+)
 from custom_components.vpd_air_auto.domain.enums import SensorKind
 from custom_components.vpd_air_auto.domain.sensor_definitions import (
     SENSOR_DEFINITIONS,
@@ -35,53 +51,70 @@ def test_all_sensor_kinds_have_definitions() -> None:
     assert set(SENSOR_DEFINITIONS) == set(SensorKind)
 
 
-def test_sensor_definitions_map_to_expected_units_and_device_classes() -> None:
-    """Validate stable units and classes for each currently supported kind."""
-    assert get_sensor_definition(SensorKind.AIR).native_unit_of_measurement == "kPa"
-    assert get_sensor_definition(SensorKind.AIR).device_class is None
-
-    assert get_sensor_definition(SensorKind.LEAF).native_unit_of_measurement == "kPa"
-    assert get_sensor_definition(SensorKind.LEAF).device_class is None
-
-    assert (
-        get_sensor_definition(SensorKind.ABSOLUTE_HUMIDITY).native_unit_of_measurement
-        == "g/m³"
-    )
-    assert (
-        get_sensor_definition(SensorKind.ABSOLUTE_HUMIDITY).device_class
-        == SensorDeviceClass.ABSOLUTE_HUMIDITY
-    )
-
-    assert (
-        get_sensor_definition(SensorKind.DEW_POINT).native_unit_of_measurement
-        == UnitOfTemperature.CELSIUS
-    )
-    assert (
-        get_sensor_definition(SensorKind.DEW_POINT).device_class
-        == SensorDeviceClass.TEMPERATURE
-    )
+def test_registry_key_matches_definition_kind() -> None:
+    """Each registry entry key must match the embedded definition kind."""
+    for kind, definition in SENSOR_DEFINITIONS.items():
+        assert definition.kind == kind
 
 
-def test_snapshot_value_getters_match_expected_fields() -> None:
-    """Definition getters should map each kind to the expected snapshot field."""
+def test_sensor_definitions_align_with_v1_constants() -> None:
+    """Definitions should remain aligned with current V1 constants."""
+    expected_by_kind = {
+        SensorKind.AIR: {
+            "unique_id_suffix": UNIQUE_ID_SUFFIX_AIR,
+            "default_name": DEFAULT_DISPLAY_NAME,
+            "default_icon": DEFAULT_ICON,
+            "native_unit_of_measurement": UNIT_KPA,
+            "device_class": None,
+            "expected_value": 1.27,
+            "include_leaf_offset_attribute": False,
+        },
+        SensorKind.LEAF: {
+            "unique_id_suffix": UNIQUE_ID_SUFFIX_LEAF,
+            "default_name": DEFAULT_LEAF_DISPLAY_NAME,
+            "default_icon": DEFAULT_LEAF_ICON,
+            "native_unit_of_measurement": UNIT_KPA,
+            "device_class": None,
+            "expected_value": 1.58,
+            "include_leaf_offset_attribute": True,
+        },
+        SensorKind.ABSOLUTE_HUMIDITY: {
+            "unique_id_suffix": UNIQUE_ID_SUFFIX_ABSOLUTE_HUMIDITY,
+            "default_name": DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
+            "default_icon": DEFAULT_ABSOLUTE_HUMIDITY_ICON,
+            "native_unit_of_measurement": UNIT_GM3,
+            "device_class": SensorDeviceClass.ABSOLUTE_HUMIDITY,
+            "expected_value": 13.8,
+            "include_leaf_offset_attribute": False,
+        },
+        SensorKind.DEW_POINT: {
+            "unique_id_suffix": UNIQUE_ID_SUFFIX_DEW_POINT,
+            "default_name": DEFAULT_DEW_POINT_DISPLAY_NAME,
+            "default_icon": DEFAULT_DEW_POINT_ICON,
+            "native_unit_of_measurement": UnitOfTemperature.CELSIUS,
+            "device_class": SensorDeviceClass.TEMPERATURE,
+            "expected_value": 16.68,
+            "include_leaf_offset_attribute": False,
+        },
+    }
+
     snapshot = _snapshot()
-
-    assert (
-        get_sensor_definition(SensorKind.AIR).snapshot_value_getter(snapshot) == 1.27
-    )
-    assert (
-        get_sensor_definition(SensorKind.LEAF).snapshot_value_getter(snapshot) == 1.58
-    )
-    assert (
-        get_sensor_definition(SensorKind.ABSOLUTE_HUMIDITY).snapshot_value_getter(
-            snapshot
+    for kind, expected in expected_by_kind.items():
+        definition = get_sensor_definition(kind)
+        assert definition.kind == kind
+        assert definition.unique_id_suffix == expected["unique_id_suffix"]
+        assert definition.default_name == expected["default_name"]
+        assert definition.default_icon == expected["default_icon"]
+        assert (
+            definition.native_unit_of_measurement
+            == expected["native_unit_of_measurement"]
         )
-        == 13.8
-    )
-    assert (
-        get_sensor_definition(SensorKind.DEW_POINT).snapshot_value_getter(snapshot)
-        == 16.68
-    )
+        assert definition.device_class == expected["device_class"]
+        assert definition.snapshot_value_getter(snapshot) == expected["expected_value"]
+        assert (
+            definition.include_leaf_offset_attribute
+            == expected["include_leaf_offset_attribute"]
+        )
 
 
 def test_leaf_definition_marks_offset_attribute() -> None:
