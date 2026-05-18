@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from custom_components.vpd_air_auto.selection import (
+from custom_components.vpd_air_auto.discovery.selection import (
     TARGET_HUMIDITY,
     TARGET_TEMPERATURE,
     SourceCandidate,
