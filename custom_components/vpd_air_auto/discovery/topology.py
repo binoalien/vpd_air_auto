@@ -57,8 +57,10 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             if temperature_entity_id is None or humidity_entity_id is None:
                 continue
 
-            blocked_sensor_kinds = self._duplicate_detection_service.detect_existing_derived_sensor_kinds(
-                candidates
+            blocked_sensor_kinds = (
+                self._duplicate_detection_service.detect_existing_derived_sensor_kinds(
+                    candidates
+                )
             )
             topology[device.id] = DeviceTopology(
                 device_id=device.id,

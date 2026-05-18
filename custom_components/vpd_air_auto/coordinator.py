@@ -25,8 +25,8 @@ from .const import (
     IntegrationOptions,
 )
 from .discovery.duplicates import DuplicateDetectionService
-from .models import DeviceSnapshot, DeviceTopology
 from .discovery.topology import TopologyDiscoveryService
+from .models import DeviceSnapshot, DeviceTopology
 from .services.snapshot_builder import SnapshotBuilder
 
 _LOGGER = logging.getLogger(__name__)
