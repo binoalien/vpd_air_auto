@@ -118,6 +118,30 @@ def test_sensor_definitions_align_with_v1_constants() -> None:
 
 
 def test_leaf_definition_marks_offset_attribute() -> None:
-    """Leaf kind must flag leaf offset attribute inclusion."""
-    assert get_sensor_definition(SensorKind.LEAF).include_leaf_offset_attribute is True
-    assert get_sensor_definition(SensorKind.AIR).include_leaf_offset_attribute is False
+    """Leaf kind must flag leaf offset attr; all others must not."""
+    for kind in SensorKind:
+        expected = kind is SensorKind.LEAF
+        assert get_sensor_definition(kind).include_leaf_offset_attribute is expected
+
+
+def test_get_sensor_definition_accepts_sensor_kind_input() -> None:
+    """Lookup should work when input is already a SensorKind."""
+    assert get_sensor_definition(SensorKind.AIR) is SENSOR_DEFINITIONS[SensorKind.AIR]
+
+
+def test_get_sensor_definition_accepts_string_input() -> None:
+    """Lookup should work when input is the string form of a kind."""
+    assert get_sensor_definition("leaf") is SENSOR_DEFINITIONS[SensorKind.LEAF]
+
+
+def test_get_sensor_definition_raises_for_invalid_string() -> None:
+    """Invalid string input should raise a clear ValueError."""
+    try:
+        get_sensor_definition("not_a_kind")
+    except ValueError as err:
+        message = str(err)
+    else:
+        raise AssertionError("Expected ValueError for invalid sensor kind")
+
+    assert "Invalid sensor kind" in message
+    assert "not_a_kind" in message

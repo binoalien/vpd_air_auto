@@ -28,6 +28,7 @@ from ..models import DeviceSnapshot
 from .enums import SensorKind
 
 SnapshotValueGetter = Callable[[DeviceSnapshot], float | None]
+NativeUnit = str | UnitOfTemperature
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,7 +39,7 @@ class SensorDefinition:
     unique_id_suffix: str
     default_name: str
     default_icon: str
-    native_unit_of_measurement: str
+    native_unit_of_measurement: NativeUnit
     device_class: SensorDeviceClass | None
     snapshot_value_getter: SnapshotValueGetter
     include_leaf_offset_attribute: bool
@@ -106,4 +107,12 @@ SENSOR_DEFINITIONS: dict[SensorKind, SensorDefinition] = {
 
 def get_sensor_definition(kind: SensorKind | str) -> SensorDefinition:
     """Return the definition for a sensor kind."""
-    return SENSOR_DEFINITIONS[SensorKind(kind)]
+    try:
+        sensor_kind = SensorKind(kind)
+    except ValueError as err:
+        valid_kinds = ", ".join(sensor_kind.value for sensor_kind in SensorKind)
+        raise ValueError(
+            f"Invalid sensor kind: {kind!r}. Expected one of: {valid_kinds}"
+        ) from err
+
+    return SENSOR_DEFINITIONS[sensor_kind]
