@@ -187,7 +187,7 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
             coordinator, "_discover_topology", return_value=topology
         ) as mock_discover,
         patch.object(
-            coordinator, "_build_snapshot_for_topology", return_value=snapshot
+            coordinator, "_snapshot_builder.build_snapshot", return_value=snapshot
         ) as mock_build,
         patch.object(coordinator, "_refresh_state_listener") as mock_refresh,
     ):
@@ -344,7 +344,7 @@ async def test_source_state_changed_updates_only_affected_device(
     coordinator._topology = {"device-1": topology}
     coordinator._source_to_device = {"sensor.grow_tent_humidity": "device-1"}
     coordinator.data = {"device-1": current_snapshot}
-    coordinator._build_snapshot_for_topology = MagicMock(return_value=next_snapshot)
+    coordinator._snapshot_builder.build_snapshot = MagicMock(return_value=next_snapshot)
     coordinator.async_set_updated_data = MagicMock()
 
     await coordinator._async_handle_source_state_changed(
@@ -358,7 +358,7 @@ async def test_source_state_changed_updates_only_affected_device(
         )
     )
 
-    coordinator._build_snapshot_for_topology.assert_called_once_with(topology)
+    coordinator._snapshot_builder.build_snapshot.assert_called_once_with(topology)
     coordinator.async_set_updated_data.assert_called_once_with(
         {"device-1": next_snapshot}
     )
@@ -379,7 +379,9 @@ async def test_source_state_changed_ignores_unknown_or_unchanged_sources(
     coordinator._topology = {"device-1": topology}
     coordinator._source_to_device = {"sensor.grow_tent_humidity": "device-1"}
     coordinator.data = {"device-1": current_snapshot}
-    coordinator._build_snapshot_for_topology = MagicMock(return_value=current_snapshot)
+    coordinator._snapshot_builder.build_snapshot = MagicMock(
+        return_value=current_snapshot
+    )
     coordinator.async_set_updated_data = MagicMock()
 
     await coordinator._async_handle_source_state_changed(
@@ -616,7 +618,7 @@ def test_build_snapshot_for_topology_computes_all_values(hass: HomeAssistant) ->
         {"device_class": "humidity", "unit_of_measurement": "%"},
     )
 
-    snapshot = coordinator._build_snapshot_for_topology(topology)
+    snapshot = coordinator._snapshot_builder.build_snapshot(topology)
 
     assert snapshot.temperature_c == 25.0
     assert snapshot.humidity_pct == 60.0
