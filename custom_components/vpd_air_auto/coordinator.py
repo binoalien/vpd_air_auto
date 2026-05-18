@@ -270,14 +270,17 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             if temperature_entity_id is None or humidity_entity_id is None:
                 continue
 
+            blocked_sensor_kinds = (
+                self._duplicate_detection_service.detect_existing_derived_sensor_kinds(
+                    candidates
+                )
+            )
             topology[device.id] = DeviceTopology(
                 device_id=device.id,
                 device_name=device.name_by_user or device.name or device.id,
                 temperature_entity_id=temperature_entity_id,
                 humidity_entity_id=humidity_entity_id,
-                blocked_sensor_kinds=self._duplicate_detection_service.detect_existing_derived_sensor_kinds(
-                    candidates
-                ),
+                blocked_sensor_kinds=blocked_sensor_kinds,
             )
 
         return topology
