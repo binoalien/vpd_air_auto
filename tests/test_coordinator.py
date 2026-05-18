@@ -127,14 +127,14 @@ async def test_async_shutdown_cleans_up_registered_listeners(
     coordinator = _build_coordinator(hass)
     state_unsub = MagicMock()
     interval_unsub = MagicMock()
-    coordinator._unsub_state_listener = state_unsub
+    coordinator._subscriptions._unsub_state_listener = state_unsub
     coordinator._unsub_periodic_rescan = interval_unsub
 
     await coordinator.async_shutdown()
 
     state_unsub.assert_called_once()
     interval_unsub.assert_called_once()
-    assert coordinator._unsub_state_listener is None
+    assert coordinator._subscriptions._unsub_state_listener is None
     assert coordinator._unsub_periodic_rescan is None
 
 
@@ -155,9 +155,9 @@ async def test_async_update_data_returns_empty_when_all_sensor_types_disabled(
         "old": DeviceTopology("old", "Old", "sensor.old_temp", "sensor.old_humidity")
     }
     coordinator._source_to_device = {"sensor.old_temp": "old"}
-    coordinator._tracked_entity_ids = {"sensor.old_temp"}
+    coordinator._subscriptions._tracked_entity_ids = {"sensor.old_temp"}
 
-    with patch.object(coordinator, "_refresh_state_listener") as mock_refresh:
+    with patch.object(coordinator, "_refresh_subscriptions") as mock_refresh:
         result = await coordinator._async_update_data()
 
     assert result == {}
@@ -189,7 +189,7 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
         patch.object(
             coordinator._snapshot_builder, "build_snapshot", return_value=snapshot
         ) as mock_build,
-        patch.object(coordinator, "_refresh_state_listener") as mock_refresh,
+        patch.object(coordinator, "_refresh_subscriptions") as mock_refresh,
     ):
         result = await coordinator._async_update_data()
 
@@ -253,7 +253,7 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
     topology snapshots, and tracked sources.
     """
     coordinator = _build_coordinator(hass)
-    coordinator._tracked_entity_ids = {
+    coordinator._subscriptions._tracked_entity_ids = {
         "sensor.grow_tent_temperature",
         "sensor.grow_tent_humidity",
     }
@@ -287,45 +287,29 @@ def _contexts(device_ids: set[str]):
     yield from device_ids
 
 
-def test_refresh_state_listener_tracks_only_active_context_sources(
+def test_refresh_subscriptions_delegates_to_subscription_manager(
     hass: HomeAssistant,
 ) -> None:
-    """Test refresh state listener tracks only active context sources."""
+    """Test refresh subscriptions delegates to SubscriptionManager."""
     coordinator = _build_coordinator(hass)
+    coordinator.async_contexts = lambda: _contexts({"device-1"})
     coordinator._topology = {
         "device-1": DeviceTopology(
             device_id="device-1",
             device_name="Grow Tent",
             temperature_entity_id="sensor.grow_tent_temperature",
             humidity_entity_id="sensor.grow_tent_humidity",
-        ),
-        "device-2": DeviceTopology(
-            device_id="device-2",
-            device_name="Dry Room",
-            temperature_entity_id="sensor.dry_room_temperature",
-            humidity_entity_id="sensor.dry_room_humidity",
-        ),
+        )
     }
-    coordinator.async_contexts = lambda: _contexts({"device-1"})
-    unsub = MagicMock()
 
-    with patch(
-        "custom_components.vpd_air_auto.coordinator.async_track_state_change_event",
-        return_value=unsub,
-    ) as mock_track:
-        coordinator._refresh_state_listener()
+    with patch.object(coordinator._subscriptions, "refresh") as mock_refresh:
+        coordinator._refresh_subscriptions()
 
-    assert coordinator._tracked_entity_ids == {
-        "sensor.grow_tent_temperature",
-        "sensor.grow_tent_humidity",
-    }
-    mock_track.assert_called_once()
-    assert coordinator._unsub_state_listener is unsub
-
-    coordinator.async_contexts = lambda: _contexts(set())
-    coordinator._refresh_state_listener()
-    unsub.assert_called_once()
-    assert coordinator._tracked_entity_ids == set()
+    mock_refresh.assert_called_once_with(
+        active_device_ids={"device-1"},
+        topology_by_device_id=coordinator._topology,
+        handler=coordinator._async_handle_source_state_changed,
+    )
 
 
 async def test_source_state_changed_updates_only_affected_device(
