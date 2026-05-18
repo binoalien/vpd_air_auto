@@ -23,7 +23,7 @@ from .selection import normalize_identifier
 _ABSOLUTE_HUMIDITY_DEVICE_CLASS = "absolute_humidity"
 
 
-class DuplicateDetectionService:
+class DuplicateDetectionService:  # pylint: disable=too-few-public-methods
     """Detect foreign duplicate sensors that match our derived helper kinds."""
 
     def __init__(self, hass: HomeAssistant, options: IntegrationOptions) -> None:

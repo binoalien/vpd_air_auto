@@ -11,15 +11,39 @@ from custom_components.vpd_air_auto.const import (
     SENSOR_KIND_AIR,
     SENSOR_KIND_DEW_POINT,
     SENSOR_KIND_LEAF,
+    IntegrationOptions,
 )
 from custom_components.vpd_air_auto.discovery.duplicates import (
     DuplicateDetectionService,
 )
 
-from .conftest import build_options
+
+def _build_options(
+    *,
+    display_name: str = "VPDair",
+    leaf_display_name: str = "VPDleaf",
+    absolute_humidity_display_name: str = "Absolute Humidity",
+    dew_point_display_name: str = "Dew Point",
+) -> IntegrationOptions:
+    return IntegrationOptions(
+        scan_interval_seconds=300,
+        enable_air=True,
+        enable_leaf=True,
+        enable_absolute_humidity=True,
+        enable_dew_point=True,
+        icon="mdi:water-opacity",
+        display_name=display_name,
+        leaf_icon="mdi:leaf",
+        leaf_display_name=leaf_display_name,
+        leaf_offset_c=-2.0,
+        absolute_humidity_icon="mdi:water",
+        absolute_humidity_display_name=absolute_humidity_display_name,
+        dew_point_icon="mdi:thermometer-water",
+        dew_point_display_name=dew_point_display_name,
+    )
 
 
-def _entry(
+def _entry(  # pylint: disable=too-many-arguments
     entity_id: str,
     *,
     domain: str = "sensor",
@@ -40,7 +64,7 @@ def _entry(
 
 def test_detect_existing_derived_sensor_kinds(hass: HomeAssistant) -> None:
     """Detect all supported duplicate kinds from aliases and device class."""
-    service = DuplicateDetectionService(hass, build_options())
+    service = DuplicateDetectionService(hass, _build_options())
 
     entries = [
         _entry("sensor.foreign_vpd_air", original_name="VPDair"),
@@ -86,7 +110,7 @@ def test_detect_existing_derived_sensor_kinds_uses_custom_display_names(
     """Detect duplicates by user-defined display names."""
     service = DuplicateDetectionService(
         hass,
-        build_options(
+        _build_options(
             display_name="Grow Air",
             leaf_display_name="Grow Leaf",
             absolute_humidity_display_name="Grow Absolute",

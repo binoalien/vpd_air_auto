@@ -37,12 +37,12 @@ from .discovery.selection import (
     TARGET_TEMPERATURE,
     SourceCandidate,
     choose_best_entity_id,
+    normalize_identifier,
 )
 from .models import DeviceSnapshot, DeviceTopology
 from .services.snapshot_builder import SnapshotBuilder
 
 _LOGGER = logging.getLogger(__name__)
-
 
 
 class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # pylint: disable=too-many-instance-attributes
@@ -312,6 +312,40 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             )
 
         return choose_best_entity_id(normalized_candidates, target_device_class)
+
+    def _normalized_entry_identifiers(self, entry: er.RegistryEntry) -> set[str]:
+        """Collect normalized names and IDs for one registry entry."""
+        identifiers = {normalize_identifier(entry.entity_id.split(".", 1)[1])}
+        for value in (
+            getattr(entry, "name", None),
+            getattr(entry, "original_name", None),
+            self._state_friendly_name(entry.entity_id),
+        ):
+            normalized = normalize_identifier(value)
+            if normalized:
+                identifiers.add(normalized)
+        return identifiers
+
+    def _state_friendly_name(self, entity_id: str) -> str | None:
+        """Return the current friendly_name for one entity if available."""
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return None
+        friendly_name = state.attributes.get("friendly_name")
+        return friendly_name if isinstance(friendly_name, str) else None
+
+    def _entry_device_class(self, entry: er.RegistryEntry) -> str | None:
+        """Resolve device class for source entity from state first, then registry."""
+        state = self.hass.states.get(entry.entity_id)
+        if state is not None:
+            device_class = state.attributes.get("device_class")
+            if isinstance(device_class, str):
+                return device_class
+
+        original_device_class = getattr(entry, "original_device_class", None)
+        if isinstance(original_device_class, str):
+            return original_device_class
+        return None
 
     def _entry_unit_of_measurement(self, entry: er.RegistryEntry) -> str | None:
         """Resolve the current or original unit of measurement for one entity."""
