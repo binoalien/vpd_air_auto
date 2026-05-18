@@ -37,11 +37,12 @@ def _entry(  # pylint: disable=too-many-arguments
     )
 
 
-class _DuplicateDetectionStub:
+class _DuplicateDetectionStub:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         self.calls: list[list[str]] = []
 
     def detect_existing_derived_sensor_kinds(self, candidates):
+        """Return fixed blocked kinds and record passed candidates."""
         self.calls.append([entry.entity_id for entry in candidates])
         return frozenset({"air"})
 
@@ -172,5 +173,5 @@ def test_discover_skips_devices_without_complete_source_pair(
     ):
         topology = service.discover()
 
-    assert topology == {}
-    assert duplicate_detection.calls == []
+    assert not topology
+    assert not duplicate_detection.calls

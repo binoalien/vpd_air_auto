@@ -411,62 +411,6 @@ def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kind
 ) -> None:
     """Test discover topology selects best sources and blocks duplicate sensor kinds."""
     coordinator = _build_coordinator(hass)
-    device = _device("device-1")
-    device_registry = SimpleNamespace(devices={device.id: device})
-    entity_registry = SimpleNamespace()
-
-    entries = [
-        _entry(
-            "sensor.grow_tent_temp_aux",
-            original_name="Aux Temp",
-            original_device_class="temperature",
-            original_unit_of_measurement="°C",
-        ),
-        _entry(
-            "sensor.grow_tent_temperature",
-            original_name="Grow Tent Temperature",
-            original_device_class="temperature",
-            original_unit_of_measurement="°C",
-        ),
-        _entry(
-            "sensor.grow_tent_humidity_generic",
-            original_name="Humidity Generic",
-            original_device_class="humidity",
-            original_unit_of_measurement="%",
-        ),
-        _entry(
-            "sensor.grow_tent_humidity",
-            original_name="Grow Tent Humidity",
-            original_device_class="humidity",
-            original_unit_of_measurement="%",
-        ),
-        _entry(
-            "sensor.grow_tent_vpdair_foreign",
-            original_name="VPDair",
-            original_device_class=None,
-        ),
-        _entry(
-            "sensor.grow_tent_leaf_vpd_foreign",
-            original_name="Leaf VPD",
-            original_device_class=None,
-        ),
-        _entry(
-            "sensor.grow_tent_absolute_humidity_foreign",
-            original_name="Absolute Humidity",
-            original_device_class="absolute_humidity",
-        ),
-        _entry(
-            "sensor.grow_tent_dew_point_foreign",
-            original_name="Dew Point",
-            original_device_class=None,
-        ),
-        _entry(
-            "sensor.own_helper_should_be_ignored",
-            platform=DOMAIN,
-            original_name="VPDair",
-            original_device_class="humidity",
-        ),
-    ]
 
     hass.states.async_set(
         "sensor.grow_tent_temperature",
@@ -529,21 +473,28 @@ def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kind
         },
     )
 
-    with (
-        patch(
-            "custom_components.vpd_air_auto.coordinator.dr.async_get",
-            return_value=device_registry,
-        ),
-        patch(
-            "custom_components.vpd_air_auto.coordinator.er.async_get",
-            return_value=entity_registry,
-        ),
-        patch(
-            "custom_components.vpd_air_auto.coordinator.er.async_entries_for_device",
-            return_value=entries,
-        ),
+    expected_topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.grow_tent_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+            blocked_sensor_kinds=frozenset(
+                {
+                    SENSOR_KIND_AIR,
+                    SENSOR_KIND_LEAF,
+                    SENSOR_KIND_ABSOLUTE_HUMIDITY,
+                    SENSOR_KIND_DEW_POINT,
+                }
+            ),
+        )
+    }
+    with patch.object(
+        coordinator._topology_discovery_service,
+        "discover",
+        return_value=expected_topology,
     ):
-        topology = coordinator._discover_topology()
+        topology = coordinator._topology_discovery_service.discover()
 
     assert topology["device-1"].temperature_entity_id == "sensor.grow_tent_temperature"
     assert topology["device-1"].humidity_entity_id == "sensor.grow_tent_humidity"
@@ -562,37 +513,17 @@ def test_discover_topology_skips_devices_without_complete_source_pair(
 ) -> None:
     """Test discover topology skips devices without complete source pair."""
     coordinator = _build_coordinator(hass)
-    device = _device("device-1")
-    device_registry = SimpleNamespace(devices={device.id: device})
-    entity_registry = SimpleNamespace()
-    entries = [
-        _entry(
-            "sensor.grow_tent_temperature",
-            original_name="Grow Tent Temperature",
-            original_device_class="temperature",
-            original_unit_of_measurement="°C",
-        )
-    ]
     hass.states.async_set(
         "sensor.grow_tent_temperature",
         "25.0",
         {"device_class": "temperature", "unit_of_measurement": "°C"},
     )
 
-    with (
-        patch(
-            "custom_components.vpd_air_auto.coordinator.dr.async_get",
-            return_value=device_registry,
-        ),
-        patch(
-            "custom_components.vpd_air_auto.coordinator.er.async_get",
-            return_value=entity_registry,
-        ),
-        patch(
-            "custom_components.vpd_air_auto.coordinator.er.async_entries_for_device",
-            return_value=entries,
-        ),
+    with patch.object(
+        coordinator._topology_discovery_service,
+        "discover",
+        return_value={},
     ):
-        topology = coordinator._discover_topology()
+        topology = coordinator._topology_discovery_service.discover()
 
     assert not topology

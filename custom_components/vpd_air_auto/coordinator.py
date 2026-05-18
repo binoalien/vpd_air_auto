@@ -232,4 +232,3 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         next_data = dict(current_data)
         next_data[device_id] = next_snapshot
         self.async_set_updated_data(next_data)
-
