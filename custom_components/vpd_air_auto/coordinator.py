@@ -461,4 +461,3 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         if target_device_class == TARGET_TEMPERATURE:
             return coerce_temperature_c(state) is not None
         return coerce_humidity_pct(state) is not None
-

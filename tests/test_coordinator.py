@@ -596,4 +596,3 @@ def test_discover_topology_skips_devices_without_complete_source_pair(
         topology = coordinator._discover_topology()
 
     assert not topology
-

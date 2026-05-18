@@ -16,7 +16,7 @@ from ..calculations import (
 from ..models import DeviceSnapshot, DeviceTopology
 
 
-class SnapshotBuilder:
+class SnapshotBuilder:  # pylint: disable=too-few-public-methods
     """Build per-device snapshots from current source states."""
 
     def __init__(self, hass: HomeAssistant, leaf_offset_c: float) -> None:
