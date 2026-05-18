@@ -19,11 +19,6 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .calculations import (
-    calculate_absolute_humidity_gm3,
-    calculate_dew_point_c,
-    calculate_leaf_temperature_c,
-    calculate_vpd_air_kpa,
-    calculate_vpd_leaf_kpa,
     coerce_humidity_pct,
     coerce_temperature_c,
 )
@@ -48,6 +43,7 @@ from .discovery.selection import (
     normalize_identifier,
 )
 from .models import DeviceSnapshot, DeviceTopology
+from .services.snapshot_builder import SnapshotBuilder
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,6 +72,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         self.config_entry = config_entry
         self.options = options
         self._scan_interval = timedelta(seconds=options.scan_interval_seconds)
+        self._snapshot_builder = SnapshotBuilder(hass, options.leaf_offset_c)
         self._topology: dict[str, DeviceTopology] = {}
         self._source_to_device: dict[str, str] = {}
         self._tracked_entity_ids: set[str] = set()
@@ -115,7 +112,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
 
         topology = self._discover_topology()
         snapshots = {
-            device_id: self._build_snapshot_for_topology(device_topology)
+            device_id: self._snapshot_builder.build_snapshot(device_topology)
             for device_id, device_topology in topology.items()
         }
 
@@ -242,7 +239,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return
 
         current_data = self.data or {}
-        next_snapshot = self._build_snapshot_for_topology(device_topology)
+        next_snapshot = self._snapshot_builder.build_snapshot(device_topology)
         if current_data.get(device_id) == next_snapshot:
             return
 
@@ -465,38 +462,3 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return coerce_temperature_c(state) is not None
         return coerce_humidity_pct(state) is not None
 
-    def _build_snapshot_for_topology(
-        self, device_topology: DeviceTopology
-    ) -> DeviceSnapshot:
-        """Build the current snapshot for one Home Assistant device."""
-        temp_state = self.hass.states.get(device_topology.temperature_entity_id)
-        humidity_state = self.hass.states.get(device_topology.humidity_entity_id)
-
-        temperature_c = coerce_temperature_c(temp_state)
-        humidity_pct = coerce_humidity_pct(humidity_state)
-        leaf_temperature_c = calculate_leaf_temperature_c(
-            temperature_c, self.options.leaf_offset_c
-        )
-        dew_point_c = calculate_dew_point_c(temperature_c, humidity_pct)
-        vpd_air_kpa = calculate_vpd_air_kpa(temperature_c, humidity_pct)
-        vpd_leaf_kpa = calculate_vpd_leaf_kpa(
-            temperature_c, humidity_pct, leaf_temperature_c
-        )
-        absolute_humidity_gm3 = calculate_absolute_humidity_gm3(
-            temperature_c, humidity_pct
-        )
-
-        return DeviceSnapshot(
-            device_id=device_topology.device_id,
-            device_name=device_topology.device_name,
-            temperature_entity_id=device_topology.temperature_entity_id,
-            humidity_entity_id=device_topology.humidity_entity_id,
-            temperature_c=temperature_c,
-            humidity_pct=humidity_pct,
-            leaf_offset_c=self.options.leaf_offset_c,
-            leaf_temperature_c=leaf_temperature_c,
-            dew_point_c=dew_point_c,
-            vpd_air_kpa=vpd_air_kpa,
-            vpd_leaf_kpa=vpd_leaf_kpa,
-            absolute_humidity_gm3=absolute_humidity_gm3,
-        )
