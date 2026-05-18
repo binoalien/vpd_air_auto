@@ -624,3 +624,21 @@ def test_build_snapshot_for_topology_computes_all_values(hass: HomeAssistant) ->
     assert snapshot.vpd_air_kpa is not None
     assert snapshot.vpd_leaf_kpa is not None
     assert snapshot.absolute_humidity_gm3 is not None
+
+
+def test_build_snapshot_for_topology_delegates_to_snapshot_builder(
+    hass: HomeAssistant,
+) -> None:
+    """Test coordinator snapshot building delegates to SnapshotBuilder."""
+    coordinator = _build_coordinator(hass)
+    topology = DeviceTopology(
+        device_id="device-1",
+        device_name="Grow Tent",
+        temperature_entity_id="sensor.grow_tent_temperature",
+        humidity_entity_id="sensor.grow_tent_humidity",
+    )
+    expected = _snapshot("device-1")
+    coordinator._snapshot_builder.build = MagicMock(return_value=expected)
+
+    assert coordinator._build_snapshot_for_topology(topology) == expected
+    coordinator._snapshot_builder.build.assert_called_once_with(topology)
