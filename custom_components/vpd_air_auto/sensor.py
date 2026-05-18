@@ -7,7 +7,6 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -17,16 +16,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import VpdAirConfigEntry
 from .const import (
     DOMAIN,
-    SENSOR_KIND_ABSOLUTE_HUMIDITY,
-    SENSOR_KIND_AIR,
-    SENSOR_KIND_DEW_POINT,
-    SENSOR_KIND_LEAF,
-    UNIQUE_ID_SUFFIX_ABSOLUTE_HUMIDITY,
-    UNIQUE_ID_SUFFIX_AIR,
-    UNIQUE_ID_SUFFIX_DEW_POINT,
-    UNIQUE_ID_SUFFIX_LEAF,
-    UNIT_GM3,
-    UNIT_KPA,
     UNRECORDED_ATTRIBUTE_HUMIDITY_ENTITY_ID,
     UNRECORDED_ATTRIBUTE_LEAF_TEMPERATURE_OFFSET_C,
     UNRECORDED_ATTRIBUTE_TEMPERATURE_ENTITY_ID,
@@ -37,21 +26,19 @@ from .const import (
     make_vpdleaf_unique_id,
 )
 from .coordinator import VpdAirCoordinator
+from .domain.enums import SensorKind
+from .domain.sensor_definitions import get_sensor_definition
 from .models import DeviceSnapshot
 
 PARALLEL_UPDATES = 0
 
 
-def _registry_entry_kind(unique_id: str) -> str | None:
+def _registry_entry_kind(unique_id: str) -> SensorKind | None:
     """Determine the sensor kind from a registry unique ID."""
-    if unique_id.endswith(f"_{UNIQUE_ID_SUFFIX_AIR}"):
-        return SENSOR_KIND_AIR
-    if unique_id.endswith(f"_{UNIQUE_ID_SUFFIX_LEAF}"):
-        return SENSOR_KIND_LEAF
-    if unique_id.endswith(f"_{UNIQUE_ID_SUFFIX_ABSOLUTE_HUMIDITY}"):
-        return SENSOR_KIND_ABSOLUTE_HUMIDITY
-    if unique_id.endswith(f"_{UNIQUE_ID_SUFFIX_DEW_POINT}"):
-        return SENSOR_KIND_DEW_POINT
+    for kind in SensorKind:
+        definition = get_sensor_definition(kind)
+        if unique_id.endswith(f"_{definition.unique_id_suffix}"):
+            return kind
     return None
 
 
@@ -138,17 +125,18 @@ class DerivedValueSensor(CoordinatorEntity[VpdAirCoordinator], SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, context=device_id)
         self._device_id = device_id
-        self._kind = kind
-        self._attr_unique_id = self._build_unique_id(device_id, kind)
+        self._kind = SensorKind(kind)
+        self._definition = get_sensor_definition(self._kind)
+        self._attr_unique_id = self._build_unique_id(device_id, self._kind)
         self.device_entry = dr.async_get(hass).async_get(device_id)
 
     @staticmethod
-    def _build_unique_id(device_id: str, kind: str) -> str:
-        if kind == SENSOR_KIND_AIR:
+    def _build_unique_id(device_id: str, kind: SensorKind) -> str:
+        if kind is SensorKind.AIR:
             return make_vpdair_unique_id(device_id)
-        if kind == SENSOR_KIND_LEAF:
+        if kind is SensorKind.LEAF:
             return make_vpdleaf_unique_id(device_id)
-        if kind == SENSOR_KIND_ABSOLUTE_HUMIDITY:
+        if kind is SensorKind.ABSOLUTE_HUMIDITY:
             return make_absolute_humidity_unique_id(device_id)
         return make_dew_point_unique_id(device_id)
 
@@ -170,42 +158,34 @@ class DerivedValueSensor(CoordinatorEntity[VpdAirCoordinator], SensorEntity):
     @property
     def name(self) -> str:
         """Return the configured display name for this sensor."""
-        if self._kind == SENSOR_KIND_LEAF:
+        if self._kind is SensorKind.LEAF:
             return self.coordinator.options.leaf_display_name
-        if self._kind == SENSOR_KIND_ABSOLUTE_HUMIDITY:
+        if self._kind is SensorKind.ABSOLUTE_HUMIDITY:
             return self.coordinator.options.absolute_humidity_display_name
-        if self._kind == SENSOR_KIND_DEW_POINT:
+        if self._kind is SensorKind.DEW_POINT:
             return self.coordinator.options.dew_point_display_name
         return self.coordinator.options.display_name
 
     @property
     def icon(self) -> str:
         """Return the globally configured icon for this sensor kind."""
-        if self._kind == SENSOR_KIND_LEAF:
+        if self._kind is SensorKind.LEAF:
             return self.coordinator.options.leaf_icon
-        if self._kind == SENSOR_KIND_ABSOLUTE_HUMIDITY:
+        if self._kind is SensorKind.ABSOLUTE_HUMIDITY:
             return self.coordinator.options.absolute_humidity_icon
-        if self._kind == SENSOR_KIND_DEW_POINT:
+        if self._kind is SensorKind.DEW_POINT:
             return self.coordinator.options.dew_point_icon
         return self.coordinator.options.icon
 
     @property
     def device_class(self) -> SensorDeviceClass | None:
         """Return the Home Assistant device class for the sensor kind."""
-        if self._kind == SENSOR_KIND_ABSOLUTE_HUMIDITY:
-            return SensorDeviceClass.ABSOLUTE_HUMIDITY
-        if self._kind == SENSOR_KIND_DEW_POINT:
-            return SensorDeviceClass.TEMPERATURE
-        return None
+        return self._definition.device_class
 
     @property
     def native_unit_of_measurement(self) -> str:
         """Return the native unit for this sensor kind."""
-        if self._kind == SENSOR_KIND_ABSOLUTE_HUMIDITY:
-            return UNIT_GM3
-        if self._kind == SENSOR_KIND_DEW_POINT:
-            return UnitOfTemperature.CELSIUS
-        return UNIT_KPA
+        return self._definition.native_unit_of_measurement
 
     @property
     def available(self) -> bool:
@@ -213,13 +193,7 @@ class DerivedValueSensor(CoordinatorEntity[VpdAirCoordinator], SensorEntity):
         snapshot = self._snapshot
         if snapshot is None:
             return False
-        if self._kind == SENSOR_KIND_LEAF:
-            return snapshot.vpd_leaf_kpa is not None
-        if self._kind == SENSOR_KIND_ABSOLUTE_HUMIDITY:
-            return snapshot.absolute_humidity_gm3 is not None
-        if self._kind == SENSOR_KIND_DEW_POINT:
-            return snapshot.dew_point_c is not None
-        return snapshot.vpd_air_kpa is not None
+        return self._definition.snapshot_value_getter(snapshot) is not None
 
     @property
     def native_value(self) -> float | None:
@@ -227,13 +201,7 @@ class DerivedValueSensor(CoordinatorEntity[VpdAirCoordinator], SensorEntity):
         snapshot = self._snapshot
         if snapshot is None:
             return None
-        if self._kind == SENSOR_KIND_LEAF:
-            return snapshot.vpd_leaf_kpa
-        if self._kind == SENSOR_KIND_ABSOLUTE_HUMIDITY:
-            return snapshot.absolute_humidity_gm3
-        if self._kind == SENSOR_KIND_DEW_POINT:
-            return snapshot.dew_point_c
-        return snapshot.vpd_air_kpa
+        return self._definition.snapshot_value_getter(snapshot)
 
     @property
     def extra_state_attributes(self) -> dict[str, str | float]:
@@ -246,7 +214,7 @@ class DerivedValueSensor(CoordinatorEntity[VpdAirCoordinator], SensorEntity):
             UNRECORDED_ATTRIBUTE_TEMPERATURE_ENTITY_ID: snapshot.temperature_entity_id,
             UNRECORDED_ATTRIBUTE_HUMIDITY_ENTITY_ID: snapshot.humidity_entity_id,
         }
-        if self._kind == SENSOR_KIND_LEAF:
+        if self._definition.include_leaf_offset_attribute:
             attributes[UNRECORDED_ATTRIBUTE_LEAF_TEMPERATURE_OFFSET_C] = (
                 snapshot.leaf_offset_c
             )
