@@ -184,7 +184,7 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
 
     with (
         patch.object(
-            coordinator, "_discover_topology", return_value=topology
+            coordinator._topology_discovery_service, "discover", return_value=topology
         ) as mock_discover,
         patch.object(
             coordinator._snapshot_builder, "build_snapshot", return_value=snapshot
