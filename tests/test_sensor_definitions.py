@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.const import UnitOfTemperature
 
@@ -136,12 +137,9 @@ def test_get_sensor_definition_accepts_string_input() -> None:
 
 def test_get_sensor_definition_raises_for_invalid_string() -> None:
     """Invalid string input should raise a clear ValueError."""
-    try:
+    with pytest.raises(ValueError) as exc_info:
         get_sensor_definition("not_a_kind")
-    except ValueError as err:
-        message = str(err)
-    else:
-        raise AssertionError("Expected ValueError for invalid sensor kind")
 
+    message = str(exc_info.value)
     assert "Invalid sensor kind" in message
     assert "not_a_kind" in message
