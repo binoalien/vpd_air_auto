@@ -43,7 +43,9 @@ def test_refresh_tracks_sources_for_active_contexts(hass: HomeAssistant) -> None
     mock_track.assert_called_once()
 
 
-def test_refresh_replaces_listener_when_tracked_set_changes(hass: HomeAssistant) -> None:
+def test_refresh_replaces_listener_when_tracked_set_changes(
+    hass: HomeAssistant,
+) -> None:
     """It unsubscribes previous listener before replacing it."""
     manager = SubscriptionManager(hass)
     topology = {
@@ -85,7 +87,76 @@ def test_refresh_replaces_listener_when_tracked_set_changes(hass: HomeAssistant)
     assert manager._unsub_state_listener is unsub_new
 
 
-async def test_shutdown_clears_listener_and_tracked_entities(hass: HomeAssistant) -> None:
+def test_refresh_is_idempotent_for_unchanged_tracked_set(
+    hass: HomeAssistant,
+) -> None:
+    """It does not re-subscribe when active device sources stay the same."""
+    manager = SubscriptionManager(hass)
+    topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.grow_tent_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+        )
+    }
+    unsub = MagicMock()
+
+    with patch(
+        "custom_components.vpd_air_auto.services.subscriptions.async_track_state_change_event",
+        return_value=unsub,
+    ) as mock_track:
+        tracked_first = manager.refresh(
+            active_device_ids={"device-1"},
+            topology_by_device_id=topology,
+            handler=AsyncMock(),
+        )
+        tracked_second = manager.refresh(
+            active_device_ids={"device-1"},
+            topology_by_device_id=topology,
+            handler=AsyncMock(),
+        )
+
+    mock_track.assert_called_once()
+    unsub.assert_not_called()
+    assert tracked_first == tracked_second
+    assert manager.tracked_entity_ids == {
+        "sensor.grow_tent_temperature",
+        "sensor.grow_tent_humidity",
+    }
+
+
+def test_refresh_with_empty_active_devices_skips_listener_creation(
+    hass: HomeAssistant,
+) -> None:
+    """It returns empty set and does not install listener for empty contexts."""
+    manager = SubscriptionManager(hass)
+    topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.grow_tent_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+        )
+    }
+
+    with patch(
+        "custom_components.vpd_air_auto.services.subscriptions.async_track_state_change_event"
+    ) as mock_track:
+        tracked = manager.refresh(
+            active_device_ids=set(),
+            topology_by_device_id=topology,
+            handler=AsyncMock(),
+        )
+
+    assert tracked == set()
+    assert manager.tracked_entity_ids == set()
+    mock_track.assert_not_called()
+
+
+async def test_shutdown_clears_listener_and_tracked_entities(
+    hass: HomeAssistant,
+) -> None:
     """It unsubscribes and clears tracked state on shutdown."""
     manager = SubscriptionManager(hass)
     unsub = MagicMock()
@@ -97,3 +168,14 @@ async def test_shutdown_clears_listener_and_tracked_entities(hass: HomeAssistant
     unsub.assert_called_once()
     assert manager.tracked_entity_ids == set()
     assert manager._unsub_state_listener is None
+
+
+async def test_shutdown_without_active_listener_is_safe(
+    hass: HomeAssistant,
+) -> None:
+    """It is safe to shut down when no listener exists."""
+    manager = SubscriptionManager(hass)
+
+    await manager.shutdown()
+
+    assert manager.tracked_entity_ids == set()

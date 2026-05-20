@@ -128,7 +128,9 @@ async def test_async_shutdown_cleans_up_registered_listeners(
     interval_unsub = MagicMock()
     coordinator._unsub_periodic_rescan = interval_unsub
 
-    with patch.object(coordinator._subscription_manager, "shutdown", new=AsyncMock()) as mock_shutdown:
+    with patch.object(
+        coordinator._subscription_manager, "shutdown", new=AsyncMock()
+    ) as mock_shutdown:
         await coordinator.async_shutdown()
 
     mock_shutdown.assert_awaited_once()
@@ -153,7 +155,7 @@ async def test_async_update_data_returns_empty_when_all_sensor_types_disabled(
         "old": DeviceTopology("old", "Old", "sensor.old_temp", "sensor.old_humidity")
     }
     coordinator._source_to_device = {"sensor.old_temp": "old"}
-    coordinator._tracked_entity_ids = {"sensor.old_temp"}
+    coordinator._subscription_manager._tracked_entity_ids = {"sensor.old_temp"}
 
     with patch.object(coordinator, "_refresh_state_listener") as mock_refresh:
         result = await coordinator._async_update_data()
