@@ -17,15 +17,12 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     DOMAIN,
-    SENSOR_KIND_ABSOLUTE_HUMIDITY,
-    SENSOR_KIND_AIR,
-    SENSOR_KIND_DEW_POINT,
-    SENSOR_KIND_LEAF,
     IntegrationOptions,
 )
 from .discovery.duplicates import DuplicateDetectionService
 from .discovery.topology import TopologyDiscoveryService
 from .models import DeviceSnapshot, DeviceTopology
+from .services.entity_plan import EntityPlanService
 from .services.snapshot_builder import SnapshotBuilder
 from .services.subscriptions import SubscriptionManager
 
@@ -62,6 +59,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         self._topology: dict[str, DeviceTopology] = {}
         self._source_to_device: dict[str, str] = {}
         self._subscription_manager = SubscriptionManager(hass)
+        self._entity_plan_service = EntityPlanService(options)
         self._unsub_periodic_rescan: Callable[[], None] | None = None
 
     async def async_shutdown(self) -> None:
@@ -82,12 +80,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
 
     async def _async_update_data(self) -> dict[str, DeviceSnapshot]:
         """Discover source devices and compute their current sensor values."""
-        if not (
-            self.options.enable_air
-            or self.options.enable_leaf
-            or self.options.enable_absolute_humidity
-            or self.options.enable_dew_point
-        ):
+        if not self._entity_plan_service.enabled_kinds():
             self._topology = {}
             self._source_to_device = {}
             self._refresh_state_listener()
@@ -123,21 +116,9 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
     @callback
     def creatable_kinds_for_device(self, device_id: str) -> set[str]:
         """Return enabled sensor kinds that are not already present on the device."""
-        device_topology = self._topology.get(device_id)
-        if device_topology is None:
-            return set()
-
-        enabled: set[str] = set()
-        if self.options.enable_air:
-            enabled.add(SENSOR_KIND_AIR)
-        if self.options.enable_leaf:
-            enabled.add(SENSOR_KIND_LEAF)
-        if self.options.enable_absolute_humidity:
-            enabled.add(SENSOR_KIND_ABSOLUTE_HUMIDITY)
-        if self.options.enable_dew_point:
-            enabled.add(SENSOR_KIND_DEW_POINT)
-
-        return enabled.difference(device_topology.blocked_sensor_kinds)
+        return self._entity_plan_service.creatable_kinds_for_topology(
+            self._topology.get(device_id)
+        )
 
     @callback
     def diagnostics_payload(self) -> dict[str, object]:
