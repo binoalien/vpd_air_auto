@@ -9,6 +9,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import VpdAirCoordinator
+from .migrations import async_migrate_entry as migrate_entry
 from .options import resolve_options
 
 type VpdAirConfigEntry = ConfigEntry[VpdAirCoordinator]
@@ -35,6 +36,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: VpdAirConfigEntry) -> bo
     await coordinator.async_config_entry_first_refresh()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate old config-entry data structures."""
+    return await migrate_entry(hass, entry)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: VpdAirConfigEntry) -> bool:
