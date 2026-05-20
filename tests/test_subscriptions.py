@@ -47,6 +47,7 @@ def test_refresh_replaces_listener_when_tracked_set_changes(
     hass: HomeAssistant,
 ) -> None:
     """It unsubscribes previous listener before replacing it."""
+    # pylint: disable=protected-access
     manager = SubscriptionManager(hass)
     topology = {
         "device-1": DeviceTopology(
