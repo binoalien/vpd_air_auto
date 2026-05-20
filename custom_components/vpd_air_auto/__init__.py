@@ -9,6 +9,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, PLATFORMS
 from .coordinator import VpdAirCoordinator
+from .migrations import async_migrate_entry as async_migrate_entry_impl
 from .options import resolve_options
 
 type VpdAirConfigEntry = ConfigEntry[VpdAirCoordinator]
@@ -43,3 +44,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: VpdAirConfigEntry) -> b
     if unload_ok:
         await entry.runtime_data.async_shutdown()
     return unload_ok
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate a config entry to the latest supported schema."""
+    return await async_migrate_entry_impl(hass, entry)

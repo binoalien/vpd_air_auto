@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto import (
+    async_migrate_entry,
     async_setup,
     async_setup_entry,
     async_unload_entry,
@@ -94,3 +95,19 @@ async def test_async_unload_entry_does_not_shutdown_when_platform_unload_fails(
 
     mock_unload.assert_awaited_once_with(entry, PLATFORMS)
     runtime_data.async_shutdown.assert_not_awaited()
+
+
+async def test_async_migrate_entry_delegates_to_migrations_module(
+    hass: HomeAssistant,
+) -> None:
+    """Test init migration entrypoint delegates to migrations module."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.vpd_air_auto.async_migrate_entry_impl",
+        AsyncMock(return_value=True),
+    ) as mock_migrate:
+        assert await async_migrate_entry(hass, entry) is True
+
+    mock_migrate.assert_awaited_once_with(hass, entry)
