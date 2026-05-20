@@ -14,9 +14,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.const import (
     DOMAIN,
-    SENSOR_KIND_ABSOLUTE_HUMIDITY,
-    SENSOR_KIND_AIR,
-    SENSOR_KIND_DEW_POINT,
     SENSOR_KIND_LEAF,
     IntegrationOptions,
 )
@@ -214,33 +211,29 @@ async def test_periodic_rescan_requests_refresh(hass: HomeAssistant) -> None:
     coordinator.async_request_refresh.assert_awaited_once()
 
 
-def test_creatable_kinds_for_device_respects_enabled_flags_and_blocked_kinds(
+def test_creatable_kinds_for_device_delegates_to_entity_plan_service(
     hass: HomeAssistant,
 ) -> None:
-    """Test creatable kinds for device respects enabled flags and blocked kinds."""
-    coordinator = _build_coordinator(
-        hass,
-        options=_options(
-            enable_air=True,
-            enable_leaf=False,
-            enable_absolute_humidity=True,
-            enable_dew_point=True,
-        ),
+    """Test creatable kinds for a device are delegated to the entity plan service."""
+    coordinator = _build_coordinator(hass)
+    topology = DeviceTopology(
+        device_id="device-1",
+        device_name="Grow Tent",
+        temperature_entity_id="sensor.grow_tent_temperature",
+        humidity_entity_id="sensor.grow_tent_humidity",
     )
-    coordinator._topology = {
-        "device-1": DeviceTopology(
-            device_id="device-1",
-            device_name="Grow Tent",
-            temperature_entity_id="sensor.grow_tent_temperature",
-            humidity_entity_id="sensor.grow_tent_humidity",
-            blocked_sensor_kinds=frozenset({SENSOR_KIND_AIR}),
-        )
-    }
+    coordinator._topology = {"device-1": topology}
 
-    creatable = coordinator.creatable_kinds_for_device("device-1")
+    with patch.object(
+        coordinator._entity_plan_service,
+        "creatable_kinds_for_topology",
+        return_value={SENSOR_KIND_LEAF},
+    ) as mock_creatable:
+        creatable = coordinator.creatable_kinds_for_device("device-1")
 
-    assert creatable == {SENSOR_KIND_ABSOLUTE_HUMIDITY, SENSOR_KIND_DEW_POINT}
-    assert coordinator.creatable_kinds_for_device("missing") == set()
+    assert creatable == {SENSOR_KIND_LEAF}
+    mock_creatable.assert_called_once_with(topology)
+
 
 
 def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sources(
@@ -395,125 +388,3 @@ async def test_source_state_changed_ignores_unknown_or_unchanged_sources(
 
     coordinator.async_set_updated_data.assert_not_called()
 
-
-def test_discover_topology_selects_best_sources_and_blocks_duplicate_sensor_kinds(
-    hass: HomeAssistant,
-) -> None:
-    """Test discover topology selects best sources and blocks duplicate sensor kinds."""
-    coordinator = _build_coordinator(hass)
-
-    hass.states.async_set(
-        "sensor.grow_tent_temperature",
-        "25.0",
-        {
-            "device_class": "temperature",
-            "unit_of_measurement": "°C",
-            "friendly_name": "Grow Tent Temperature",
-        },
-    )
-    hass.states.async_set(
-        "sensor.grow_tent_temp_aux",
-        "24.8",
-        {
-            "device_class": "temperature",
-            "unit_of_measurement": "°C",
-            "friendly_name": "Aux Temp",
-        },
-    )
-    hass.states.async_set(
-        "sensor.grow_tent_humidity",
-        "60",
-        {
-            "device_class": "humidity",
-            "unit_of_measurement": "%",
-            "friendly_name": "Grow Tent Humidity",
-        },
-    )
-    hass.states.async_set(
-        "sensor.grow_tent_humidity_generic",
-        "59",
-        {
-            "device_class": "humidity",
-            "unit_of_measurement": "%",
-            "friendly_name": "Humidity Generic",
-        },
-    )
-    hass.states.async_set(
-        "sensor.grow_tent_vpdair_foreign",
-        "1.25",
-        {"friendly_name": "VPDair"},
-    )
-    hass.states.async_set(
-        "sensor.grow_tent_leaf_vpd_foreign",
-        "1.50",
-        {"friendly_name": "Leaf VPD"},
-    )
-    hass.states.async_set(
-        "sensor.grow_tent_absolute_humidity_foreign",
-        "13.8",
-        {"device_class": "absolute_humidity", "friendly_name": "Absolute Humidity"},
-    )
-    hass.states.async_set(
-        "sensor.grow_tent_dew_point_foreign",
-        "16.6",
-        {
-            "friendly_name": "Dew Point",
-            "unit_of_measurement": "°C",
-            "device_class": "temperature",
-        },
-    )
-
-    expected_topology = {
-        "device-1": DeviceTopology(
-            device_id="device-1",
-            device_name="Grow Tent",
-            temperature_entity_id="sensor.grow_tent_temperature",
-            humidity_entity_id="sensor.grow_tent_humidity",
-            blocked_sensor_kinds=frozenset(
-                {
-                    SENSOR_KIND_AIR,
-                    SENSOR_KIND_LEAF,
-                    SENSOR_KIND_ABSOLUTE_HUMIDITY,
-                    SENSOR_KIND_DEW_POINT,
-                }
-            ),
-        )
-    }
-    with patch.object(
-        coordinator._topology_discovery_service,
-        "discover",
-        return_value=expected_topology,
-    ):
-        topology = coordinator._topology_discovery_service.discover()
-
-    assert topology["device-1"].temperature_entity_id == "sensor.grow_tent_temperature"
-    assert topology["device-1"].humidity_entity_id == "sensor.grow_tent_humidity"
-    assert topology["device-1"].blocked_sensor_kinds == frozenset(
-        {
-            SENSOR_KIND_AIR,
-            SENSOR_KIND_LEAF,
-            SENSOR_KIND_ABSOLUTE_HUMIDITY,
-            SENSOR_KIND_DEW_POINT,
-        }
-    )
-
-
-def test_discover_topology_skips_devices_without_complete_source_pair(
-    hass: HomeAssistant,
-) -> None:
-    """Test discover topology skips devices without complete source pair."""
-    coordinator = _build_coordinator(hass)
-    hass.states.async_set(
-        "sensor.grow_tent_temperature",
-        "25.0",
-        {"device_class": "temperature", "unit_of_measurement": "°C"},
-    )
-
-    with patch.object(
-        coordinator._topology_discovery_service,
-        "discover",
-        return_value={},
-    ):
-        topology = coordinator._topology_discovery_service.discover()
-
-    assert not topology
