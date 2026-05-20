@@ -12,25 +12,25 @@ from ..const import (
 from ..models import DeviceTopology
 
 
-class EntityPlanService:  # pylint: disable=too-few-public-methods
+class EntityPlanService:
     """Resolve enabled and creatable sensor kinds for discovered devices."""
 
     def __init__(self, options: IntegrationOptions) -> None:
         """Initialize the service with resolved integration options."""
-        self._options = options
+        enabled_kinds: set[str] = set()
+        if options.enable_air:
+            enabled_kinds.add(SENSOR_KIND_AIR)
+        if options.enable_leaf:
+            enabled_kinds.add(SENSOR_KIND_LEAF)
+        if options.enable_absolute_humidity:
+            enabled_kinds.add(SENSOR_KIND_ABSOLUTE_HUMIDITY)
+        if options.enable_dew_point:
+            enabled_kinds.add(SENSOR_KIND_DEW_POINT)
+        self._enabled_kinds = frozenset(enabled_kinds)
 
     def enabled_kinds(self) -> set[str]:
         """Return globally enabled sensor kinds from integration options."""
-        enabled: set[str] = set()
-        if self._options.enable_air:
-            enabled.add(SENSOR_KIND_AIR)
-        if self._options.enable_leaf:
-            enabled.add(SENSOR_KIND_LEAF)
-        if self._options.enable_absolute_humidity:
-            enabled.add(SENSOR_KIND_ABSOLUTE_HUMIDITY)
-        if self._options.enable_dew_point:
-            enabled.add(SENSOR_KIND_DEW_POINT)
-        return enabled
+        return set(self._enabled_kinds)
 
     def creatable_kinds_for_topology(
         self,

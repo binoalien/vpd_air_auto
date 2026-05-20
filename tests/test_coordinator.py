@@ -187,32 +187,31 @@ async def test_periodic_rescan_requests_refresh(hass: HomeAssistant) -> None:
     coordinator.async_request_refresh.assert_awaited_once()
 
 
-def test_creatable_kinds_for_device_respects_enabled_flags_and_blocked_kinds(
+def test_creatable_kinds_for_device_delegates_to_entity_plan_service(
     hass: HomeAssistant,
 ) -> None:
-    """Test creatable kinds for device respects enabled flags and blocked kinds."""
-    coordinator = _build_coordinator(
-        hass,
-        options=_options(
-            enable_air=True,
-            enable_leaf=False,
-            enable_absolute_humidity=True,
-            enable_dew_point=True,
-        ),
+    """Test creatable kinds for device delegates to entity plan service."""
+    coordinator = _build_coordinator(hass)
+    topology = DeviceTopology(
+        device_id="device-1",
+        device_name="Grow Tent",
+        temperature_entity_id="sensor.grow_tent_temperature",
+        humidity_entity_id="sensor.grow_tent_humidity",
+        blocked_sensor_kinds=frozenset({SENSOR_KIND_AIR}),
     )
-    coordinator._topology = {
-        "device-1": DeviceTopology(
-            device_id="device-1",
-            device_name="Grow Tent",
-            temperature_entity_id="sensor.grow_tent_temperature",
-            humidity_entity_id="sensor.grow_tent_humidity",
-            blocked_sensor_kinds=frozenset({SENSOR_KIND_AIR}),
-        )
-    }
+    coordinator._topology = {"device-1": topology}
 
-    creatable = coordinator.creatable_kinds_for_device("device-1")
+    with patch.object(
+        coordinator._entity_plan_service,
+        "creatable_kinds_for_topology",
+        return_value={SENSOR_KIND_ABSOLUTE_HUMIDITY, SENSOR_KIND_DEW_POINT},
+    ) as mock_creatable:
+        assert coordinator.creatable_kinds_for_device("device-1") == {
+            SENSOR_KIND_ABSOLUTE_HUMIDITY,
+            SENSOR_KIND_DEW_POINT,
+        }
 
-    assert creatable == {SENSOR_KIND_ABSOLUTE_HUMIDITY, SENSOR_KIND_DEW_POINT}
+    mock_creatable.assert_called_once_with(topology)
     assert coordinator.creatable_kinds_for_device("missing") == set()
 
 
