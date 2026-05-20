@@ -44,25 +44,40 @@ def _effective_value(entry: ConfigEntry, key: str, default: Any) -> Any:
     return entry.options.get(key, entry.data.get(key, default))
 
 
+def _as_bool_or_default(value: Any, default: bool) -> bool:
+    """Return bool values unchanged, fallback to default otherwise."""
+    return value if isinstance(value, bool) else default
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate V1 flat config fields into V2 nested policy structure."""
     if entry.version >= V2_ENTRY_VERSION:
         return True
 
     global_policy = {
-        CONF_ENABLE_AIR: bool(_effective_value(entry, CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR)),
-        CONF_ENABLE_LEAF: bool(_effective_value(entry, CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF)),
-        CONF_ENABLE_ABSOLUTE_HUMIDITY: bool(
+        CONF_ENABLE_AIR: _as_bool_or_default(
+            _effective_value(entry, CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR),
+            DEFAULT_ENABLE_AIR,
+        ),
+        CONF_ENABLE_LEAF: _as_bool_or_default(
+            _effective_value(entry, CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF),
+            DEFAULT_ENABLE_LEAF,
+        ),
+        CONF_ENABLE_ABSOLUTE_HUMIDITY: _as_bool_or_default(
             _effective_value(
                 entry,
                 CONF_ENABLE_ABSOLUTE_HUMIDITY,
                 DEFAULT_ENABLE_ABSOLUTE_HUMIDITY,
-            )
+            ),
+            DEFAULT_ENABLE_ABSOLUTE_HUMIDITY,
         ),
-        CONF_ENABLE_DEW_POINT: bool(
-            _effective_value(entry, CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT)
+        CONF_ENABLE_DEW_POINT: _as_bool_or_default(
+            _effective_value(entry, CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT),
+            DEFAULT_ENABLE_DEW_POINT,
         ),
-        CONF_LEAF_OFFSET: float(_effective_value(entry, CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET)),
+        CONF_LEAF_OFFSET: float(
+            _effective_value(entry, CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET)
+        ),
         CONF_ICON: str(_effective_value(entry, CONF_ICON, DEFAULT_ICON)),
         CONF_DISPLAY_NAME: str(
             _effective_value(entry, CONF_DISPLAY_NAME, DEFAULT_DISPLAY_NAME)

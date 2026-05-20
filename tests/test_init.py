@@ -8,8 +8,8 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto import (
-    async_setup,
     async_migrate_entry,
+    async_setup,
     async_setup_entry,
     async_unload_entry,
 )
