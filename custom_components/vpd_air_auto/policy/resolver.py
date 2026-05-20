@@ -6,7 +6,7 @@ from .models import EffectiveDevicePolicy, ScopedPolicyOverride
 from .repository import PolicyRepository
 
 
-class PolicyResolver:
+class PolicyResolver:  # pylint: disable=too-few-public-methods
     """Resolve effective device policy from global/area/device policy layers."""
 
     def __init__(self, repository: PolicyRepository) -> None:

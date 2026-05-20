@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from custom_components.vpd_air_auto.const import (
+from ..const import (
     DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
     DEFAULT_ABSOLUTE_HUMIDITY_ICON,
     DEFAULT_DEW_POINT_DISPLAY_NAME,
@@ -22,7 +22,7 @@ from custom_components.vpd_air_auto.const import (
 
 
 @dataclass(frozen=True, slots=True)
-class DisplayPolicy:
+class DisplayPolicy:  # pylint: disable=too-many-instance-attributes
     """Global presentation policy for all generated helper sensors."""
 
     icon: str = DEFAULT_ICON
@@ -67,7 +67,7 @@ class SourceOverride:
 
 
 @dataclass(frozen=True, slots=True)
-class EffectiveDevicePolicy:
+class EffectiveDevicePolicy:  # pylint: disable=too-many-instance-attributes
     """Resolved effective behavior for one target device."""
 
     enable_air: bool

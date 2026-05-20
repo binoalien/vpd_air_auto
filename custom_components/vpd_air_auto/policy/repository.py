@@ -80,12 +80,22 @@ class PolicyRepository:
     def _parse_global_policy(self, raw_global: Mapping[str, Any]) -> GlobalPolicy:
         display_defaults = DisplayPolicy()
         return GlobalPolicy(
-            enable_air=bool(raw_global.get(CONF_ENABLE_AIR, True)),
-            enable_leaf=bool(raw_global.get(CONF_ENABLE_LEAF, True)),
-            enable_absolute_humidity=bool(
-                raw_global.get(CONF_ENABLE_ABSOLUTE_HUMIDITY, True)
+            enable_air=self._as_bool_or_default(
+                raw_global.get(CONF_ENABLE_AIR),
+                True,
             ),
-            enable_dew_point=bool(raw_global.get(CONF_ENABLE_DEW_POINT, True)),
+            enable_leaf=self._as_bool_or_default(
+                raw_global.get(CONF_ENABLE_LEAF),
+                True,
+            ),
+            enable_absolute_humidity=self._as_bool_or_default(
+                raw_global.get(CONF_ENABLE_ABSOLUTE_HUMIDITY),
+                True,
+            ),
+            enable_dew_point=self._as_bool_or_default(
+                raw_global.get(CONF_ENABLE_DEW_POINT),
+                True,
+            ),
             leaf_offset_c=float(raw_global.get(CONF_LEAF_OFFSET, -2.0)),
             display=DisplayPolicy(
                 icon=str(raw_global.get(CONF_ICON, display_defaults.icon)),
@@ -134,12 +144,14 @@ class PolicyRepository:
             if not isinstance(scope_id, str) or not isinstance(value, Mapping):
                 continue
             parsed[scope_id] = ScopedPolicyOverride(
-                enable_air=self._optional_bool(value, CONF_ENABLE_AIR),
-                enable_leaf=self._optional_bool(value, CONF_ENABLE_LEAF),
-                enable_absolute_humidity=self._optional_bool(
-                    value, CONF_ENABLE_ABSOLUTE_HUMIDITY
+                enable_air=self._as_optional_bool(value.get(CONF_ENABLE_AIR)),
+                enable_leaf=self._as_optional_bool(value.get(CONF_ENABLE_LEAF)),
+                enable_absolute_humidity=self._as_optional_bool(
+                    value.get(CONF_ENABLE_ABSOLUTE_HUMIDITY)
                 ),
-                enable_dew_point=self._optional_bool(value, CONF_ENABLE_DEW_POINT),
+                enable_dew_point=self._as_optional_bool(
+                    value.get(CONF_ENABLE_DEW_POINT)
+                ),
                 leaf_offset_c=self._optional_float(value, CONF_LEAF_OFFSET),
             )
         return parsed
@@ -158,10 +170,14 @@ class PolicyRepository:
         return parsed
 
     @staticmethod
-    def _optional_bool(raw: Mapping[str, Any], key: str) -> bool | None:
-        if key not in raw or raw[key] is None:
-            return None
-        return bool(raw[key])
+    def _as_bool_or_default(value: Any, default: bool) -> bool:
+        """Return bool only for real bool input, otherwise fallback default."""
+        return value if isinstance(value, bool) else default
+
+    @staticmethod
+    def _as_optional_bool(value: Any) -> bool | None:
+        """Return bool only for real bool input, otherwise None."""
+        return value if isinstance(value, bool) else None
 
     @staticmethod
     def _optional_float(raw: Mapping[str, Any], key: str) -> float | None:

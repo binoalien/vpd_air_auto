@@ -12,9 +12,9 @@ def test_repository_defaults_when_raw_missing() -> None:
     assert repository.global_policy.enable_absolute_humidity is True
     assert repository.global_policy.enable_dew_point is True
     assert repository.global_policy.leaf_offset_c == -2.0
-    assert repository.area_policies == {}
-    assert repository.device_policies == {}
-    assert repository.source_overrides == {}
+    assert not repository.area_policies
+    assert not repository.device_policies
+    assert not repository.source_overrides
 
 
 def test_repository_parses_nested_policy_maps() -> None:
@@ -60,3 +60,27 @@ def test_repository_roundtrip_as_dict() -> None:
     assert "global_policy" in data
     assert data["area_policies"]["a"]["enable_leaf"] is False
     assert data["device_policies"] == {}
+
+
+def test_repository_ignores_non_bool_values() -> None:
+    """String values must not be coerced into booleans."""
+    repository = PolicyRepository(
+        {
+            "global_policy": {"enable_air": "false"},
+            "area_policies": {"a1": {"enable_air": "false"}},
+        }
+    )
+
+    assert repository.global_policy.enable_air is True
+    assert repository.area_policies["a1"].enable_air is None
+
+
+def test_repository_scoped_missing_bool_fields_stay_none() -> None:
+    """Missing optional scoped bool fields remain None."""
+    repository = PolicyRepository({"device_policies": {"d1": {"leaf_offset": -1.0}}})
+
+    scoped = repository.device_policies["d1"]
+    assert scoped.enable_air is None
+    assert scoped.enable_leaf is None
+    assert scoped.enable_absolute_humidity is None
+    assert scoped.enable_dew_point is None
