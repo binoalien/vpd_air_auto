@@ -158,6 +158,7 @@ async def test_shutdown_clears_listener_and_tracked_entities(
     hass: HomeAssistant,
 ) -> None:
     """It unsubscribes and clears tracked state on shutdown."""
+    # pylint: disable=protected-access
     manager = SubscriptionManager(hass)
     unsub = MagicMock()
     manager._unsub_state_listener = unsub
@@ -174,6 +175,7 @@ async def test_shutdown_without_active_listener_is_safe(
     hass: HomeAssistant,
 ) -> None:
     """It is safe to shut down when no listener exists."""
+    # pylint: disable=protected-access
     manager = SubscriptionManager(hass)
 
     await manager.shutdown()

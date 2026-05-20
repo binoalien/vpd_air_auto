@@ -309,7 +309,13 @@ def test_refresh_state_listener_delegates_to_subscription_manager(
     kwargs = mock_refresh.call_args.kwargs
     assert kwargs["active_device_ids"] == {"device-1"}
     assert kwargs["topology_by_device_id"] == coordinator._topology
-    assert kwargs["handler"] == coordinator._async_handle_source_state_changed
+    handler = kwargs["handler"]
+    assert callable(handler)
+    assert handler.__self__ is coordinator
+    assert (
+        handler.__func__
+        is coordinator._async_handle_source_state_changed.__func__
+    )
 
 
 async def test_source_state_changed_updates_only_affected_device(
