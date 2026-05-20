@@ -125,16 +125,14 @@ async def test_async_shutdown_cleans_up_registered_listeners(
 ) -> None:
     """Test async shutdown cleans up registered listeners."""
     coordinator = _build_coordinator(hass)
-    state_unsub = MagicMock()
     interval_unsub = MagicMock()
-    coordinator._unsub_state_listener = state_unsub
     coordinator._unsub_periodic_rescan = interval_unsub
 
-    await coordinator.async_shutdown()
+    with patch.object(coordinator._subscription_manager, "shutdown", new=AsyncMock()) as mock_shutdown:
+        await coordinator.async_shutdown()
 
-    state_unsub.assert_called_once()
+    mock_shutdown.assert_awaited_once()
     interval_unsub.assert_called_once()
-    assert coordinator._unsub_state_listener is None
     assert coordinator._unsub_periodic_rescan is None
 
 
@@ -253,7 +251,7 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
     topology snapshots, and tracked sources.
     """
     coordinator = _build_coordinator(hass)
-    coordinator._tracked_entity_ids = {
+    coordinator._subscription_manager._tracked_entity_ids = {
         "sensor.grow_tent_temperature",
         "sensor.grow_tent_humidity",
     }
@@ -287,10 +285,10 @@ def _contexts(device_ids: set[str]):
     yield from device_ids
 
 
-def test_refresh_state_listener_tracks_only_active_context_sources(
+def test_refresh_state_listener_delegates_to_subscription_manager(
     hass: HomeAssistant,
 ) -> None:
-    """Test refresh state listener tracks only active context sources."""
+    """Test refresh state listener delegates to subscription manager."""
     coordinator = _build_coordinator(hass)
     coordinator._topology = {
         "device-1": DeviceTopology(
@@ -298,34 +296,18 @@ def test_refresh_state_listener_tracks_only_active_context_sources(
             device_name="Grow Tent",
             temperature_entity_id="sensor.grow_tent_temperature",
             humidity_entity_id="sensor.grow_tent_humidity",
-        ),
-        "device-2": DeviceTopology(
-            device_id="device-2",
-            device_name="Dry Room",
-            temperature_entity_id="sensor.dry_room_temperature",
-            humidity_entity_id="sensor.dry_room_humidity",
-        ),
+        )
     }
     coordinator.async_contexts = lambda: _contexts({"device-1"})
-    unsub = MagicMock()
 
-    with patch(
-        "custom_components.vpd_air_auto.coordinator.async_track_state_change_event",
-        return_value=unsub,
-    ) as mock_track:
+    with patch.object(coordinator._subscription_manager, "refresh") as mock_refresh:
         coordinator._refresh_state_listener()
 
-    assert coordinator._tracked_entity_ids == {
-        "sensor.grow_tent_temperature",
-        "sensor.grow_tent_humidity",
-    }
-    mock_track.assert_called_once()
-    assert coordinator._unsub_state_listener is unsub
-
-    coordinator.async_contexts = lambda: _contexts(set())
-    coordinator._refresh_state_listener()
-    unsub.assert_called_once()
-    assert coordinator._tracked_entity_ids == set()
+    mock_refresh.assert_called_once()
+    kwargs = mock_refresh.call_args.kwargs
+    assert kwargs["active_device_ids"] == {"device-1"}
+    assert kwargs["topology_by_device_id"] == coordinator._topology
+    assert kwargs["handler"] == coordinator._async_handle_source_state_changed
 
 
 async def test_source_state_changed_updates_only_affected_device(
