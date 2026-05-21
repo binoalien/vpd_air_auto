@@ -94,14 +94,14 @@
       "edit_source_override": {
         "title": "Quellüberschreibung bearbeiten",
         "data": {
-          "temperature_entity_id": "Temperatur-Entity-ID",
-          "humidity_entity_id": "Feuchte-Entity-ID"
+          "temperature_entity_id": "Temperatur-Quellentität",
+          "humidity_entity_id": "Luftfeuchte-Quellentität"
         }
       },
       "area_policy_add": {
         "title": "Bereichsrichtlinie hinzufügen",
         "data": {
-          "scope_id": "Bereichs-ID"
+          "scope_id": "Bereich"
         }
       },
       "area_policy_edit": {
@@ -116,7 +116,7 @@
       "device_policy_add": {
         "title": "Geräterichtlinie hinzufügen",
         "data": {
-          "scope_id": "Geräte-ID"
+          "scope_id": "Gerät"
         }
       },
       "device_policy_edit": {
@@ -131,9 +131,9 @@
       "source_override_add": {
         "title": "Quellüberschreibung hinzufügen",
         "data": {
-          "scope_id": "Geräte-ID",
-          "temperature_entity_id": "Temperatur-Entity-ID",
-          "humidity_entity_id": "Feuchte-Entity-ID"
+          "scope_id": "Gerät",
+          "temperature_entity_id": "Temperatur-Quellentität",
+          "humidity_entity_id": "Luftfeuchte-Quellentität"
         }
       },
       "source_override_edit": {

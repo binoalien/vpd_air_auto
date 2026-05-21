@@ -7,6 +7,12 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.selector import (
+    AreaSelector,
+    AreaSelectorConfig,
+    DeviceSelector,
+    DeviceSelectorConfig,
+    EntitySelector,
+    EntitySelectorConfig,
     IconSelector,
     IconSelectorConfig,
     NumberSelector,
@@ -235,12 +241,13 @@ def build_scoped_policy_schema(
     scope_id: str = "",
     policy: dict[str, Any] | None = None,
     include_scope_id: bool,
+    scope_selector: AreaSelector | DeviceSelector | None = None,
 ) -> vol.Schema:
     """Build schema for area/device behavior override editing."""
     policy = dict(policy or {})
     schema: dict[Any, Any] = {}
     if include_scope_id:
-        schema[vol.Required("scope_id", default=scope_id)] = str
+        schema[vol.Required("scope_id", default=scope_id)] = scope_selector or str
 
     schema.update(
         {
@@ -359,22 +366,23 @@ def build_source_override_schema(
     scope_id: str = "",
     override: dict[str, Any] | None = None,
     include_scope_id: bool,
+    scope_selector: DeviceSelector | None = None,
 ) -> vol.Schema:
     """Build schema for source override editing."""
     override = dict(override or {})
     schema: dict[Any, Any] = {}
     if include_scope_id:
-        schema[vol.Required("scope_id", default=scope_id)] = str
+        schema[vol.Required("scope_id", default=scope_id)] = scope_selector or str
     schema.update(
         {
             vol.Optional(
                 "temperature_entity_id",
                 default=str(override.get("temperature_entity_id", "") or ""),
-            ): str,
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
             vol.Optional(
                 "humidity_entity_id",
                 default=str(override.get("humidity_entity_id", "") or ""),
-            ): str,
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
         }
     )
     return vol.Schema(schema)

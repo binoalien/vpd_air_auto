@@ -5,7 +5,9 @@ from __future__ import annotations
 from copy import deepcopy
 
 from homeassistant import config_entries, data_entry_flow
+from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.selector import AreaSelector, DeviceSelector, EntitySelector
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.config_flow import (
@@ -192,9 +194,14 @@ async def test_source_override_menu_adds_edits_and_deletes(
     await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "source_overrides"}
     )
-    await hass.config_entries.options.async_configure(
+    add_form = await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "source_override_add"}
     )
+    assert add_form.get("type") is FlowResultType.FORM
+    validators = list(add_form["data_schema"].schema.values())
+    assert isinstance(validators[0], DeviceSelector)
+    assert isinstance(validators[1], EntitySelector)
+    assert isinstance(validators[2], EntitySelector)
     add_result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
         user_input={
@@ -252,9 +259,10 @@ async def test_source_override_validation_errors(hass: HomeAssistant) -> None:
     await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "source_overrides"}
     )
-    await hass.config_entries.options.async_configure(
+    add_form = await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "source_override_add"}
     )
+    assert add_form.get("type") is FlowResultType.FORM
     invalid_scope = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
         user_input={
@@ -350,9 +358,12 @@ async def test_options_flow_adds_area_policy(hass: HomeAssistant) -> None:
     await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "area_policies"}
     )
-    await hass.config_entries.options.async_configure(
+    add_form = await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "area_policy_add"}
     )
+    assert add_form.get("type") is FlowResultType.FORM
+    scope_validator = next(iter(add_form["data_schema"].schema.values()))
+    assert isinstance(scope_validator, AreaSelector)
     result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
         user_input={
