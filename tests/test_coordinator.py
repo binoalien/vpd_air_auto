@@ -482,6 +482,62 @@ async def test_source_change_does_not_re_add_policy_filtered_device(
     coordinator.async_set_updated_data.assert_not_called()
 
 
+
+
+async def test_device_policy_overrides_area_and_global_at_runtime(
+    hass: HomeAssistant,
+) -> None:
+    """Runtime policy resolution must apply Device > Area > Global."""
+    coordinator = _build_coordinator(
+        hass,
+        options=_options(enable_air=False, leaf_offset_c=-2.0),
+        entry_options={
+            "area_policies": {
+                "area-1": {
+                    CONF_ENABLE_AIR: True,
+                    CONF_LEAF_OFFSET: -0.8,
+                }
+            },
+            "device_policies": {
+                "device-1": {
+                    CONF_ENABLE_AIR: False,
+                    CONF_LEAF_OFFSET: -1.4,
+                }
+            },
+        },
+    )
+    topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.grow_tent_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+            blocked_sensor_kinds=frozenset(
+                {SENSOR_KIND_AIR, SENSOR_KIND_ABSOLUTE_HUMIDITY, SENSOR_KIND_DEW_POINT}
+            ),
+            area_id="area-1",
+        )
+    }
+
+    with (
+        patch.object(
+            coordinator._topology_discovery_service,
+            "discover",
+            return_value=topology,
+        ),
+        patch.object(
+            coordinator._snapshot_builder,
+            "build_snapshot",
+            return_value=_snapshot("device-1"),
+        ) as mock_build,
+        patch.object(coordinator, "_refresh_state_listener"),
+    ):
+        result = await coordinator._async_update_data()
+
+    assert result == {}
+    policy = mock_build.call_args.args[1] if mock_build.call_args else None
+    assert policy is None
+
 async def test_global_disabled_area_enabled_device_stays_active_and_uses_area_offset(
     hass: HomeAssistant,
 ) -> None:

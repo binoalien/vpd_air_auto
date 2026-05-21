@@ -62,21 +62,36 @@ def test_resolver_applies_device_override_with_highest_priority() -> None:
     assert effective.source_override is not None
     assert effective.source_override.temperature_entity_id == "sensor.t"
 
-def test_resolver_area_only_ignores_device_overrides() -> None:
-    """Area-only resolver path must not activate device policy yet."""
+def test_resolver_device_area_global_priority_per_field() -> None:
+    """Device overrides win per field, then area, then global."""
     repository = PolicyRepository(
         {
-            "global_policy": {"enable_air": True, "leaf_offset": -2.0},
-            "area_policies": {"grow": {"enable_air": False, "leaf_offset": -0.5}},
-            "device_policies": {"device-1": {"enable_air": True, "leaf_offset": -1.2}},
+            "global_policy": {
+                "enable_air": False,
+                "enable_leaf": True,
+                "leaf_offset": -2.0,
+            },
+            "area_policies": {
+                "grow": {
+                    "enable_air": True,
+                    "enable_leaf": False,
+                    "leaf_offset": -0.5,
+                }
+            },
+            "device_policies": {
+                "device-1": {
+                    "enable_air": False,
+                }
+            },
         }
     )
-    effective = PolicyResolver(repository).resolve_for_device_area_only(
+    effective = PolicyResolver(repository).resolve_for_device(
         device_id="device-1",
         area_id="grow",
     )
 
     assert effective.enable_air is False
+    assert effective.enable_leaf is False
     assert effective.leaf_offset_c == -0.5
+    assert effective.behavior_source == "device"
     assert effective.leaf_offset_source == "area"
-    assert effective.behavior_source == "area"
