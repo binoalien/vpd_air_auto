@@ -80,94 +80,71 @@ def validated_leaf_offset(value: Any) -> float:
 
 def resolve_options(entry: ConfigEntry) -> IntegrationOptions:
     """Resolve effective options from entry data and entry options."""
+    def _value(key: str, default: Any) -> Any:
+        return entry.options.get(key, entry.data.get(key, default))
+
+    def _strict_bool(value: Any, default: bool) -> bool:
+        return value if isinstance(value, bool) else default
+
+    def _strict_int(value: Any, default: int) -> int:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _strict_float(value: Any, default: float) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def _strict_str(value: Any, default: str) -> str:
+        return value if isinstance(value, str) else default
+
     return IntegrationOptions(
-        scan_interval_seconds=int(
-            entry.options.get(
-                CONF_SCAN_INTERVAL,
-                entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-            )
+        scan_interval_seconds=_strict_int(
+            _value(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL), DEFAULT_SCAN_INTERVAL
         ),
-        enable_air=bool(
-            entry.options.get(
-                CONF_ENABLE_AIR,
-                entry.data.get(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR),
-            )
+        enable_air=_strict_bool(_value(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR), DEFAULT_ENABLE_AIR),
+        enable_leaf=_strict_bool(_value(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF), DEFAULT_ENABLE_LEAF),
+        enable_absolute_humidity=_strict_bool(
+            _value(CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY),
+            DEFAULT_ENABLE_ABSOLUTE_HUMIDITY,
         ),
-        enable_leaf=bool(
-            entry.options.get(
-                CONF_ENABLE_LEAF,
-                entry.data.get(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF),
-            )
+        enable_dew_point=_strict_bool(
+            _value(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT),
+            DEFAULT_ENABLE_DEW_POINT,
         ),
-        enable_absolute_humidity=bool(
-            entry.options.get(
-                CONF_ENABLE_ABSOLUTE_HUMIDITY,
-                entry.data.get(
-                    CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
-                ),
-            )
+        icon=_strict_str(_value(CONF_ICON, DEFAULT_ICON), DEFAULT_ICON),
+        display_name=_strict_str(
+            _value(CONF_DISPLAY_NAME, DEFAULT_DISPLAY_NAME), DEFAULT_DISPLAY_NAME
         ),
-        enable_dew_point=bool(
-            entry.options.get(
-                CONF_ENABLE_DEW_POINT,
-                entry.data.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT),
-            )
+        leaf_icon=_strict_str(_value(CONF_LEAF_ICON, DEFAULT_LEAF_ICON), DEFAULT_LEAF_ICON),
+        leaf_display_name=_strict_str(
+            _value(CONF_LEAF_DISPLAY_NAME, DEFAULT_LEAF_DISPLAY_NAME),
+            DEFAULT_LEAF_DISPLAY_NAME,
         ),
-        icon=str(entry.options.get(CONF_ICON, entry.data.get(CONF_ICON, DEFAULT_ICON))),
-        display_name=str(
-            entry.options.get(
-                CONF_DISPLAY_NAME,
-                entry.data.get(CONF_DISPLAY_NAME, DEFAULT_DISPLAY_NAME),
-            )
+        leaf_offset_c=_strict_float(
+            _value(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET), DEFAULT_LEAF_OFFSET
         ),
-        leaf_icon=str(
-            entry.options.get(
-                CONF_LEAF_ICON,
-                entry.data.get(CONF_LEAF_ICON, DEFAULT_LEAF_ICON),
-            )
+        absolute_humidity_icon=_strict_str(
+            _value(CONF_ABSOLUTE_HUMIDITY_ICON, DEFAULT_ABSOLUTE_HUMIDITY_ICON),
+            DEFAULT_ABSOLUTE_HUMIDITY_ICON,
         ),
-        leaf_display_name=str(
-            entry.options.get(
-                CONF_LEAF_DISPLAY_NAME,
-                entry.data.get(CONF_LEAF_DISPLAY_NAME, DEFAULT_LEAF_DISPLAY_NAME),
-            )
-        ),
-        leaf_offset_c=float(
-            entry.options.get(
-                CONF_LEAF_OFFSET,
-                entry.data.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET),
-            )
-        ),
-        absolute_humidity_icon=str(
-            entry.options.get(
-                CONF_ABSOLUTE_HUMIDITY_ICON,
-                entry.data.get(
-                    CONF_ABSOLUTE_HUMIDITY_ICON, DEFAULT_ABSOLUTE_HUMIDITY_ICON
-                ),
-            )
-        ),
-        absolute_humidity_display_name=str(
-            entry.options.get(
+        absolute_humidity_display_name=_strict_str(
+            _value(
                 CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
-                entry.data.get(
-                    CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
-                    DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
-                ),
-            )
+                DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
+            ),
+            DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
         ),
-        dew_point_icon=str(
-            entry.options.get(
-                CONF_DEW_POINT_ICON,
-                entry.data.get(CONF_DEW_POINT_ICON, DEFAULT_DEW_POINT_ICON),
-            )
+        dew_point_icon=_strict_str(
+            _value(CONF_DEW_POINT_ICON, DEFAULT_DEW_POINT_ICON),
+            DEFAULT_DEW_POINT_ICON,
         ),
-        dew_point_display_name=str(
-            entry.options.get(
-                CONF_DEW_POINT_DISPLAY_NAME,
-                entry.data.get(
-                    CONF_DEW_POINT_DISPLAY_NAME, DEFAULT_DEW_POINT_DISPLAY_NAME
-                ),
-            )
+        dew_point_display_name=_strict_str(
+            _value(CONF_DEW_POINT_DISPLAY_NAME, DEFAULT_DEW_POINT_DISPLAY_NAME),
+            DEFAULT_DEW_POINT_DISPLAY_NAME,
         ),
     )
 
@@ -249,29 +226,42 @@ def build_scoped_policy_schema(
         {
             vol.Required(
                 CONF_ENABLE_AIR,
-                default=bool(policy.get(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR)),
+                default=policy.get(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR)
+                if isinstance(policy.get(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR), bool)
+                else DEFAULT_ENABLE_AIR,
             ): bool,
             vol.Required(
                 CONF_ENABLE_LEAF,
-                default=bool(policy.get(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF)),
+                default=policy.get(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF)
+                if isinstance(policy.get(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF), bool)
+                else DEFAULT_ENABLE_LEAF,
             ): bool,
             vol.Required(
                 CONF_ENABLE_ABSOLUTE_HUMIDITY,
-                default=bool(
+                default=policy.get(
+                    CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
+                )
+                if isinstance(
                     policy.get(
                         CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
-                    )
-                ),
+                    ),
+                    bool,
+                )
+                else DEFAULT_ENABLE_ABSOLUTE_HUMIDITY,
             ): bool,
             vol.Required(
                 CONF_ENABLE_DEW_POINT,
-                default=bool(
-                    policy.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT)
-                ),
+                default=policy.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT)
+                if isinstance(
+                    policy.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT), bool
+                )
+                else DEFAULT_ENABLE_DEW_POINT,
             ): bool,
             vol.Required(
                 CONF_LEAF_OFFSET,
-                default=float(policy.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET)),
+                default=policy.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET)
+                if isinstance(policy.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET), (int, float))
+                else DEFAULT_LEAF_OFFSET,
             ): NumberSelector(
                 NumberSelectorConfig(
                     min=MIN_LEAF_OFFSET,

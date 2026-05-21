@@ -289,6 +289,28 @@ async def test_source_override_validation_errors(hass: HomeAssistant) -> None:
     assert invalid_domain["errors"]["humidity_entity_id"] == "invalid_humidity_entity"
 
 
+async def test_options_flow_tolerates_malformed_v2_policy_data(
+    hass: HomeAssistant,
+) -> None:
+    """Malformed nested policy/override options should not crash options init."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_valid_user_input(),
+        options={
+            "global_policy": {"leaf_offset": "bad", CONF_ENABLE_AIR: "false"},
+            "area_policies": {"a1": {"leaf_offset": "bad"}},
+            "device_policies": {"d1": {"leaf_offset": object()}},
+            "source_overrides": {"d1": {"temperature_entity_id": 123}},
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result.get("type") is data_entry_flow.FlowResultType.MENU
+    assert result.get("step_id") == "init"
+
+
 async def test_source_override_add_accepts_temperature_only(
     hass: HomeAssistant,
 ) -> None:

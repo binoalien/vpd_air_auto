@@ -84,3 +84,27 @@ def test_repository_scoped_missing_bool_fields_stay_none() -> None:
     assert scoped.enable_leaf is None
     assert scoped.enable_absolute_humidity is None
     assert scoped.enable_dew_point is None
+
+
+def test_repository_tolerates_malformed_policy_shapes() -> None:
+    """Malformed values should not raise and should fall back safely."""
+    repository = PolicyRepository(
+        {
+            "global_policy": {
+                "leaf_offset": "bad",
+                "display_name": 42,
+            },
+            "area_policies": {"a1": {"leaf_offset": "x"}},
+            "device_policies": {"d1": {"leaf_offset": object()}},
+            "source_overrides": {
+                "d1": {"temperature_entity_id": 12, "humidity_entity_id": "bad"}
+            },
+        }
+    )
+
+    assert repository.global_policy.leaf_offset_c == -2.0
+    assert isinstance(repository.global_policy.display.display_name, str)
+    assert repository.area_policies["a1"].leaf_offset_c is None
+    assert repository.device_policies["d1"].leaf_offset_c is None
+    assert repository.source_overrides["d1"].temperature_entity_id is None
+    assert repository.source_overrides["d1"].humidity_entity_id is None
