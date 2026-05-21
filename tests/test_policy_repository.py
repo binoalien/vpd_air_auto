@@ -1,5 +1,8 @@
 """Tests for the V2 policy repository."""
 
+import json
+
+from custom_components.vpd_air_auto.const import DEFAULT_DISPLAY_NAME
 from custom_components.vpd_air_auto.policy.repository import PolicyRepository
 
 
@@ -97,26 +100,86 @@ def test_repository_tolerates_malformed_values() -> None:
             },
             "area_policies": {
                 "a1": {"leaf_offset": "bad"},
+                "": {"enable_air": True},
+                "   ": {"enable_air": True},
                 123: {"enable_air": True},
             },
-            "device_policies": {"d1": {"enable_leaf": "false", "leaf_offset": "2.2"}},
+            "device_policies": {
+                "d1": {"enable_leaf": "false", "leaf_offset": "2.2"},
+                "  d2  ": {"enable_air": True},
+            },
             "source_overrides": {
                 "d1": {
                     "temperature_entity_id": " climate.room ",
                     "humidity_entity_id": "sensor.h1",
                 },
                 "d2": "invalid-shape",
+                "": {"temperature_entity_id": "sensor.t"},
+                "   ": {"humidity_entity_id": "sensor.h"},
+                42: {"temperature_entity_id": "sensor.t"},
+                "d3": {"temperature_entity_id": None, "humidity_entity_id": "   "},
+                "  d4 ": {"temperature_entity_id": "sensor.t4"},
             },
         }
     )
 
     assert repository.global_policy.enable_air is True
     assert repository.global_policy.leaf_offset_c == -2.0
-    assert repository.global_policy.display.icon == "mdi:water-opacity"
+    assert repository.global_policy.display.display_name == DEFAULT_DISPLAY_NAME
     assert repository.area_policies["a1"].leaf_offset_c is None
+    assert "" not in repository.area_policies
+    assert "   " not in repository.area_policies
     assert "123" not in repository.area_policies
     assert repository.device_policies["d1"].enable_leaf is None
     assert repository.device_policies["d1"].leaf_offset_c == 2.2
+    assert "d2" in repository.device_policies
     assert repository.source_overrides["d1"].temperature_entity_id is None
     assert repository.source_overrides["d1"].humidity_entity_id == "sensor.h1"
     assert "d2" not in repository.source_overrides
+    assert "d3" not in repository.source_overrides
+    assert repository.source_overrides["d4"].temperature_entity_id == "sensor.t4"
+
+
+def test_repository_rejects_non_finite_leaf_offsets() -> None:
+    """Nan/inf leaf offsets must fall back safely."""
+    repository = PolicyRepository(
+        {
+            "global_policy": {"leaf_offset": "nan"},
+            "area_policies": {"a1": {"leaf_offset": "nan"}},
+            "device_policies": {"d1": {"leaf_offset": "inf"}},
+        }
+    )
+
+    assert repository.global_policy.leaf_offset_c == -2.0
+    assert repository.area_policies["a1"].leaf_offset_c is None
+    assert repository.device_policies["d1"].leaf_offset_c is None
+
+
+def test_repository_global_leaf_offset_inf_uses_default() -> None:
+    """Global inf leaf offset must use default value."""
+    repository = PolicyRepository({"global_policy": {"leaf_offset": "inf"}})
+
+    assert repository.global_policy.leaf_offset_c == -2.0
+
+
+def test_repository_as_dict_is_json_serializable() -> None:
+    """Repository as_dict output should remain JSON serializable."""
+    repository = PolicyRepository(
+        {
+            "source_overrides": {
+                "bad": {"temperature_entity_id": " "},
+                "good_temp": {"temperature_entity_id": "sensor.temp"},
+                "good_hum": {"humidity_entity_id": "sensor.hum"},
+            }
+        }
+    )
+
+    data = repository.as_dict()
+    json.dumps(data)
+
+    assert "bad" not in data["source_overrides"]
+    assert (
+        data["source_overrides"]["good_temp"]["temperature_entity_id"]
+        == "sensor.temp"
+    )
+    assert data["source_overrides"]["good_hum"]["humidity_entity_id"] == "sensor.hum"

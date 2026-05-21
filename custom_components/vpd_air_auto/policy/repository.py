@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from dataclasses import asdict
 from typing import Any
@@ -40,9 +41,10 @@ def _bool_or_default(value: Any, default: bool) -> bool:
 def _float_or_default(value: Any, default: float) -> float:
     """Return numeric values as float, otherwise fallback default."""
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
         return default
+    return parsed if math.isfinite(parsed) else default
 
 
 def _optional_float(value: Any) -> float | None:
@@ -50,9 +52,10 @@ def _optional_float(value: Any) -> float | None:
     if value is None:
         return None
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
         return None
+    return parsed if math.isfinite(parsed) else None
 
 
 def _optional_str(value: Any) -> str | None:
@@ -64,9 +67,9 @@ def _optional_str(value: Any) -> str | None:
 
 
 def _entity_id_or_none(value: Any) -> str | None:
-    """Return valid sensor entity id, otherwise None."""
+    """Return non-empty entity-id-like string, otherwise None."""
     entity_id = _optional_str(value)
-    if entity_id is None or not entity_id.startswith("sensor."):
+    if entity_id is None or "." not in entity_id:
         return None
     return entity_id
 
@@ -77,10 +80,16 @@ class PolicyRepository:
     def __init__(self, raw: Mapping[str, Any] | None = None) -> None:
         """Initialize repository with optional raw mapping."""
         self._raw = _mapping_or_empty(raw)
-        self._global_policy = self._parse_global_policy(self._mapping("global_policy"))
+        self._global_policy = self._parse_global_policy(
+            self._mapping("global_policy")
+        )
         self._area_policies = self._parse_scoped_map(self._mapping("area_policies"))
-        self._device_policies = self._parse_scoped_map(self._mapping("device_policies"))
-        self._source_overrides = self._parse_source_map(self._mapping("source_overrides"))
+        self._device_policies = self._parse_scoped_map(
+            self._mapping("device_policies")
+        )
+        self._source_overrides = self._parse_source_map(
+            self._mapping("source_overrides")
+        )
 
     @property
     def global_policy(self) -> GlobalPolicy:
@@ -171,9 +180,10 @@ class PolicyRepository:
     ) -> dict[str, ScopedPolicyOverride]:
         parsed: dict[str, ScopedPolicyOverride] = {}
         for scope_id, value in scoped.items():
-            if not isinstance(scope_id, str) or not isinstance(value, Mapping):
+            normalized_scope_id = _optional_str(scope_id)
+            if normalized_scope_id is None or not isinstance(value, Mapping):
                 continue
-            parsed[scope_id] = ScopedPolicyOverride(
+            parsed[normalized_scope_id] = ScopedPolicyOverride(
                 enable_air=self._as_optional_bool(value.get(CONF_ENABLE_AIR)),
                 enable_leaf=self._as_optional_bool(value.get(CONF_ENABLE_LEAF)),
                 enable_absolute_humidity=self._as_optional_bool(
@@ -189,13 +199,18 @@ class PolicyRepository:
     def _parse_source_map(self, scoped: Mapping[str, Any]) -> dict[str, SourceOverride]:
         parsed: dict[str, SourceOverride] = {}
         for device_id, value in scoped.items():
-            if not isinstance(device_id, str) or not isinstance(value, Mapping):
+            normalized_device_id = _optional_str(device_id)
+            if normalized_device_id is None or not isinstance(value, Mapping):
                 continue
-            parsed[device_id] = SourceOverride(
-                temperature_entity_id=_entity_id_or_none(
-                    value.get("temperature_entity_id")
-                ),
-                humidity_entity_id=_entity_id_or_none(value.get("humidity_entity_id")),
+            temperature_entity_id = _entity_id_or_none(
+                value.get("temperature_entity_id")
+            )
+            humidity_entity_id = _entity_id_or_none(value.get("humidity_entity_id"))
+            if temperature_entity_id is None and humidity_entity_id is None:
+                continue
+            parsed[normalized_device_id] = SourceOverride(
+                temperature_entity_id=temperature_entity_id,
+                humidity_entity_id=humidity_entity_id,
             )
         return parsed
 

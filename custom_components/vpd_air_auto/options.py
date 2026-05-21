@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import voluptuous as vol
@@ -80,68 +81,90 @@ def validated_leaf_offset(value: Any) -> float:
 
 def resolve_options(entry: ConfigEntry) -> IntegrationOptions:
     """Resolve effective options from entry data and entry options."""
-    def _raw(key: str, default: Any) -> Any:
-        return entry.options.get(key, entry.data.get(key, default))
+    def _safe_bool(value: Any) -> bool | None:
+        return value if isinstance(value, bool) else None
 
-    def _safe_bool(value: Any, default: bool) -> bool:
-        return value if isinstance(value, bool) else default
-
-    def _safe_int(value: Any, default: int) -> int:
+    def _safe_int(value: Any) -> int | None:
         try:
             return int(value)
         except (TypeError, ValueError):
-            return default
+            return None
 
-    def _safe_float(value: Any, default: float) -> float:
+    def _safe_float(value: Any) -> float | None:
         try:
-            return float(value)
+            parsed = float(value)
         except (TypeError, ValueError):
-            return default
+            return None
+        return parsed if math.isfinite(parsed) else None
 
-    def _safe_str(value: Any, default: str) -> str:
+    def _safe_str(value: Any) -> str | None:
         if not isinstance(value, str):
-            return default
+            return None
         normalized = value.strip()
-        return normalized or default
+        return normalized or None
+
+    def _resolve(
+        key: str,
+        parser,
+        default: Any,
+    ) -> Any:
+        parsed = parser(entry.options.get(key))
+        if parsed is not None:
+            return parsed
+        parsed = parser(entry.data.get(key))
+        if parsed is not None:
+            return parsed
+        return default
 
     return IntegrationOptions(
-        scan_interval_seconds=_safe_int(
-            _raw(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL), DEFAULT_SCAN_INTERVAL
+        scan_interval_seconds=_resolve(
+            CONF_SCAN_INTERVAL,
+            _safe_int,
+            DEFAULT_SCAN_INTERVAL,
         ),
-        enable_air=_safe_bool(_raw(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR), DEFAULT_ENABLE_AIR),
-        enable_leaf=_safe_bool(
-            _raw(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF), DEFAULT_ENABLE_LEAF
+        enable_air=_resolve(CONF_ENABLE_AIR, _safe_bool, DEFAULT_ENABLE_AIR),
+        enable_leaf=_resolve(
+            CONF_ENABLE_LEAF,
+            _safe_bool,
+            DEFAULT_ENABLE_LEAF,
         ),
-        enable_absolute_humidity=_safe_bool(
-            _raw(CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY),
+        enable_absolute_humidity=_resolve(
+            CONF_ENABLE_ABSOLUTE_HUMIDITY,
+            _safe_bool,
             DEFAULT_ENABLE_ABSOLUTE_HUMIDITY,
         ),
-        enable_dew_point=_safe_bool(
-            _raw(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT), DEFAULT_ENABLE_DEW_POINT
+        enable_dew_point=_resolve(
+            CONF_ENABLE_DEW_POINT,
+            _safe_bool,
+            DEFAULT_ENABLE_DEW_POINT,
         ),
-        icon=_safe_str(_raw(CONF_ICON, DEFAULT_ICON), DEFAULT_ICON),
-        display_name=_safe_str(_raw(CONF_DISPLAY_NAME, DEFAULT_DISPLAY_NAME), DEFAULT_DISPLAY_NAME),
-        leaf_icon=_safe_str(_raw(CONF_LEAF_ICON, DEFAULT_LEAF_ICON), DEFAULT_LEAF_ICON),
-        leaf_display_name=_safe_str(
-            _raw(CONF_LEAF_DISPLAY_NAME, DEFAULT_LEAF_DISPLAY_NAME), DEFAULT_LEAF_DISPLAY_NAME
+        icon=_resolve(CONF_ICON, _safe_str, DEFAULT_ICON),
+        display_name=_resolve(
+            CONF_DISPLAY_NAME,
+            _safe_str,
+            DEFAULT_DISPLAY_NAME,
         ),
-        leaf_offset_c=_safe_float(_raw(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET), DEFAULT_LEAF_OFFSET),
-        absolute_humidity_icon=_safe_str(
-            _raw(CONF_ABSOLUTE_HUMIDITY_ICON, DEFAULT_ABSOLUTE_HUMIDITY_ICON),
+        leaf_icon=_resolve(CONF_LEAF_ICON, _safe_str, DEFAULT_LEAF_ICON),
+        leaf_display_name=_resolve(
+            CONF_LEAF_DISPLAY_NAME,
+            _safe_str,
+            DEFAULT_LEAF_DISPLAY_NAME,
+        ),
+        leaf_offset_c=_resolve(CONF_LEAF_OFFSET, _safe_float, DEFAULT_LEAF_OFFSET),
+        absolute_humidity_icon=_resolve(
+            CONF_ABSOLUTE_HUMIDITY_ICON,
+            _safe_str,
             DEFAULT_ABSOLUTE_HUMIDITY_ICON,
         ),
-        absolute_humidity_display_name=_safe_str(
-            _raw(
-                CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
-                DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
-            ),
+        absolute_humidity_display_name=_resolve(
+            CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
+            _safe_str,
             DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
         ),
-        dew_point_icon=_safe_str(
-            _raw(CONF_DEW_POINT_ICON, DEFAULT_DEW_POINT_ICON), DEFAULT_DEW_POINT_ICON
-        ),
-        dew_point_display_name=_safe_str(
-            _raw(CONF_DEW_POINT_DISPLAY_NAME, DEFAULT_DEW_POINT_DISPLAY_NAME),
+        dew_point_icon=_resolve(CONF_DEW_POINT_ICON, _safe_str, DEFAULT_DEW_POINT_ICON),
+        dew_point_display_name=_resolve(
+            CONF_DEW_POINT_DISPLAY_NAME,
+            _safe_str,
             DEFAULT_DEW_POINT_DISPLAY_NAME,
         ),
     )

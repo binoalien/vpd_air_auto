@@ -208,6 +208,64 @@ def test_resolve_options_tolerates_malformed_stored_values() -> None:
     )
 
 
+def test_resolve_options_falls_back_to_data_when_options_invalid() -> None:
+    """Malformed option values should fall back to valid entry.data values."""
+    entry = MockConfigEntry(
+        domain="vpd_air_auto",
+        data={
+            CONF_SCAN_INTERVAL: 750,
+            CONF_LEAF_OFFSET: -1.1,
+            CONF_DISPLAY_NAME: "Data Display",
+        },
+        options={
+            CONF_SCAN_INTERVAL: "bad",
+            CONF_LEAF_OFFSET: "inf",
+            CONF_DISPLAY_NAME: "   ",
+        },
+    )
+
+    resolved = resolve_options(entry)
+
+    assert resolved.scan_interval_seconds == 750
+    assert resolved.leaf_offset_c == -1.1
+    assert resolved.display_name == "Data Display"
+
+
+def test_resolve_options_uses_defaults_when_both_sources_invalid() -> None:
+    """Defaults are used when both options and data values are invalid."""
+    entry = MockConfigEntry(
+        domain="vpd_air_auto",
+        data={
+            CONF_SCAN_INTERVAL: "nope",
+            CONF_LEAF_OFFSET: "nan",
+            CONF_DISPLAY_NAME: " ",
+        },
+        options={
+            CONF_SCAN_INTERVAL: None,
+            CONF_LEAF_OFFSET: "-inf",
+            CONF_DISPLAY_NAME: None,
+        },
+    )
+
+    resolved = resolve_options(entry)
+
+    assert resolved.scan_interval_seconds == DEFAULT_SCAN_INTERVAL
+    assert resolved.leaf_offset_c == DEFAULT_LEAF_OFFSET
+    assert resolved.display_name == DEFAULT_DISPLAY_NAME
+
+
+def test_resolve_options_leaf_offset_inf_falls_back_to_data() -> None:
+    """Non-finite option leaf offset should use valid data leaf offset."""
+    entry = MockConfigEntry(
+        domain="vpd_air_auto",
+        data={CONF_LEAF_OFFSET: -1.6},
+        options={CONF_LEAF_OFFSET: "inf"},
+    )
+
+    resolved = resolve_options(entry)
+    assert resolved.leaf_offset_c == -1.6
+
+
 def test_build_schema_applies_defaults_and_validates_scan_interval_bounds() -> None:
     """Test build schema applies defaults and validates scan interval bounds."""
     options = resolve_options(
