@@ -42,7 +42,9 @@ from .const import (
 from .options import (
     build_schema,
     build_scoped_policy_schema,
+    build_source_override_schema,
     normalize_scoped_policy_input,
+    normalize_source_override_input,
     normalize_user_input,
     resolve_options,
 )
@@ -114,7 +116,12 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         """Show options menu."""
         return self.async_show_menu(
             step_id="init",
-            menu_options=["global_defaults", "area_policies", "device_policies"],
+            menu_options=[
+                "global_defaults",
+                "area_policies",
+                "device_policies",
+                "source_overrides",
+            ],
         )
 
     async def async_step_global_defaults(
@@ -176,6 +183,45 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
                 "device_policy_edit",
                 "device_policy_delete",
             ],
+        )
+
+    async def async_step_source_overrides(
+        self, _user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show source override action menu."""
+        return self.async_show_menu(
+            step_id="source_overrides",
+            menu_options=[
+                "source_override_add",
+                "source_override_edit",
+                "source_override_delete",
+            ],
+        )
+
+    async def async_step_source_override_add(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Add a source override."""
+        return await self._async_step_source_override_edit(None, user_input)
+
+    async def async_step_source_override_edit(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Select and edit a source override."""
+        return await self._async_step_select_source_override(user_input)
+
+    async def async_step_source_override_delete(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Delete a source override."""
+        return await self._async_step_delete_source_override(user_input)
+
+    async def async_step_edit_source_override(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Edit selected source override."""
+        return await self._async_step_source_override_edit(
+            self._edited_scope_id, user_input, include_scope_id=False
         )
 
     async def async_step_area_policy_add(
@@ -346,3 +392,100 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         return vol.Schema(
             {vol.Required("scope_id", default=default_scope): vol.In(choices)}
         )
+
+    async def _async_step_select_source_override(
+        self, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        source_overrides = self._entry_mapping("source_overrides")
+        if user_input is not None:
+            selected_scope = user_input.get("scope_id")
+            if (
+                isinstance(selected_scope, str)
+                and selected_scope in source_overrides
+            ):
+                self._edited_scope_id = selected_scope
+                return await self.async_step_edit_source_override()
+            return self.async_show_form(
+                step_id="source_override_edit",
+                data_schema=self._scope_select_schema(source_overrides),
+                errors={"scope_id": "invalid_scope_id"},
+            )
+        return self.async_show_form(
+            step_id="source_override_edit",
+            data_schema=self._scope_select_schema(source_overrides),
+            errors={},
+        )
+
+    async def _async_step_delete_source_override(
+        self, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        source_overrides = self._entry_mapping("source_overrides")
+        if user_input is not None:
+            selected_scope = user_input.get("scope_id")
+            if (
+                isinstance(selected_scope, str)
+                and selected_scope in source_overrides
+            ):
+                source_overrides.pop(selected_scope)
+                return self.async_create_entry(
+                    data=self._build_updated_options_with_source_overrides(
+                        source_overrides
+                    )
+                )
+            return self.async_show_form(
+                step_id="source_override_delete",
+                data_schema=self._scope_select_schema(source_overrides),
+                errors={"scope_id": "invalid_scope_id"},
+            )
+        return self.async_show_form(
+            step_id="source_override_delete",
+            data_schema=self._scope_select_schema(source_overrides),
+            errors={},
+        )
+
+    async def _async_step_source_override_edit(
+        self,
+        scope_id: str | None,
+        user_input: dict[str, Any] | None,
+        *,
+        include_scope_id: bool = True,
+    ) -> ConfigFlowResult:
+        source_overrides = self._entry_mapping("source_overrides")
+        existing_override = source_overrides.get(scope_id, {}) if scope_id else {}
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            normalized, errors = normalize_source_override_input(
+                user_input, include_scope_id=include_scope_id
+            )
+            if not errors:
+                resolved_scope_id = scope_id or normalized.pop("scope_id")
+                source_overrides[resolved_scope_id] = normalized
+                return self.async_create_entry(
+                    data=self._build_updated_options_with_source_overrides(
+                        source_overrides
+                    )
+                )
+
+        step_id = (
+            "edit_source_override" if not include_scope_id else "source_override_add"
+        )
+        return self.async_show_form(
+            step_id=step_id,
+            data_schema=build_source_override_schema(
+                scope_id=scope_id or "",
+                override=existing_override,
+                include_scope_id=include_scope_id,
+            ),
+            errors=errors,
+        )
+
+    def _build_updated_options_with_source_overrides(
+        self,
+        source_overrides: dict[str, Any],
+    ) -> dict[str, Any]:
+        updated = dict(self.config_entry.options)
+        updated["global_policy"] = self._entry_mapping("global_policy")
+        updated["area_policies"] = self._entry_mapping("area_policies")
+        updated["device_policies"] = self._entry_mapping("device_policies")
+        updated["source_overrides"] = source_overrides
+        return updated

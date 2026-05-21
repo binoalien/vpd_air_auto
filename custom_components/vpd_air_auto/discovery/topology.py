@@ -62,13 +62,13 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             )
             source_override = source_overrides.get(device.id)
             temperature_entity_id = self._resolve_source_entity_id(
-                candidates=candidates,
+                entity_registry=entity_registry,
                 source_override=source_override,
                 target_device_class=TARGET_TEMPERATURE,
                 auto_entity_id=auto_temperature_entity_id,
             )
             humidity_entity_id = self._resolve_source_entity_id(
-                candidates=candidates,
+                entity_registry=entity_registry,
                 source_override=source_override,
                 target_device_class=TARGET_HUMIDITY,
                 auto_entity_id=auto_humidity_entity_id,
@@ -102,7 +102,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
     def _resolve_source_entity_id(
         self,
         *,
-        candidates: list[er.RegistryEntry],
+        entity_registry: er.EntityRegistry,
         source_override: SourceOverride | None,
         target_device_class: str,
         auto_entity_id: str | None,
@@ -119,7 +119,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         if override_entity_id is None:
             return auto_entity_id
         if self._is_valid_manual_override(
-            candidates=candidates,
+            entity_registry=entity_registry,
             entity_id=override_entity_id,
             target_device_class=target_device_class,
         ):
@@ -129,11 +129,11 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
     def _is_valid_manual_override(
         self,
         *,
-        candidates: list[er.RegistryEntry],
+        entity_registry: er.EntityRegistry,
         entity_id: str,
         target_device_class: str,
     ) -> bool:
-        entry = next((item for item in candidates if item.entity_id == entity_id), None)
+        entry = entity_registry.async_get(entity_id)
         if entry is None:
             return False
         if entry.domain != SOURCE_DOMAIN_SENSOR or entry.platform == DOMAIN:

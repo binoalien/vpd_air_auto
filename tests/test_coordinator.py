@@ -27,6 +27,7 @@ from custom_components.vpd_air_auto.coordinator import (
     VpdAirCoordinator,
 )
 from custom_components.vpd_air_auto.models import DeviceSnapshot, DeviceTopology
+from custom_components.vpd_air_auto.policy.models import SourceOverride
 
 
 def _options(
@@ -229,7 +230,9 @@ async def test_async_update_data_passes_source_overrides_to_discovery(
         await coordinator._async_update_data()
 
     mock_discover.assert_called_once_with(
-        source_overrides=ANY,
+        source_overrides={
+            "device-1": SourceOverride(temperature_entity_id="sensor.manual_temp")
+        }
     )
 
 

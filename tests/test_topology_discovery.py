@@ -264,22 +264,45 @@ def test_discover_prefers_valid_manual_overrides(
     duplicate_detection = _DuplicateDetectionStub()
     service = TopologyDiscoveryService(hass, duplicate_detection)
     temp_entry = _entry(
-        "sensor.manual_temp", original_device_class="temperature", original_unit_of_measurement="°C"
+        "sensor.manual_temp",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
     )
     hum_entry = _entry(
-        "sensor.manual_hum", original_device_class="humidity", original_unit_of_measurement="%"
+        "sensor.manual_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
     )
-    hass.states.async_set("sensor.manual_temp", "24.0", {"device_class": "temperature"})
+    hass.states.async_set(
+        "sensor.manual_temp", "24.0", {"device_class": "temperature"}
+    )
     hass.states.async_set("sensor.manual_hum", "55.0", {"device_class": "humidity"})
     area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
     device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
-    entity_registry = SimpleNamespace()
+    entity_registry = SimpleNamespace(
+        async_get=lambda entity_id: {
+            "sensor.manual_temp": temp_entry,
+            "sensor.manual_hum": hum_entry,
+        }.get(entity_id)
+    )
 
     with (
-        patch("custom_components.vpd_air_auto.discovery.topology.dr.async_get", return_value=device_registry),
-        patch("custom_components.vpd_air_auto.discovery.topology.ar.async_get", return_value=area_registry),
-        patch("custom_components.vpd_air_auto.discovery.topology.er.async_get", return_value=entity_registry),
-        patch("custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device", return_value=[temp_entry, hum_entry]),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=area_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_get",
+            return_value=entity_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device",
+            return_value=[temp_entry, hum_entry],
+        ),
     ):
         topology = service.discover(
             {"dev1": SourceOverride("sensor.manual_temp", "sensor.manual_hum")}
@@ -296,26 +319,50 @@ def test_discover_ignores_invalid_manual_override_and_falls_back_to_auto(
     duplicate_detection = _DuplicateDetectionStub()
     service = TopologyDiscoveryService(hass, duplicate_detection)
     auto_temp = _entry(
-        "sensor.auto_temp", original_device_class="temperature", original_unit_of_measurement="°C"
+        "sensor.auto_temp",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
     )
     auto_hum = _entry(
-        "sensor.auto_hum", original_device_class="humidity", original_unit_of_measurement="%"
+        "sensor.auto_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
     )
     invalid_temp = _entry(
-        "sensor.invalid_temp", original_device_class="humidity", original_unit_of_measurement="%"
+        "sensor.invalid_temp",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
     )
     hass.states.async_set("sensor.auto_temp", "24.0", {"device_class": "temperature"})
     hass.states.async_set("sensor.auto_hum", "55.0", {"device_class": "humidity"})
     hass.states.async_set("sensor.invalid_temp", "55.0", {"device_class": "humidity"})
     area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
     device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
-    entity_registry = SimpleNamespace()
+    entity_registry = SimpleNamespace(
+        async_get=lambda entity_id: {
+            "sensor.auto_temp": auto_temp,
+            "sensor.auto_hum": auto_hum,
+            "sensor.invalid_temp": invalid_temp,
+        }.get(entity_id)
+    )
 
     with (
-        patch("custom_components.vpd_air_auto.discovery.topology.dr.async_get", return_value=device_registry),
-        patch("custom_components.vpd_air_auto.discovery.topology.ar.async_get", return_value=area_registry),
-        patch("custom_components.vpd_air_auto.discovery.topology.er.async_get", return_value=entity_registry),
-        patch("custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device", return_value=[auto_temp, auto_hum, invalid_temp]),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=area_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_get",
+            return_value=entity_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device",
+            return_value=[auto_temp, auto_hum, invalid_temp],
+        ),
     ):
         topology = service.discover(
             {"dev1": SourceOverride("sensor.invalid_temp", None)}
