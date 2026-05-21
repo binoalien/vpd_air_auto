@@ -6,24 +6,76 @@ import logging
 from collections.abc import Callable
 from dataclasses import asdict
 from datetime import datetime, timedelta
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.helpers.event import (
-    EventStateChangedData,
-    async_track_time_interval,
-)
+from homeassistant.helpers.event import EventStateChangedData, async_track_time_interval
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN, IntegrationOptions
+from .const import (
+    CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
+    CONF_ABSOLUTE_HUMIDITY_ICON,
+    CONF_DEW_POINT_DISPLAY_NAME,
+    CONF_DEW_POINT_ICON,
+    CONF_DISPLAY_NAME,
+    CONF_ENABLE_ABSOLUTE_HUMIDITY,
+    CONF_ENABLE_AIR,
+    CONF_ENABLE_DEW_POINT,
+    CONF_ENABLE_LEAF,
+    CONF_ICON,
+    CONF_LEAF_DISPLAY_NAME,
+    CONF_LEAF_ICON,
+    CONF_LEAF_OFFSET,
+    DOMAIN,
+    IntegrationOptions,
+)
 from .discovery.duplicates import DuplicateDetectionService
 from .discovery.topology import TopologyDiscoveryService
 from .models import DeviceSnapshot, DeviceTopology
+from .policy.repository import PolicyRepository
+from .policy.resolver import PolicyResolver
 from .services.entity_plan import EntityPlanService
 from .services.snapshot_builder import SnapshotBuilder
 from .services.subscriptions import SubscriptionManager
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _policy_data_from_options(
+    config_entry: ConfigEntry,
+    options: IntegrationOptions,
+) -> dict[str, object]:
+    """Build policy repository input from resolved options and scoped raw data."""
+    return {
+        "global_policy": {
+            CONF_ENABLE_AIR: options.enable_air,
+            CONF_ENABLE_LEAF: options.enable_leaf,
+            CONF_ENABLE_ABSOLUTE_HUMIDITY: options.enable_absolute_humidity,
+            CONF_ENABLE_DEW_POINT: options.enable_dew_point,
+            CONF_LEAF_OFFSET: options.leaf_offset_c,
+            CONF_ICON: options.icon,
+            CONF_DISPLAY_NAME: options.display_name,
+            CONF_LEAF_ICON: options.leaf_icon,
+            CONF_LEAF_DISPLAY_NAME: options.leaf_display_name,
+            CONF_ABSOLUTE_HUMIDITY_ICON: options.absolute_humidity_icon,
+            CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME: options.absolute_humidity_display_name,
+            CONF_DEW_POINT_ICON: options.dew_point_icon,
+            CONF_DEW_POINT_DISPLAY_NAME: options.dew_point_display_name,
+        },
+        "area_policies": config_entry.options.get(
+            "area_policies",
+            config_entry.data.get("area_policies", {}),
+        ),
+        "device_policies": config_entry.options.get(
+            "device_policies",
+            config_entry.data.get("device_policies", {}),
+        ),
+        "source_overrides": config_entry.options.get(
+            "source_overrides",
+            config_entry.data.get("source_overrides", {}),
+        ),
+    }
 
 
 class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # pylint: disable=too-many-instance-attributes
@@ -48,12 +100,16 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         self.config_entry = config_entry
         self.options = options
         self._scan_interval = timedelta(seconds=options.scan_interval_seconds)
-        self._snapshot_builder = SnapshotBuilder(hass, options.leaf_offset_c)
+        self._snapshot_builder = SnapshotBuilder(hass)
         self._duplicate_detection_service = DuplicateDetectionService(hass, options)
         self._topology_discovery_service = TopologyDiscoveryService(
-            hass, self._duplicate_detection_service
+            hass,
+            self._duplicate_detection_service,
         )
-        self._entity_plan_service = EntityPlanService(options)
+        self._policy_resolver = PolicyResolver(
+            PolicyRepository(_policy_data_from_options(config_entry, options))
+        )
+        self._entity_plan_service = EntityPlanService()
         self._topology: dict[str, DeviceTopology] = {}
         self._source_to_device: dict[str, str] = {}
         self._subscription_manager = SubscriptionManager(hass)
@@ -77,22 +133,32 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
 
     async def _async_update_data(self) -> dict[str, DeviceSnapshot]:
         """Discover source devices and compute their current sensor values."""
-        if not self._entity_plan_service.enabled_kinds():
-            self._topology = {}
-            self._source_to_device = {}
-            self._refresh_state_listener()
-            return {}
-
         topology = self._topology_discovery_service.discover()
-        snapshots = {
-            device_id: self._snapshot_builder.build_snapshot(device_topology)
-            for device_id, device_topology in topology.items()
-        }
+        snapshots: dict[str, DeviceSnapshot] = {}
+        active_topology: dict[str, DeviceTopology] = {}
+
+        for device_id, device_topology in topology.items():
+            effective_policy = self._policy_resolver.resolve_for_device_area_only(
+                device_id=device_id,
+                area_id=device_topology.area_id,
+            )
+            creatable_kinds = self._entity_plan_service.creatable_kinds_for_topology(
+                device_topology,
+                effective_policy,
+            )
+            if not creatable_kinds:
+                continue
+
+            active_topology[device_id] = device_topology
+            snapshots[device_id] = self._snapshot_builder.build_snapshot(
+                device_topology,
+                effective_policy,
+            )
 
         self._topology = topology
         self._source_to_device = {
             entity_id: device_id
-            for device_id, device_topology in topology.items()
+            for device_id, device_topology in active_topology.items()
             for entity_id in (
                 device_topology.temperature_entity_id,
                 device_topology.humidity_entity_id,
@@ -117,10 +183,17 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         if device_topology is None:
             return set()
 
-        return self._entity_plan_service.creatable_kinds_for_topology(device_topology)
+        effective_policy = self._policy_resolver.resolve_for_device_area_only(
+            device_id=device_topology.device_id,
+            area_id=device_topology.area_id,
+        )
+        return self._entity_plan_service.creatable_kinds_for_topology(
+            device_topology,
+            effective_policy,
+        )
 
     @callback
-    def diagnostics_payload(self) -> dict[str, object]:
+    def diagnostics_payload(self) -> dict[str, Any]:
         """Return a sanitized diagnostics payload for the whole config entry."""
         return {
             "options": asdict(self.options),
@@ -136,7 +209,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         }
 
     @callback
-    def device_diagnostics_payload(self, device_id: str) -> dict[str, object]:
+    def device_diagnostics_payload(self, device_id: str) -> dict[str, Any]:
         """Return a diagnostics payload scoped to a single Home Assistant device."""
         return {
             "device_id": device_id,
@@ -159,7 +232,8 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         )
 
     async def _async_handle_source_state_changed(
-        self, event: Event[EventStateChangedData]
+        self,
+        event: Event[EventStateChangedData],
     ) -> None:
         """Update only the device affected by one source sensor state change."""
         entity_id = event.data.get("entity_id")
@@ -180,7 +254,14 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return
 
         current_data = self.data or {}
-        next_snapshot = self._snapshot_builder.build_snapshot(device_topology)
+        effective_policy = self._policy_resolver.resolve_for_device_area_only(
+            device_id=device_topology.device_id,
+            area_id=device_topology.area_id,
+        )
+        next_snapshot = self._snapshot_builder.build_snapshot(
+            device_topology,
+            effective_policy,
+        )
         if current_data.get(device_id) == next_snapshot:
             return
 

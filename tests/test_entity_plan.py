@@ -7,44 +7,39 @@ from custom_components.vpd_air_auto.const import (
     SENSOR_KIND_AIR,
     SENSOR_KIND_DEW_POINT,
     SENSOR_KIND_LEAF,
-    IntegrationOptions,
 )
 from custom_components.vpd_air_auto.models import DeviceTopology
+from custom_components.vpd_air_auto.policy.models import (
+    DisplayPolicy,
+    EffectiveDevicePolicy,
+)
 from custom_components.vpd_air_auto.services.entity_plan import EntityPlanService
 
 
-def _options(
+def _policy(
     *,
     enable_air: bool = True,
     enable_leaf: bool = True,
     enable_absolute_humidity: bool = True,
     enable_dew_point: bool = True,
-) -> IntegrationOptions:
-    return IntegrationOptions(
-        scan_interval_seconds=300,
+) -> EffectiveDevicePolicy:
+    return EffectiveDevicePolicy(
         enable_air=enable_air,
         enable_leaf=enable_leaf,
         enable_absolute_humidity=enable_absolute_humidity,
         enable_dew_point=enable_dew_point,
-        icon="mdi:water-opacity",
-        display_name="VPDair",
-        leaf_icon="mdi:leaf",
-        leaf_display_name="VPDleaf",
         leaf_offset_c=-2.0,
-        absolute_humidity_icon="mdi:water",
-        absolute_humidity_display_name="Absolute Humidity",
-        dew_point_icon="mdi:thermometer-water",
-        dew_point_display_name="Dew Point",
+        display=DisplayPolicy(),
     )
 
 
-def test_enabled_kinds_reflects_integration_options() -> None:
-    """Test enabled kinds are derived from integration options."""
-    service = EntityPlanService(
-        _options(enable_air=True, enable_leaf=False, enable_absolute_humidity=True)
-    )
+def test_enabled_kinds_for_policy() -> None:
+    """Enabled kinds are derived from effective policy flags."""
+    service = EntityPlanService()
 
-    assert service.enabled_kinds() == {
+    assert service.enabled_kinds_for_policy(
+        _policy(enable_air=True, enable_leaf=False, enable_absolute_humidity=True)
+    ) == {
         SENSOR_KIND_AIR,
         SENSOR_KIND_ABSOLUTE_HUMIDITY,
         SENSOR_KIND_DEW_POINT,
@@ -52,8 +47,8 @@ def test_enabled_kinds_reflects_integration_options() -> None:
 
 
 def test_creatable_kinds_for_topology_removes_blocked_kinds() -> None:
-    """Test creatable kinds are enabled kinds minus blocked kinds."""
-    service = EntityPlanService(_options())
+    """Creatable kinds exclude blocked kinds from topology."""
+    service = EntityPlanService()
     topology = DeviceTopology(
         device_id="device-1",
         device_name="Grow Tent",
@@ -62,14 +57,14 @@ def test_creatable_kinds_for_topology_removes_blocked_kinds() -> None:
         blocked_sensor_kinds=frozenset({SENSOR_KIND_LEAF, SENSOR_KIND_DEW_POINT}),
     )
 
-    assert service.creatable_kinds_for_topology(topology) == {
+    assert service.creatable_kinds_for_topology(topology, _policy()) == {
         SENSOR_KIND_AIR,
         SENSOR_KIND_ABSOLUTE_HUMIDITY,
     }
 
 
 def test_creatable_kinds_for_topology_returns_empty_for_missing_topology() -> None:
-    """Test missing topology yields no creatable kinds."""
-    service = EntityPlanService(_options())
+    """Missing topology yields no creatable kinds."""
+    service = EntityPlanService()
 
-    assert service.creatable_kinds_for_topology(None) == set()
+    assert service.creatable_kinds_for_topology(None, _policy()) == set()
