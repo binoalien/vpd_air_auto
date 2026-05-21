@@ -66,6 +66,8 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
         temperature_entity_id="sensor.grow_tent_temperature",
         humidity_entity_id="sensor.grow_tent_humidity",
         blocked_sensor_kinds=frozenset({"leaf"}),
+        area_id="area-1",
+        area_name="Grow Room",
     )
     snapshot = DeviceSnapshot(
         device_id=device.id,
@@ -105,7 +107,26 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "vpd_leaf_kpa": snapshot.vpd_leaf_kpa,
                 "absolute_humidity_gm3": snapshot.absolute_humidity_gm3,
             },
+            "area": {"area_id": "area-1", "area_name": "Grow Room"},
             "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
+            "blocked_sensor_kinds": ["leaf"],
+            "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
+            "effective_policy": {
+                "enable_air": True,
+                "enable_leaf": True,
+                "enable_absolute_humidity": True,
+                "enable_dew_point": True,
+                "leaf_offset_c": -2.0,
+                "behavior_source": "global",
+                "leaf_offset_source": "global",
+                "display": {"display_name": "VPDair"},
+                "source_override": None,
+            },
+            "entity_plan": {
+                "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
+                "blocked_sensor_kinds": ["leaf"],
+                "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
+            },
         }
     )
 
@@ -123,3 +144,7 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
     assert diagnostics["snapshot"]["absolute_humidity_gm3"] == 13.8
     assert diagnostics["snapshot"]["dew_point_c"] == 16.68
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+    assert diagnostics["area"] == {"area_id": "area-1", "area_name": "Grow Room"}
+    assert diagnostics["blocked_sensor_kinds"] == ["leaf"]
+    assert diagnostics["effective_policy"]["behavior_source"] == "global"
+    assert diagnostics["entity_plan"]["enabled_kinds"] == ["absolute_humidity", "air", "dew_point", "leaf"]

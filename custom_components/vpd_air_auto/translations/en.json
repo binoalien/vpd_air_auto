@@ -56,7 +56,76 @@
           "enable_dew_point": "Create dew point sensors",
           "dew_point_icon": "Global dew point icon (for example: mdi:thermometer-water)",
           "dew_point_display_name": "Global dew point sensor name (for example: Dew Point)"
+        },
+        "menu_options": {
+          "global_defaults": "Global defaults",
+          "area_policies": "Area policies",
+          "device_policies": "Device policies",
+          "source_overrides": "Source overrides"
         }
+      },
+      "global_defaults": {
+        "title": "Global defaults"
+      },
+      "area_policies": {
+        "title": "Area policies",
+        "menu_options": {
+          "area_policy_add": "Add area policy",
+          "area_policy_edit": "Edit area policy",
+          "area_policy_delete": "Delete area policy"
+        }
+      },
+      "device_policies": {
+        "title": "Device policies",
+        "menu_options": {
+          "device_policy_add": "Add device policy",
+          "device_policy_edit": "Edit device policy",
+          "device_policy_delete": "Delete device policy"
+        }
+      },
+      "source_overrides": {
+        "title": "Source overrides",
+        "menu_options": {
+          "source_override_add": "Add source override",
+          "source_override_edit": "Edit source override",
+          "source_override_delete": "Delete source override"
+        }
+      },
+      "area_policy_add": {
+        "title": "Add area policy"
+      },
+      "area_policy_edit": {
+        "title": "Select area policy"
+      },
+      "edit_area_policy": {
+        "title": "Edit area policy"
+      },
+      "area_policy_delete": {
+        "title": "Delete area policy"
+      },
+      "device_policy_add": {
+        "title": "Add device policy"
+      },
+      "device_policy_edit": {
+        "title": "Select device policy"
+      },
+      "edit_device_policy": {
+        "title": "Edit device policy"
+      },
+      "device_policy_delete": {
+        "title": "Delete device policy"
+      },
+      "source_override_add": {
+        "title": "Add source override"
+      },
+      "source_override_edit": {
+        "title": "Select source override"
+      },
+      "edit_source_override": {
+        "title": "Edit source override"
+      },
+      "source_override_delete": {
+        "title": "Delete source override"
       }
     },
     "error": {
@@ -68,7 +137,11 @@
       "invalid_absolute_humidity_icon": "Enter a valid non-empty icon string.",
       "invalid_absolute_humidity_display_name": "Enter a valid non-empty sensor name.",
       "invalid_dew_point_icon": "Enter a valid non-empty icon string.",
-      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name."
+      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_scope_id": "Enter a valid non-empty ID.",
+      "missing_scope_id": "Select an existing policy ID.",
+      "missing_source_override": "Select an existing source override ID.",
+      "empty_source_override": "Set at least one source entity ID."
     }
   },
   "entity": {

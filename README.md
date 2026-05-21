@@ -1,104 +1,83 @@
 # VPD Air Auto
 
-VPD Air Auto is a Home Assistant custom integration for HACS. It automatically creates derived climate sensors for each Home Assistant device that exposes both a temperature sensor and a relative humidity sensor.
+VPD Air Auto is a Home Assistant custom integration for HACS. It discovers devices that expose both a temperature and humidity source entity and creates derived helper sensors per device.
 
 Derived sensors:
 
-| Sensor | Unit | Device class |
+| Sensor kind | Default name | Unit |
 | --- | --- | --- |
-| VPDair | kPa | none |
-| VPDleaf | kPa | none |
-| Absolute Humidity | g/m³ | `absolute_humidity` |
-| Dew Point | °C | `temperature` |
+| air | VPDair | kPa |
+| leaf | VPDleaf | kPa |
+| absolute_humidity | Absolute Humidity | g/m³ |
+| dew_point | Dew Point | °C |
 
-## Features
+## V2 highlights
 
-- UI setup through Home Assistant config flow.
-- Global options for enabling or disabling each derived sensor type.
-- Global display names and icons for every derived sensor type.
-- Configurable VPDleaf temperature offset.
-- Automatic device discovery based on existing temperature and humidity sensors.
-- Duplicate protection when a device already exposes equivalent sensors.
-- Diagnostics support for troubleshooting.
-- English and German backend translations.
+- Single config entry architecture (one integration instance).
+- Declarative sensor-kind runtime.
+- Scoped policy model with **Device > Area > Global** priority.
+- Source override support per device (`temperature_entity_id` / `humidity_entity_id`).
+- Diagnostics payloads with topology, snapshots, effective policy and entity planning.
 
-## HACS installation
+## Configuration model
 
-1. Open HACS.
-2. Open **Integrations**.
-3. Add this repository as a custom repository with category **Integration**.
-4. Install **VPD Air Auto**.
-5. Restart Home Assistant.
-6. Go to **Settings → Devices & services → Add integration** and add **VPD Air Auto**.
+The integration remains UI-only (no YAML).
 
-## Manual installation
+### Global defaults
 
-Copy this folder into your Home Assistant configuration directory:
+In **Options → Global defaults**:
+- topology rescan interval
+- global enable/disable toggles for each sensor kind
+- global display names and icons
+- global leaf offset
 
-```text
-custom_components/vpd_air_auto
-```
+### Area policies
 
-Then restart Home Assistant and add **VPD Air Auto** from **Settings → Devices & services**.
+In **Options → Area policies**:
+- add/edit/delete area-specific behavior overrides
+- override enable toggles and leaf offset for all devices in an area
 
-## Configuration
+### Device policies
 
-The integration is configured entirely through the Home Assistant UI. YAML configuration is not supported.
+In **Options → Device policies**:
+- add/edit/delete device-specific behavior overrides
+- highest priority behavior scope
 
-Available global options:
+### Source overrides
 
-- Topology rescan interval
-- Enable/disable VPDair sensors
-- Enable/disable VPDleaf sensors
-- Enable/disable Absolute Humidity sensors
-- Enable/disable Dew Point sensors
-- VPDair display name and icon
-- VPDleaf display name and icon
-- Absolute Humidity display name and icon
-- Dew Point display name and icon
-- VPDleaf temperature offset in °C
+In **Options → Source overrides**:
+- add/edit/delete per-device source overrides
+- optionally force temperature and/or humidity source entity IDs
 
-## Compatibility
+## Diagnostics
 
-The minimum supported Home Assistant version is declared in `hacs.json`.
+Config entry diagnostics include:
+- resolved options
+- tracked source entities
+- discovered topology and current snapshots
+- policy repository view (global/area/device/source overrides)
+- effective policy per device including source metadata
+- entity plan per device (`enabled_kinds`, `blocked_sensor_kinds`, `creatable_kinds`)
 
-## Development container
+Device diagnostics include the same data scoped to one Home Assistant device.
 
-This repository ships with a VS Code devcontainer inspired by the Home Assistant custom-component cookiecutter template. It provides a dedicated development container, a local Home Assistant instance on port `9123`, a debugpy attachment option, and VS Code tasks for starting Home Assistant and switching versions. See [`.devcontainer/README.md`](.devcontainer/README.md) for details.
+## Installation & development
 
-## Development
+### HACS
+1. Add repository as custom integration in HACS.
+2. Install **VPD Air Auto**.
+3. Restart Home Assistant.
+4. Add the integration from **Settings → Devices & services**.
 
-This repository is structured as a standalone HACS custom integration repository.
+### Manual
+Copy `custom_components/vpd_air_auto` into your Home Assistant config and restart.
 
-Runtime code:
-
-```text
-custom_components/vpd_air_auto/
-```
-
-Tests:
-
-```text
-tests/
-```
-
-Install development dependencies:
-
-```bash
-python -m pip install -r requirements_dev.txt
-```
-
-This now includes `homeassistant` itself so the repository can be used directly inside the included devcontainer or a local virtual environment.
-
-Run checks:
-
+### Local checks
 ```bash
 ruff check .
 pylint custom_components/vpd_air_auto tests
 pytest --cov=custom_components.vpd_air_auto --cov-report=term-missing
 ```
-
-Run Hassfest in CI through the included GitHub workflow.
 
 ## License
 

@@ -56,7 +56,76 @@
           "enable_dew_point": "Taupunkt-Sensoren erzeugen",
           "dew_point_icon": "Globales Taupunkt-Icon (zum Beispiel: mdi:thermometer-water)",
           "dew_point_display_name": "Globaler Name für den Taupunkt-Sensor (zum Beispiel: Taupunkt oder Dew Point)"
+        },
+        "menu_options": {
+          "global_defaults": "Globale Standardwerte",
+          "area_policies": "Bereichsrichtlinien",
+          "device_policies": "Geräterichtlinien",
+          "source_overrides": "Quell-Overrides"
         }
+      },
+      "global_defaults": {
+        "title": "Globale Standardwerte"
+      },
+      "area_policies": {
+        "title": "Bereichsrichtlinien",
+        "menu_options": {
+          "area_policy_add": "Bereichsrichtlinie hinzufügen",
+          "area_policy_edit": "Bereichsrichtlinie bearbeiten",
+          "area_policy_delete": "Bereichsrichtlinie löschen"
+        }
+      },
+      "device_policies": {
+        "title": "Geräterichtlinien",
+        "menu_options": {
+          "device_policy_add": "Geräterichtlinie hinzufügen",
+          "device_policy_edit": "Geräterichtlinie bearbeiten",
+          "device_policy_delete": "Geräterichtlinie löschen"
+        }
+      },
+      "source_overrides": {
+        "title": "Quell-Overrides",
+        "menu_options": {
+          "source_override_add": "Quell-Override hinzufügen",
+          "source_override_edit": "Quell-Override bearbeiten",
+          "source_override_delete": "Quell-Override löschen"
+        }
+      },
+      "area_policy_add": {
+        "title": "Bereichsrichtlinie hinzufügen"
+      },
+      "area_policy_edit": {
+        "title": "Bereichsrichtlinie auswählen"
+      },
+      "edit_area_policy": {
+        "title": "Bereichsrichtlinie bearbeiten"
+      },
+      "area_policy_delete": {
+        "title": "Bereichsrichtlinie löschen"
+      },
+      "device_policy_add": {
+        "title": "Geräterichtlinie hinzufügen"
+      },
+      "device_policy_edit": {
+        "title": "Geräterichtlinie auswählen"
+      },
+      "edit_device_policy": {
+        "title": "Geräterichtlinie bearbeiten"
+      },
+      "device_policy_delete": {
+        "title": "Geräterichtlinie löschen"
+      },
+      "source_override_add": {
+        "title": "Quell-Override hinzufügen"
+      },
+      "source_override_edit": {
+        "title": "Quell-Override auswählen"
+      },
+      "edit_source_override": {
+        "title": "Quell-Override bearbeiten"
+      },
+      "source_override_delete": {
+        "title": "Quell-Override löschen"
       }
     },
     "error": {
@@ -68,7 +137,11 @@
       "invalid_absolute_humidity_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
       "invalid_absolute_humidity_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
       "invalid_dew_point_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
-      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben."
+      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_scope_id": "Bitte eine gültige, nicht leere ID eingeben.",
+      "missing_scope_id": "Bitte eine vorhandene Richtlinien-ID auswählen.",
+      "missing_source_override": "Bitte eine vorhandene Quell-Override-ID auswählen.",
+      "empty_source_override": "Mindestens eine Quell-Entity-ID setzen."
     }
   },
   "entity": {

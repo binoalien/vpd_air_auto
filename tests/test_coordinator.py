@@ -344,10 +344,10 @@ def test_creatable_kinds_for_device_delegates_to_entity_plan_service(
     assert coordinator.creatable_kinds_for_device("missing") == set()
 
 
-def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sources(
+def test_diagnostics_payload_contains_v2_policy_and_entity_plan_details(
     hass: HomeAssistant,
 ) -> None:
-    """Test diagnostics payload includes options, topology, snapshots, and sources."""
+    """Test diagnostics payload includes V2 policy and entity planning details."""
     coordinator = _build_coordinator(hass)
     coordinator._subscription_manager._tracked_entity_ids = {
         "sensor.grow_tent_temperature",
@@ -377,6 +377,11 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
     )
     assert diagnostics["snapshots"]["device-1"]["vpd_air_kpa"] == 1.27
     assert diagnostics["snapshots"]["device-1"]["dew_point_c"] == 16.68
+    assert diagnostics["policy"]["global_policy"]["enable_air"] is True
+    assert diagnostics["effective_policies"]["device-1"]["behavior_source"] == "global"
+    assert diagnostics["effective_policies"]["device-1"]["leaf_offset_source"] == "global"
+    assert diagnostics["entity_plan"]["device-1"]["blocked_sensor_kinds"] == ["leaf"]
+    assert "air" in diagnostics["entity_plan"]["device-1"]["enabled_kinds"]
 
 
 def _contexts(device_ids: set[str]):

@@ -2,6 +2,21 @@
 
 All notable changes to VPD Air Auto are documented in this file.
 
+## Unreleased (1.6.0)
+
+### Added
+
+- Expand coordinator and device diagnostics with policy repository details, effective policy/source metadata, area context, blocked sensor kinds, and entity plan summaries.
+- Extend backend translations for the menu-based V2 options flow (global defaults, area policies, device policies, source overrides).
+
+### Changed
+
+- Refresh README documentation for the V2 architecture, scoped policies, source overrides, and diagnostics model.
+
+### Removed
+
+- Remove obsolete V1-focused documentation descriptions that no longer match the V2 options architecture.
+
 ## 1.5.13
 
 ### Changed
