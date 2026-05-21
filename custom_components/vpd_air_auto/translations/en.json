@@ -94,20 +94,20 @@
       "edit_source_override": {
         "title": "Edit source override",
         "data": {
-          "temperature_entity_id": "Temperature entity ID",
-          "humidity_entity_id": "Humidity entity ID"
+          "temperature_entity_id": "Temperature source sensor",
+          "humidity_entity_id": "Humidity source sensor"
         }
       },
       "area_policy_add": {
         "title": "Add area policy",
         "data": {
-          "scope_id": "Area ID"
+          "scope_id": "Area"
         }
       },
       "area_policy_edit": {
         "title": "Edit area policy",
         "data": {
-          "scope_id": "Area ID"
+          "scope_id": "Area"
         }
       },
       "area_policy_delete": {
@@ -116,13 +116,13 @@
       "device_policy_add": {
         "title": "Add device policy",
         "data": {
-          "scope_id": "Device ID"
+          "scope_id": "Device"
         }
       },
       "device_policy_edit": {
         "title": "Edit device policy",
         "data": {
-          "scope_id": "Device ID"
+          "scope_id": "Device"
         }
       },
       "device_policy_delete": {
@@ -131,17 +131,17 @@
       "source_override_add": {
         "title": "Add source override",
         "data": {
-          "scope_id": "Device ID",
-          "temperature_entity_id": "Temperature entity ID",
-          "humidity_entity_id": "Humidity entity ID"
+          "scope_id": "Device",
+          "temperature_entity_id": "Temperature source sensor",
+          "humidity_entity_id": "Humidity source sensor"
         }
       },
       "source_override_edit": {
         "title": "Edit source override",
         "data": {
-          "scope_id": "Device ID",
-          "temperature_entity_id": "Temperature entity ID",
-          "humidity_entity_id": "Humidity entity ID"
+          "scope_id": "Device",
+          "temperature_entity_id": "Temperature source sensor",
+          "humidity_entity_id": "Humidity source sensor"
         }
       },
       "source_override_delete": {

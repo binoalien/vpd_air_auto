@@ -353,6 +353,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         return self.async_show_form(
             step_id=step_id,
             data_schema=build_scoped_policy_schema(
+                scope_level=scope_level,
                 scope_id=scope_id or "",
                 policy=existing_policy,
                 include_scope_id=include_scope_id,
