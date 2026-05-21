@@ -37,4 +37,6 @@ class EntityPlanService:
         """Return policy-enabled kinds minus blocked kinds for one topology."""
         if topology is None:
             return set()
-        return self.enabled_kinds_for_policy(policy).difference(topology.blocked_sensor_kinds)
+        return self.enabled_kinds_for_policy(policy).difference(
+            topology.blocked_sensor_kinds
+        )
