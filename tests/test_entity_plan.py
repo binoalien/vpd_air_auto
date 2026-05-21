@@ -9,7 +9,10 @@ from custom_components.vpd_air_auto.const import (
     SENSOR_KIND_LEAF,
 )
 from custom_components.vpd_air_auto.models import DeviceTopology
-from custom_components.vpd_air_auto.policy.models import DisplayPolicy, EffectiveDevicePolicy
+from custom_components.vpd_air_auto.policy.models import (
+    DisplayPolicy,
+    EffectiveDevicePolicy,
+)
 from custom_components.vpd_air_auto.services.entity_plan import EntityPlanService
 
 
@@ -31,7 +34,9 @@ def _policy(
 
 
 def test_enabled_kinds_for_policy() -> None:
+    """Enabled kinds are derived from effective policy flags."""
     service = EntityPlanService()
+
     assert service.enabled_kinds_for_policy(
         _policy(enable_air=True, enable_leaf=False, enable_absolute_humidity=True)
     ) == {
@@ -42,6 +47,7 @@ def test_enabled_kinds_for_policy() -> None:
 
 
 def test_creatable_kinds_for_topology_removes_blocked_kinds() -> None:
+    """Creatable kinds exclude blocked kinds from topology."""
     service = EntityPlanService()
     topology = DeviceTopology(
         device_id="device-1",
@@ -58,5 +64,7 @@ def test_creatable_kinds_for_topology_removes_blocked_kinds() -> None:
 
 
 def test_creatable_kinds_for_topology_returns_empty_for_missing_topology() -> None:
+    """Missing topology yields no creatable kinds."""
     service = EntityPlanService()
+
     assert service.creatable_kinds_for_topology(None, _policy()) == set()

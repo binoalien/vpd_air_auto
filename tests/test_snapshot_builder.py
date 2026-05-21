@@ -5,7 +5,10 @@ from __future__ import annotations
 from homeassistant.core import HomeAssistant
 
 from custom_components.vpd_air_auto.models import DeviceTopology
-from custom_components.vpd_air_auto.policy.models import DisplayPolicy, EffectiveDevicePolicy
+from custom_components.vpd_air_auto.policy.models import (
+    DisplayPolicy,
+    EffectiveDevicePolicy,
+)
 from custom_components.vpd_air_auto.services.snapshot_builder import SnapshotBuilder
 
 
