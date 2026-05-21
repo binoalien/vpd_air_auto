@@ -152,3 +152,8 @@ async def test_async_migrate_entry_skips_future_versions(hass: HomeAssistant) ->
     assert entry.version == 3
     assert entry.data == before_data
     assert entry.options == before_options
+
+
+def test_migration_target_version_constant_is_v2() -> None:
+    """Migration target version constant remains aligned with V2 release."""
+    assert V2_ENTRY_VERSION == 2

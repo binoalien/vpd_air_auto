@@ -24,6 +24,10 @@ Derived sensors:
 - Diagnostics support for troubleshooting.
 - English and German backend translations.
 
+## Release
+
+This repository is prepared for the 2.0.0 release candidate line.
+
 ## HACS installation
 
 1. Open HACS.
@@ -67,6 +71,8 @@ Options are organized in a menu-based V2 Options Flow:
 Policy resolution is deterministic: **Device > Area > Global**.
 
 ## Compatibility
+
+VPD Air Auto 2.0.0 uses config entry version 2 and includes automatic migration for existing version-1 entries.
 
 The minimum supported Home Assistant version is declared in `hacs.json`.
 

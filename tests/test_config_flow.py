@@ -8,7 +8,10 @@ from homeassistant import config_entries, data_entry_flow
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.vpd_air_auto.config_flow import VpdAirAutoOptionsFlow
+from custom_components.vpd_air_auto.config_flow import (
+    VpdAirAutoConfigFlow,
+    VpdAirAutoOptionsFlow,
+)
 from custom_components.vpd_air_auto.const import (
     CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
     CONF_ABSOLUTE_HUMIDITY_ICON,
@@ -42,6 +45,11 @@ from custom_components.vpd_air_auto.const import (
     DOMAIN,
 )
 
+
+
+def test_config_flow_version_is_v2() -> None:
+    """Newly created config entries use version 2."""
+    assert VpdAirAutoConfigFlow.VERSION == 2
 
 def _valid_user_input() -> dict[str, object]:
     return {

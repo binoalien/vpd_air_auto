@@ -53,7 +53,7 @@ from .options import (
 class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for VPD Air Auto."""
 
-    VERSION = 1
+    VERSION = 2
 
     def is_matching(self, other_flow: ConfigFlow) -> bool:
         """Return whether another flow is for this integration."""
