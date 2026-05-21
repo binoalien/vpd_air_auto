@@ -50,6 +50,14 @@ from .const import (
     IntegrationOptions,
 )
 
+SCOPED_BEHAVIOR_FIELDS: tuple[str, ...] = (
+    CONF_ENABLE_AIR,
+    CONF_ENABLE_LEAF,
+    CONF_ENABLE_ABSOLUTE_HUMIDITY,
+    CONF_ENABLE_DEW_POINT,
+    CONF_LEAF_OFFSET,
+)
+
 
 def trimmed_nonempty_string(value: Any, error_key: str) -> str:
     """Validate and normalize a non-empty string setting."""
@@ -230,6 +238,43 @@ def build_schema(options: IntegrationOptions) -> vol.Schema:
     )
 
 
+def build_global_defaults_schema(options: IntegrationOptions) -> vol.Schema:
+    """Build schema for global defaults editing in options flow."""
+    return build_schema(options)
+
+
+def build_scoped_policy_schema(policy: dict[str, Any] | None = None) -> vol.Schema:
+    """Build schema for area/device scoped behavior editing."""
+    policy = policy or {}
+    return vol.Schema(
+        {
+            vol.Required(CONF_ENABLE_AIR, default=policy.get(CONF_ENABLE_AIR, True)): bool,
+            vol.Required(
+                CONF_ENABLE_LEAF, default=policy.get(CONF_ENABLE_LEAF, True)
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_ABSOLUTE_HUMIDITY,
+                default=policy.get(CONF_ENABLE_ABSOLUTE_HUMIDITY, True),
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_DEW_POINT, default=policy.get(CONF_ENABLE_DEW_POINT, True)
+            ): bool,
+            vol.Required(
+                CONF_LEAF_OFFSET,
+                default=policy.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=MIN_LEAF_OFFSET,
+                    max=MAX_LEAF_OFFSET,
+                    step=0.1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="°C",
+                )
+            ),
+        }
+    )
+
+
 def normalize_user_input(
     user_input: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, str]]:
@@ -264,3 +309,28 @@ def normalize_user_input(
         errors[CONF_LEAF_OFFSET] = str(err)
 
     return normalized_input, errors
+
+
+def normalize_global_defaults_input(
+    user_input: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Normalize global defaults form input."""
+    return normalize_user_input(user_input)
+
+
+def normalize_scoped_policy_input(
+    user_input: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Normalize scoped policy behavior input."""
+    normalized = {
+        CONF_ENABLE_AIR: bool(user_input[CONF_ENABLE_AIR]),
+        CONF_ENABLE_LEAF: bool(user_input[CONF_ENABLE_LEAF]),
+        CONF_ENABLE_ABSOLUTE_HUMIDITY: bool(user_input[CONF_ENABLE_ABSOLUTE_HUMIDITY]),
+        CONF_ENABLE_DEW_POINT: bool(user_input[CONF_ENABLE_DEW_POINT]),
+    }
+    errors: dict[str, str] = {}
+    try:
+        normalized[CONF_LEAF_OFFSET] = validated_leaf_offset(user_input[CONF_LEAF_OFFSET])
+    except vol.Invalid as err:
+        errors[CONF_LEAF_OFFSET] = str(err)
+    return normalized, errors
