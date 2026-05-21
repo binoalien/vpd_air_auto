@@ -2,7 +2,7 @@
 
 All notable changes to VPD Air Auto are documented in this file.
 
-## 1.6.0 (unreleased)
+## 2.0.0 (unreleased)
 
 ### Changed
 

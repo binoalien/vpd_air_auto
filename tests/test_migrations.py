@@ -25,10 +25,15 @@ from custom_components.vpd_air_auto.migrations import (
 )
 
 
+def test_migration_target_version_constant_is_v2() -> None:
+    """Migration target constant remains pinned to V2."""
+    assert V2_ENTRY_VERSION == 2
+
+
 async def test_async_migrate_entry_maps_v1_values_to_v2_global_policy(
     hass: HomeAssistant,
 ) -> None:
-    """V1 flat values are migrated into options.global_policy."""
+    """Version-1 entries are migrated into V2 options.global_policy."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         version=1,
