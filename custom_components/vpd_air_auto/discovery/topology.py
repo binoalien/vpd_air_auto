@@ -10,6 +10,8 @@ from homeassistant.helpers import entity_registry as er
 from ..calculations import coerce_humidity_pct, coerce_temperature_c
 from ..const import DOMAIN, SOURCE_DOMAIN_SENSOR
 from ..models import DeviceTopology
+from ..policy.models import SourceOverride
+from ..policy.resolver import PolicyResolver
 from .duplicates import DuplicateDetectionService
 from .selection import (
     TARGET_HUMIDITY,
@@ -27,10 +29,12 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         self,
         hass: HomeAssistant,
         duplicate_detection_service: DuplicateDetectionService,
+        policy_resolver: PolicyResolver | None = None,
     ) -> None:
         """Initialize topology discovery service."""
         self._hass = hass
         self._duplicate_detection_service = duplicate_detection_service
+        self._policy_resolver = policy_resolver
 
     def discover(self) -> dict[str, DeviceTopology]:
         """Build the source-entity topology for all matching Home Assistant devices."""
@@ -54,6 +58,20 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             )
             humidity_entity_id = self._pick_best_entity(
                 candidates, target_device_class=TARGET_HUMIDITY
+            )
+
+            source_override = self._source_override_for_device(device.id)
+            temperature_entity_id = self._resolve_entity_with_override(
+                candidates,
+                source_override,
+                target_device_class=TARGET_TEMPERATURE,
+                fallback_entity_id=temperature_entity_id,
+            )
+            humidity_entity_id = self._resolve_entity_with_override(
+                candidates,
+                source_override,
+                target_device_class=TARGET_HUMIDITY,
+                fallback_entity_id=humidity_entity_id,
             )
 
             if temperature_entity_id is None or humidity_entity_id is None:
@@ -80,6 +98,56 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             )
 
         return topology
+
+    def _source_override_for_device(self, device_id: str) -> SourceOverride | None:
+        if self._policy_resolver is None:
+            return None
+        effective_policy = self._policy_resolver.resolve_for_device(device_id=device_id)
+        return effective_policy.source_override
+
+    def _resolve_entity_with_override(
+        self,
+        candidates: list[er.RegistryEntry],
+        source_override: SourceOverride | None,
+        *,
+        target_device_class: str,
+        fallback_entity_id: str | None,
+    ) -> str | None:
+        if source_override is None:
+            return fallback_entity_id
+
+        override_entity_id = (
+            source_override.temperature_entity_id
+            if target_device_class == TARGET_TEMPERATURE
+            else source_override.humidity_entity_id
+        )
+        if override_entity_id is None:
+            return fallback_entity_id
+
+        if self._is_valid_manual_source(
+            candidates,
+            override_entity_id=override_entity_id,
+            target_device_class=target_device_class,
+        ):
+            return override_entity_id
+        return fallback_entity_id
+
+    def _is_valid_manual_source(
+        self,
+        candidates: list[er.RegistryEntry],
+        *,
+        override_entity_id: str,
+        target_device_class: str,
+    ) -> bool:
+        for entry in candidates:
+            if entry.entity_id != override_entity_id:
+                continue
+            if entry.domain != SOURCE_DOMAIN_SENSOR or entry.platform == DOMAIN:
+                return False
+            if self._entry_device_class(entry) != target_device_class:
+                return False
+            return self._entry_value_valid(entry, target_device_class)
+        return False
 
     def _pick_best_entity(
         self,

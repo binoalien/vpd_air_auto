@@ -102,12 +102,13 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         self._scan_interval = timedelta(seconds=options.scan_interval_seconds)
         self._snapshot_builder = SnapshotBuilder(hass)
         self._duplicate_detection_service = DuplicateDetectionService(hass, options)
+        self._policy_resolver = PolicyResolver(
+            PolicyRepository(_policy_data_from_options(config_entry, options))
+        )
         self._topology_discovery_service = TopologyDiscoveryService(
             hass,
             self._duplicate_detection_service,
-        )
-        self._policy_resolver = PolicyResolver(
-            PolicyRepository(_policy_data_from_options(config_entry, options))
+            self._policy_resolver,
         )
         self._entity_plan_service = EntityPlanService()
         self._topology: dict[str, DeviceTopology] = {}

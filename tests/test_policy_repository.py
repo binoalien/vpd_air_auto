@@ -84,3 +84,19 @@ def test_repository_scoped_missing_bool_fields_stay_none() -> None:
     assert scoped.enable_leaf is None
     assert scoped.enable_absolute_humidity is None
     assert scoped.enable_dew_point is None
+
+def test_repository_source_overrides_ignore_non_string_values() -> None:
+    """Source overrides keep optional string fields only."""
+    repository = PolicyRepository(
+        {
+            "source_overrides": {
+                "dev1": {
+                    "temperature_entity_id": 42,
+                    "humidity_entity_id": None,
+                }
+            }
+        }
+    )
+
+    assert repository.source_overrides["dev1"].temperature_entity_id == "42"
+    assert repository.source_overrides["dev1"].humidity_entity_id is None

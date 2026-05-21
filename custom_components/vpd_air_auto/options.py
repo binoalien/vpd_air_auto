@@ -352,3 +352,32 @@ def normalize_user_input(
         errors[CONF_LEAF_OFFSET] = str(err)
 
     return normalized_input, errors
+
+
+def normalize_source_override_input(
+    user_input: dict[str, Any],
+) -> tuple[dict[str, str | None], dict[str, str]]:
+    """Normalize manual source override input for one device."""
+    normalized: dict[str, str | None] = {
+        "temperature_entity_id": None,
+        "humidity_entity_id": None,
+    }
+    errors: dict[str, str] = {}
+
+    for field_name in ("temperature_entity_id", "humidity_entity_id"):
+        raw_value = user_input.get(field_name)
+        if raw_value in (None, ""):
+            continue
+        if not isinstance(raw_value, str):
+            errors[field_name] = "invalid_source_entity_id"
+            continue
+        normalized_value = raw_value.strip()
+        if not normalized_value.startswith("sensor."):
+            errors[field_name] = "invalid_source_entity_id"
+            continue
+        normalized[field_name] = normalized_value
+
+    if not normalized["temperature_entity_id"] and not normalized["humidity_entity_id"]:
+        errors["base"] = "missing_source_override"
+
+    return normalized, errors

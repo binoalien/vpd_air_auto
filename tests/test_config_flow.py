@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.config_flow import VpdAirAutoOptionsFlow
+from custom_components.vpd_air_auto.options import normalize_source_override_input
 from custom_components.vpd_air_auto.const import (
     CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
     CONF_ABSOLUTE_HUMIDITY_ICON,
@@ -220,6 +221,35 @@ def test_async_get_options_flow_returns_handler() -> None:
     flow = VpdAirAutoOptionsFlow()
 
     assert isinstance(flow, VpdAirAutoOptionsFlow)
+
+
+def test_normalize_source_override_input_accepts_optional_sensor_entity_ids() -> None:
+    """Manual source override normalization accepts sensor entity ids."""
+    normalized, errors = normalize_source_override_input(
+        {
+            "temperature_entity_id": " sensor.temp ",
+            "humidity_entity_id": "sensor.humidity",
+        }
+    )
+
+    assert errors == {}
+    assert normalized == {
+        "temperature_entity_id": "sensor.temp",
+        "humidity_entity_id": "sensor.humidity",
+    }
+
+
+def test_normalize_source_override_input_rejects_invalid_payload() -> None:
+    """Manual source override normalization rejects invalid ids and empty input."""
+    normalized, errors = normalize_source_override_input(
+        {
+            "temperature_entity_id": "climate.living_room",
+            "humidity_entity_id": "",
+        }
+    )
+
+    assert normalized["humidity_entity_id"] is None
+    assert errors["temperature_entity_id"] == "invalid_source_entity_id"
 
 
 async def test_options_flow_adds_area_policy(hass: HomeAssistant) -> None:
