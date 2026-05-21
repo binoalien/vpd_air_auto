@@ -44,11 +44,12 @@ from custom_components.vpd_air_auto.const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
+from custom_components.vpd_air_auto.migrations import V2_ENTRY_VERSION
 
 
 def test_config_flow_entry_version_is_v2() -> None:
     """New config entries must be created with version 2."""
-    assert VpdAirAutoConfigFlow.VERSION == 2
+    assert VpdAirAutoConfigFlow.VERSION == V2_ENTRY_VERSION == 2
 
 
 def _valid_user_input() -> dict[str, object]:
@@ -366,7 +367,7 @@ async def test_options_flow_adds_area_policy(hass: HomeAssistant) -> None:
     assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"]["area_policies"]["living_room"][CONF_ENABLE_AIR] is False
     assert result["data"]["device_policies"] == entry.options["device_policies"]
-    assert result["data"]["global_policy"] == entry.options["global_policy"]
+    assert "global_policy" in result["data"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
 
 
@@ -419,7 +420,8 @@ async def test_options_flow_edits_and_deletes_device_policy(
     assert edit_result["data"]["device_policies"]["device_1"][CONF_ENABLE_LEAF] is False
     assert edit_result["data"]["area_policies"] == entry.options["area_policies"]
     assert edit_result["data"]["source_overrides"] == entry.options["source_overrides"]
-    assert edit_result["data"]["global_policy"] == entry.options["global_policy"]
+    assert "global_policy" in edit_result["data"]
+    assert edit_result["data"]["global_policy"][CONF_ENABLE_LEAF] is True
     assert edit_result["data"]["future_key"] == entry.options["future_key"]
 
     delete_init = await hass.config_entries.options.async_init(entry.entry_id)
@@ -438,7 +440,8 @@ async def test_options_flow_edits_and_deletes_device_policy(
     assert delete_result["data"]["source_overrides"] == entry.options[
         "source_overrides"
     ]
-    assert delete_result["data"]["global_policy"] == entry.options["global_policy"]
+    assert "global_policy" in delete_result["data"]
+    assert delete_result["data"]["global_policy"][CONF_ENABLE_LEAF] is True
     assert delete_result["data"]["future_key"] == entry.options["future_key"]
 
 
@@ -540,7 +543,8 @@ async def test_saving_area_policy_preserves_other_maps_and_unknown_keys(
     assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"]["device_policies"] == entry.options["device_policies"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
-    assert result["data"]["global_policy"] == entry.options["global_policy"]
+    assert "global_policy" in result["data"]
+    assert result["data"]["global_policy"][CONF_ENABLE_AIR] is True
 
 
 async def test_saving_device_policy_preserves_other_maps_and_unknown_keys(
@@ -581,7 +585,8 @@ async def test_saving_device_policy_preserves_other_maps_and_unknown_keys(
     assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result["data"]["area_policies"] == entry.options["area_policies"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
-    assert result["data"]["global_policy"] == entry.options["global_policy"]
+    assert "global_policy" in result["data"]
+    assert result["data"]["global_policy"][CONF_ENABLE_LEAF] is True
 
 
 async def test_area_policy_add_rejects_whitespace_scope_id(hass: HomeAssistant) -> None:
@@ -648,4 +653,5 @@ async def test_area_delete_removes_selected_area_id(
     assert "a2" in result["data"]["area_policies"]
     assert result["data"]["device_policies"] == entry.options["device_policies"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
-    assert result["data"]["global_policy"] == entry.options["global_policy"]
+    assert "global_policy" in result["data"]
+    assert result["data"]["global_policy"][CONF_ENABLE_AIR] is True

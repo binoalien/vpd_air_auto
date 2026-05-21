@@ -39,6 +39,7 @@ from .const import (
     DOMAIN,
     IntegrationOptions,
 )
+from .migrations import V2_ENTRY_VERSION
 from .options import (
     build_schema,
     build_scoped_policy_schema,
@@ -53,7 +54,7 @@ from .options import (
 class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for VPD Air Auto."""
 
-    VERSION = 2
+    VERSION = V2_ENTRY_VERSION
 
     def is_matching(self, other_flow: ConfigFlow) -> bool:
         """Return whether another flow is for this integration."""
