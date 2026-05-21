@@ -352,3 +352,66 @@ def normalize_user_input(
         errors[CONF_LEAF_OFFSET] = str(err)
 
     return normalized_input, errors
+
+
+def build_source_override_schema(
+    *,
+    scope_id: str = "",
+    override: dict[str, Any] | None = None,
+    include_scope_id: bool,
+) -> vol.Schema:
+    """Build schema for source override editing."""
+    override = dict(override or {})
+    schema: dict[Any, Any] = {}
+    if include_scope_id:
+        schema[vol.Required("scope_id", default=scope_id)] = str
+    schema.update(
+        {
+            vol.Optional(
+                "temperature_entity_id",
+                default=str(override.get("temperature_entity_id", "") or ""),
+            ): str,
+            vol.Optional(
+                "humidity_entity_id",
+                default=str(override.get("humidity_entity_id", "") or ""),
+            ): str,
+        }
+    )
+    return vol.Schema(schema)
+
+
+def normalize_source_override_input(
+    user_input: dict[str, Any],
+    *,
+    include_scope_id: bool,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Normalize source override input."""
+    normalized: dict[str, Any] = {}
+    errors: dict[str, str] = {}
+    if include_scope_id:
+        try:
+            normalized["scope_id"] = trimmed_nonempty_string(
+                user_input.get("scope_id"), "invalid_scope_id"
+            )
+        except vol.Invalid as err:
+            errors["scope_id"] = str(err)
+
+    def _normalize_entity(value: Any) -> str | None:
+        if not isinstance(value, str):
+            return None
+        candidate = value.strip()
+        return candidate or None
+
+    temperature_entity_id = _normalize_entity(user_input.get("temperature_entity_id"))
+    humidity_entity_id = _normalize_entity(user_input.get("humidity_entity_id"))
+
+    if temperature_entity_id and not temperature_entity_id.startswith("sensor."):
+        errors["temperature_entity_id"] = "invalid_temperature_entity"
+    if humidity_entity_id and not humidity_entity_id.startswith("sensor."):
+        errors["humidity_entity_id"] = "invalid_humidity_entity"
+    if temperature_entity_id is None and humidity_entity_id is None:
+        errors["base"] = "missing_source_override"
+
+    normalized["temperature_entity_id"] = temperature_entity_id
+    normalized["humidity_entity_id"] = humidity_entity_id
+    return normalized, errors

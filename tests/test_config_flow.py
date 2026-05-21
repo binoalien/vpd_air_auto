@@ -159,7 +159,117 @@ async def test_options_flow_returns_form_with_entry_values(hass: HomeAssistant) 
         "global_defaults",
         "area_policies",
         "device_policies",
+        "source_overrides",
     ]
+
+
+async def test_source_override_menu_adds_edits_and_deletes(
+    hass: HomeAssistant,
+) -> None:
+    """Test source override CRUD flow and preservation of unrelated options."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_valid_user_input(),
+        options={
+            "area_policies": {"a1": {CONF_ENABLE_AIR: False}},
+            "device_policies": {"d1": {CONF_ENABLE_LEAF: True}},
+            "global_policy": {CONF_ENABLE_AIR: True},
+            "source_overrides": {"d1": {"temperature_entity_id": "sensor.t1"}},
+            "future_key": {"keep": True},
+        },
+    )
+    entry.add_to_hass(hass)
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": "source_overrides"}
+    )
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": "source_override_add"}
+    )
+    add_result = await hass.config_entries.options.async_configure(
+        init_result["flow_id"],
+        user_input={
+            "scope_id": "d2",
+            "temperature_entity_id": "sensor.t2",
+            "humidity_entity_id": "sensor.h2",
+        },
+    )
+    assert add_result["data"]["source_overrides"]["d2"] == {
+        "temperature_entity_id": "sensor.t2",
+        "humidity_entity_id": "sensor.h2",
+    }
+    assert add_result["data"]["future_key"] == entry.options["future_key"]
+
+    edit_flow = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        edit_flow["flow_id"], user_input={"next_step_id": "source_overrides"}
+    )
+    await hass.config_entries.options.async_configure(
+        edit_flow["flow_id"], user_input={"next_step_id": "source_override_edit"}
+    )
+    await hass.config_entries.options.async_configure(
+        edit_flow["flow_id"], user_input={"scope_id": "d1"}
+    )
+    edit_result = await hass.config_entries.options.async_configure(
+        edit_flow["flow_id"],
+        user_input={
+            "temperature_entity_id": "sensor.t3",
+            "humidity_entity_id": "sensor.h3",
+        },
+    )
+    assert (
+        edit_result["data"]["source_overrides"]["d1"]["temperature_entity_id"]
+        == "sensor.t3"
+    )
+
+    delete_flow = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        delete_flow["flow_id"], user_input={"next_step_id": "source_overrides"}
+    )
+    await hass.config_entries.options.async_configure(
+        delete_flow["flow_id"], user_input={"next_step_id": "source_override_delete"}
+    )
+    delete_result = await hass.config_entries.options.async_configure(
+        delete_flow["flow_id"], user_input={"scope_id": "d1"}
+    )
+    assert "d1" not in delete_result["data"]["source_overrides"]
+
+
+async def test_source_override_validation_errors(hass: HomeAssistant) -> None:
+    """Test source override validation for scope, empty values, and invalid domains."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
+    entry.add_to_hass(hass)
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": "source_overrides"}
+    )
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": "source_override_add"}
+    )
+    invalid_scope = await hass.config_entries.options.async_configure(
+        init_result["flow_id"],
+        user_input={
+            "scope_id": "  ",
+            "temperature_entity_id": "",
+            "humidity_entity_id": "",
+        },
+    )
+    assert invalid_scope["errors"]["scope_id"] == "invalid_scope_id"
+    assert invalid_scope["errors"]["base"] == "missing_source_override"
+
+    invalid_domain = await hass.config_entries.options.async_configure(
+        init_result["flow_id"],
+        user_input={
+            "scope_id": "d1",
+            "temperature_entity_id": "climate.x",
+            "humidity_entity_id": "switch.y",
+        },
+    )
+    assert (
+        invalid_domain["errors"]["temperature_entity_id"]
+        == "invalid_temperature_entity"
+    )
+    assert invalid_domain["errors"]["humidity_entity_id"] == "invalid_humidity_entity"
 
 
 async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:

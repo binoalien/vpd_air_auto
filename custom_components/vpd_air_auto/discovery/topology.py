@@ -10,6 +10,7 @@ from homeassistant.helpers import entity_registry as er
 from ..calculations import coerce_humidity_pct, coerce_temperature_c
 from ..const import DOMAIN, SOURCE_DOMAIN_SENSOR
 from ..models import DeviceTopology
+from ..policy.models import SourceOverride
 from .duplicates import DuplicateDetectionService
 from .selection import (
     TARGET_HUMIDITY,
@@ -32,8 +33,12 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         self._hass = hass
         self._duplicate_detection_service = duplicate_detection_service
 
-    def discover(self) -> dict[str, DeviceTopology]:
+    def discover(
+        self,
+        source_overrides: dict[str, SourceOverride] | None = None,
+    ) -> dict[str, DeviceTopology]:
         """Build the source-entity topology for all matching Home Assistant devices."""
+        source_overrides = source_overrides or {}
         entity_registry = er.async_get(self._hass)
         device_registry = dr.async_get(self._hass)
         area_registry = ar.async_get(self._hass)
@@ -49,11 +54,10 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 )
             )
 
-            temperature_entity_id = self._pick_best_entity(
-                candidates, target_device_class=TARGET_TEMPERATURE
-            )
-            humidity_entity_id = self._pick_best_entity(
-                candidates, target_device_class=TARGET_HUMIDITY
+            temperature_entity_id, humidity_entity_id = self._resolve_source_pair(
+                entity_registry=entity_registry,
+                source_override=source_overrides.get(device.id),
+                candidates=candidates,
             )
 
             if temperature_entity_id is None or humidity_entity_id is None:
@@ -64,11 +68,6 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                     candidates
                 )
             )
-            area_name = None
-            if device.area_id is not None:
-                area_entry = area_registry.async_get_area(device.area_id)
-                area_name = area_entry.name if area_entry is not None else None
-
             topology[device.id] = DeviceTopology(
                 device_id=device.id,
                 device_name=device.name_by_user or device.name or device.id,
@@ -76,10 +75,92 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 humidity_entity_id=humidity_entity_id,
                 blocked_sensor_kinds=blocked_sensor_kinds,
                 area_id=device.area_id,
-                area_name=area_name,
+                area_name=self._resolve_area_name(area_registry, device.area_id),
             )
 
         return topology
+
+    def _resolve_source_pair(
+        self,
+        *,
+        entity_registry: er.EntityRegistry,
+        source_override: SourceOverride | None,
+        candidates: list[er.RegistryEntry],
+    ) -> tuple[str | None, str | None]:
+        """Resolve final temperature/humidity source IDs for one device."""
+        auto_temperature_entity_id = self._pick_best_entity(
+            candidates, target_device_class=TARGET_TEMPERATURE
+        )
+        auto_humidity_entity_id = self._pick_best_entity(
+            candidates, target_device_class=TARGET_HUMIDITY
+        )
+        return (
+            self._resolve_source_entity_id(
+                entity_registry=entity_registry,
+                source_override=source_override,
+                target_device_class=TARGET_TEMPERATURE,
+                auto_entity_id=auto_temperature_entity_id,
+            ),
+            self._resolve_source_entity_id(
+                entity_registry=entity_registry,
+                source_override=source_override,
+                target_device_class=TARGET_HUMIDITY,
+                auto_entity_id=auto_humidity_entity_id,
+            ),
+        )
+
+    @staticmethod
+    def _resolve_area_name(
+        area_registry: ar.AreaRegistry,
+        area_id: str | None,
+    ) -> str | None:
+        if area_id is None:
+            return None
+        area_entry = area_registry.async_get_area(area_id)
+        return area_entry.name if area_entry is not None else None
+
+    def _resolve_source_entity_id(
+        self,
+        *,
+        entity_registry: er.EntityRegistry,
+        source_override: SourceOverride | None,
+        target_device_class: str,
+        auto_entity_id: str | None,
+    ) -> str | None:
+        """Choose override entity when valid, otherwise fall back to auto-selected."""
+        if source_override is None:
+            return auto_entity_id
+
+        override_entity_id = (
+            source_override.temperature_entity_id
+            if target_device_class == TARGET_TEMPERATURE
+            else source_override.humidity_entity_id
+        )
+        if override_entity_id is None:
+            return auto_entity_id
+        if self._is_valid_manual_override(
+            entity_registry=entity_registry,
+            entity_id=override_entity_id,
+            target_device_class=target_device_class,
+        ):
+            return override_entity_id
+        return auto_entity_id
+
+    def _is_valid_manual_override(
+        self,
+        *,
+        entity_registry: er.EntityRegistry,
+        entity_id: str,
+        target_device_class: str,
+    ) -> bool:
+        entry = entity_registry.async_get(entity_id)
+        if entry is None:
+            return False
+        if entry.domain != SOURCE_DOMAIN_SENSOR or entry.platform == DOMAIN:
+            return False
+        if self._entry_device_class(entry) != target_device_class:
+            return False
+        return self._entry_value_valid(entry, target_device_class)
 
     def _pick_best_entity(
         self,

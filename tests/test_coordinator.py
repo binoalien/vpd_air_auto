@@ -27,6 +27,7 @@ from custom_components.vpd_air_auto.coordinator import (
     VpdAirCoordinator,
 )
 from custom_components.vpd_air_auto.models import DeviceSnapshot, DeviceTopology
+from custom_components.vpd_air_auto.policy.models import SourceOverride
 
 
 def _options(
@@ -157,7 +158,7 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
         "sensor.grow_tent_temperature": "device-1",
         "sensor.grow_tent_humidity": "device-1",
     }
-    mock_discover.assert_called_once()
+    mock_discover.assert_called_once_with(source_overrides={})
     mock_build.assert_called_once_with(topology["device-1"], ANY)
     mock_refresh.assert_called_once()
 
@@ -204,6 +205,105 @@ async def test_async_update_data_skips_disabled_device_and_does_not_track_source
     assert result == {}
     assert coordinator._source_to_device == {}
     mock_build.assert_not_called()
+
+
+async def test_async_update_data_passes_source_overrides_to_discovery(
+    hass: HomeAssistant,
+) -> None:
+    """Coordinator forwards parsed source overrides to topology discovery."""
+    coordinator = _build_coordinator(
+        hass,
+        entry_options={
+            "source_overrides": {
+                "device-1": {"temperature_entity_id": "sensor.manual_temp"}
+            }
+        },
+    )
+    with (
+        patch.object(
+            coordinator._topology_discovery_service,
+            "discover",
+            return_value={},
+        ) as mock_discover,
+        patch.object(coordinator, "_refresh_state_listener"),
+    ):
+        await coordinator._async_update_data()
+
+    mock_discover.assert_called_once_with(
+        source_overrides={
+            "device-1": SourceOverride(temperature_entity_id="sensor.manual_temp")
+        }
+    )
+
+
+async def test_async_update_data_tracks_overridden_source_ids(
+    hass: HomeAssistant,
+) -> None:
+    """Source map tracks override-selected entity IDs returned by discovery."""
+    coordinator = _build_coordinator(hass)
+    topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.manual_temp",
+            humidity_entity_id="sensor.manual_hum",
+            blocked_sensor_kinds=frozenset(),
+        )
+    }
+    with (
+        patch.object(
+            coordinator._topology_discovery_service,
+            "discover",
+            return_value=topology,
+        ),
+        patch.object(
+            coordinator._snapshot_builder,
+            "build_snapshot",
+            return_value=_snapshot("device-1"),
+        ),
+        patch.object(coordinator, "_refresh_state_listener"),
+    ):
+        await coordinator._async_update_data()
+
+    assert coordinator._source_to_device == {
+        "sensor.manual_temp": "device-1",
+        "sensor.manual_hum": "device-1",
+    }
+
+
+async def test_source_state_changed_ignores_old_auto_entity_when_override_tracked(
+    hass: HomeAssistant,
+) -> None:
+    """Untracked old auto source must not trigger snapshot rebuild."""
+    coordinator = _build_coordinator(hass)
+    topology = DeviceTopology(
+        device_id="device-1",
+        device_name="Grow Tent",
+        temperature_entity_id="sensor.manual_temp",
+        humidity_entity_id="sensor.manual_hum",
+    )
+    current_snapshot = _snapshot("device-1")
+    coordinator._topology = {"device-1": topology}
+    coordinator._source_to_device = {"sensor.manual_hum": "device-1"}
+    coordinator.data = {"device-1": current_snapshot}
+    coordinator._snapshot_builder.build_snapshot = MagicMock(
+        return_value=current_snapshot
+    )
+    coordinator.async_set_updated_data = MagicMock()
+
+    await coordinator._async_handle_source_state_changed(
+        Event(
+            "state_changed",
+            data=EventStateChangedData(
+                entity_id="sensor.auto_hum",
+                old_state=State("sensor.auto_hum", state="old"),
+                new_state=State("sensor.auto_hum", state="new"),
+            ),
+        )
+    )
+
+    coordinator._snapshot_builder.build_snapshot.assert_not_called()
+    coordinator.async_set_updated_data.assert_not_called()
 
 
 async def test_periodic_rescan_requests_refresh(hass: HomeAssistant) -> None:
