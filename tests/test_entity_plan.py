@@ -40,11 +40,11 @@ def _options(
 
 def test_enabled_kinds_reflects_integration_options() -> None:
     """Test enabled kinds are derived from integration options."""
-    service = EntityPlanService(
-        _options(enable_air=True, enable_leaf=False, enable_absolute_humidity=True)
-    )
+    service = EntityPlanService()
 
-    assert service.enabled_kinds() == {
+    policy = type("P", (), dict(enable_air=True, enable_leaf=False, enable_absolute_humidity=True, enable_dew_point=True))()
+
+    assert service.enabled_kinds(policy) == {
         SENSOR_KIND_AIR,
         SENSOR_KIND_ABSOLUTE_HUMIDITY,
         SENSOR_KIND_DEW_POINT,
@@ -53,7 +53,7 @@ def test_enabled_kinds_reflects_integration_options() -> None:
 
 def test_creatable_kinds_for_topology_removes_blocked_kinds() -> None:
     """Test creatable kinds are enabled kinds minus blocked kinds."""
-    service = EntityPlanService(_options())
+    service = EntityPlanService()
     topology = DeviceTopology(
         device_id="device-1",
         device_name="Grow Tent",
@@ -62,7 +62,9 @@ def test_creatable_kinds_for_topology_removes_blocked_kinds() -> None:
         blocked_sensor_kinds=frozenset({SENSOR_KIND_LEAF, SENSOR_KIND_DEW_POINT}),
     )
 
-    assert service.creatable_kinds_for_topology(topology) == {
+    policy = type("P", (), dict(enable_air=True, enable_leaf=True, enable_absolute_humidity=True, enable_dew_point=True))()
+
+    assert service.creatable_kinds_for_topology(topology, policy) == {
         SENSOR_KIND_AIR,
         SENSOR_KIND_ABSOLUTE_HUMIDITY,
     }
@@ -70,6 +72,8 @@ def test_creatable_kinds_for_topology_removes_blocked_kinds() -> None:
 
 def test_creatable_kinds_for_topology_returns_empty_for_missing_topology() -> None:
     """Test missing topology yields no creatable kinds."""
-    service = EntityPlanService(_options())
+    service = EntityPlanService()
 
-    assert service.creatable_kinds_for_topology(None) == set()
+    policy = type("P", (), dict(enable_air=True, enable_leaf=True, enable_absolute_humidity=True, enable_dew_point=True))()
+
+    assert service.creatable_kinds_for_topology(None, policy) == set()

@@ -13,6 +13,8 @@ class DeviceTopology:
     device_name: str
     temperature_entity_id: str
     humidity_entity_id: str
+    area_id: str | None = None
+    area_name: str | None = None
     blocked_sensor_kinds: frozenset[str] = field(default_factory=frozenset)
 
 

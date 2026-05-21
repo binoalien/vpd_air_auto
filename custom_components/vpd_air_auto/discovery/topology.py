@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import area_registry as ar
 
 from ..calculations import coerce_humidity_pct, coerce_temperature_c
 from ..const import DOMAIN, SOURCE_DOMAIN_SENSOR
@@ -35,6 +36,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         """Build the source-entity topology for all matching Home Assistant devices."""
         entity_registry = er.async_get(self._hass)
         device_registry = dr.async_get(self._hass)
+        area_registry = ar.async_get(self._hass)
 
         topology: dict[str, DeviceTopology] = {}
 
@@ -62,11 +64,18 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                     candidates
                 )
             )
+            area_name = None
+            if device.area_id:
+                area_entry = area_registry.async_get_area(device.area_id)
+                area_name = area_entry.name if area_entry else None
+
             topology[device.id] = DeviceTopology(
                 device_id=device.id,
                 device_name=device.name_by_user or device.name or device.id,
                 temperature_entity_id=temperature_entity_id,
                 humidity_entity_id=humidity_entity_id,
+                area_id=device.area_id,
+                area_name=area_name,
                 blocked_sensor_kinds=blocked_sensor_kinds,
             )
 
