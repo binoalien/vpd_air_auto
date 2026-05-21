@@ -157,7 +157,7 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
         "sensor.grow_tent_temperature": "device-1",
         "sensor.grow_tent_humidity": "device-1",
     }
-    mock_discover.assert_called_once()
+    mock_discover.assert_called_once_with(ANY)
     mock_build.assert_called_once_with(topology["device-1"], ANY)
     mock_refresh.assert_called_once()
 

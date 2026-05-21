@@ -133,7 +133,9 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
 
     async def _async_update_data(self) -> dict[str, DeviceSnapshot]:
         """Discover source devices and compute their current sensor values."""
-        topology = self._topology_discovery_service.discover()
+        topology = self._topology_discovery_service.discover(
+            self._policy_resolver.repository.source_overrides
+        )
         snapshots: dict[str, DeviceSnapshot] = {}
         active_topology: dict[str, DeviceTopology] = {}
 

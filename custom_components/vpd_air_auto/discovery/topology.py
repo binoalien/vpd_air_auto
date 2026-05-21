@@ -10,6 +10,7 @@ from homeassistant.helpers import entity_registry as er
 from ..calculations import coerce_humidity_pct, coerce_temperature_c
 from ..const import DOMAIN, SOURCE_DOMAIN_SENSOR
 from ..models import DeviceTopology
+from ..policy.models import SourceOverride
 from .duplicates import DuplicateDetectionService
 from .selection import (
     TARGET_HUMIDITY,
@@ -32,13 +33,17 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         self._hass = hass
         self._duplicate_detection_service = duplicate_detection_service
 
-    def discover(self) -> dict[str, DeviceTopology]:
+    def discover(
+        self,
+        source_overrides: dict[str, SourceOverride] | None = None,
+    ) -> dict[str, DeviceTopology]:
         """Build the source-entity topology for all matching Home Assistant devices."""
         entity_registry = er.async_get(self._hass)
         device_registry = dr.async_get(self._hass)
         area_registry = ar.async_get(self._hass)
 
         topology: dict[str, DeviceTopology] = {}
+        resolved_overrides = source_overrides or {}
 
         for device in device_registry.devices.values():
             candidates = list(
@@ -55,6 +60,21 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             humidity_entity_id = self._pick_best_entity(
                 candidates, target_device_class=TARGET_HUMIDITY
             )
+
+            source_override = resolved_overrides.get(device.id)
+            if source_override is not None:
+                override_temperature = self._validated_override_entity_id(
+                    candidates=candidates,
+                    entity_id=source_override.temperature_entity_id,
+                    target_device_class=TARGET_TEMPERATURE,
+                )
+                override_humidity = self._validated_override_entity_id(
+                    candidates=candidates,
+                    entity_id=source_override.humidity_entity_id,
+                    target_device_class=TARGET_HUMIDITY,
+                )
+                temperature_entity_id = override_temperature or temperature_entity_id
+                humidity_entity_id = override_humidity or humidity_entity_id
 
             if temperature_entity_id is None or humidity_entity_id is None:
                 continue
@@ -111,6 +131,32 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             )
 
         return choose_best_entity_id(normalized_candidates, target_device_class)
+
+    def _validated_override_entity_id(
+        self,
+        *,
+        candidates: list[er.RegistryEntry],
+        entity_id: str | None,
+        target_device_class: str,
+    ) -> str | None:
+        """Validate override source entity and return usable id."""
+        if not isinstance(entity_id, str):
+            return None
+
+        for entry in candidates:
+            if entry.entity_id != entity_id:
+                continue
+            if entry.domain != SOURCE_DOMAIN_SENSOR:
+                return None
+            if entry.platform == DOMAIN:
+                return None
+            if self._entry_device_class(entry) != target_device_class:
+                return None
+            if not self._entry_value_valid(entry, target_device_class):
+                return None
+            return entity_id
+
+        return None
 
     def _normalized_entry_identifiers(self, entry: er.RegistryEntry) -> set[str]:
         identifiers = {normalize_identifier(entry.entity_id.split(".", 1)[1])}

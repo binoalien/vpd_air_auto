@@ -13,6 +13,11 @@ class PolicyResolver:  # pylint: disable=too-few-public-methods
         """Store repository dependency."""
         self._repository = repository
 
+    @property
+    def repository(self) -> PolicyRepository:
+        """Expose policy repository."""
+        return self._repository
+
     def resolve_for_device(
         self,
         *,
