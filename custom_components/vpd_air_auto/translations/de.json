@@ -41,21 +41,47 @@
     "step": {
       "init": {
         "title": "VPD Air Auto Optionen",
-        "data": {
-          "scan_interval": "Intervall für Topologie-Rescan (Sekunden)",
-          "enable_air": "VPDair-Sensoren erzeugen",
-          "enable_leaf": "VPDleaf-Sensoren erzeugen",
-          "icon": "Globales VPDair-Icon (zum Beispiel: mdi:water-opacity)",
-          "display_name": "Globaler Name für den VPDair-Sensor (zum Beispiel: VPDair oder Luft-VPD)",
-          "leaf_offset": "Globaler Temperatur-Offset für VPDleaf in °C (zum Beispiel: -2,0 bedeutet Blatt = Luft - 2,0 °C)",
-          "leaf_icon": "Globales VPDleaf-Icon (zum Beispiel: mdi:leaf)",
-          "leaf_display_name": "Globaler Name für den VPDleaf-Sensor (zum Beispiel: VPDleaf oder Blatt-VPD)",
-          "enable_absolute_humidity": "Absolute-Humidity-Sensoren erzeugen",
-          "absolute_humidity_icon": "Globales Absolute-Humidity-Icon (zum Beispiel: mdi:water)",
-          "absolute_humidity_display_name": "Globaler Name für den Absolute-Humidity-Sensor (zum Beispiel: Absolute Humidity oder Absolute Luftfeuchte)",
-          "enable_dew_point": "Taupunkt-Sensoren erzeugen",
-          "dew_point_icon": "Globales Taupunkt-Icon (zum Beispiel: mdi:thermometer-water)",
-          "dew_point_display_name": "Globaler Name für den Taupunkt-Sensor (zum Beispiel: Taupunkt oder Dew Point)"
+        "menu_options": {
+          "global_defaults": "Globale Standardwerte",
+          "area_policies": "Bereichsrichtlinien",
+          "device_policies": "Geräterichtlinien",
+          "source_overrides": "Quell-Überschreibungen"
+        }
+      },
+      "global_defaults": {
+        "title": "VPD Air Auto Optionen",
+        "menu_options": {
+          "global_defaults": "Globale Standardwerte",
+          "area_policies": "Bereichsrichtlinien",
+          "device_policies": "Geräterichtlinien",
+          "source_overrides": "Quell-Überschreibungen"
+        }
+      },
+      "area_policies": {
+        "title": "Bereichsrichtlinien",
+        "menu_options": {
+          "area_policy_add": "Bereichsrichtlinie hinzufügen",
+          "area_policy_edit": "Bereichsrichtlinie bearbeiten",
+          "area_policy_delete": "Bereichsrichtlinie löschen",
+          "init": "Zurück"
+        }
+      },
+      "device_policies": {
+        "title": "Geräterichtlinien",
+        "menu_options": {
+          "device_policy_add": "Geräterichtlinie hinzufügen",
+          "device_policy_edit": "Geräterichtlinie bearbeiten",
+          "device_policy_delete": "Geräterichtlinie löschen",
+          "init": "Zurück"
+        }
+      },
+      "source_overrides": {
+        "title": "Quell-Überschreibungen",
+        "menu_options": {
+          "source_override_add": "Quell-Überschreibung hinzufügen",
+          "source_override_edit": "Quell-Überschreibung bearbeiten",
+          "source_override_delete": "Quell-Überschreibung löschen",
+          "init": "Zurück"
         }
       }
     },
@@ -68,7 +94,10 @@
       "invalid_absolute_humidity_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
       "invalid_absolute_humidity_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
       "invalid_dew_point_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
-      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben."
+      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_scope_id": "Bitte eine gültige, nicht leere Bereichs-/Geräte-ID eingeben.",
+      "invalid_temperature_entity": "Bitte eine gültige entity_id wie sensor.meine_temperatur eingeben.",
+      "invalid_humidity_entity": "Bitte eine gültige entity_id wie sensor.meine_luftfeuchte eingeben."
     }
   },
   "entity": {

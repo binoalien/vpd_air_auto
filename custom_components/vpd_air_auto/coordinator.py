@@ -195,6 +195,59 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             effective_policy,
         )
 
+
+    @callback
+    def _serialize_policy_repository(self) -> dict[str, Any]:
+        """Return the current policy repository content as diagnostics-safe data."""
+        return {
+            "global_policy": asdict(self._policy_repository.global_policy),
+            "area_policies": {
+                area_id: asdict(policy)
+                for area_id, policy in self._policy_repository.area_policies.items()
+            },
+            "device_policies": {
+                device_id: asdict(policy)
+                for device_id, policy in self._policy_repository.device_policies.items()
+            },
+            "source_overrides": {
+                device_id: asdict(source_override)
+                for device_id, source_override in self._policy_repository.source_overrides.items()
+            },
+        }
+
+    @callback
+    def _effective_policies_payload(self) -> dict[str, Any]:
+        """Return effective policy information for each discovered device."""
+        payload: dict[str, Any] = {}
+        for device_id, topology in self._topology.items():
+            effective_policy = self._policy_resolver.resolve_for_device(
+                device_id=device_id,
+                area_id=topology.area_id,
+            )
+            payload[device_id] = asdict(effective_policy)
+        return payload
+
+    @callback
+    def _entity_plan_payload(self) -> dict[str, Any]:
+        """Return entity planning diagnostics for each discovered device."""
+        payload: dict[str, Any] = {}
+        for device_id, topology in self._topology.items():
+            effective_policy = self._policy_resolver.resolve_for_device(
+                device_id=device_id,
+                area_id=topology.area_id,
+            )
+            enabled_kinds = self._entity_plan_service.enabled_kinds_for_policy(effective_policy)
+            creatable_kinds = self._entity_plan_service.creatable_kinds_for_topology(
+                topology,
+                effective_policy,
+            )
+            payload[device_id] = {
+                "creatable_kinds": sorted(creatable_kinds),
+                "blocked_sensor_kinds": sorted(topology.blocked_sensor_kinds),
+                "enabled_kinds": sorted(enabled_kinds),
+            }
+        return payload
+
     @callback
     def diagnostics_payload(self) -> dict[str, Any]:
         """Return a sanitized diagnostics payload for the whole config entry."""
@@ -209,20 +262,41 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 device_id: asdict(snapshot)
                 for device_id, snapshot in (self.data or {}).items()
             },
+            "policy": self._serialize_policy_repository(),
+            "effective_policies": self._effective_policies_payload(),
+            "entity_plan": self._entity_plan_payload(),
         }
 
     @callback
     def device_diagnostics_payload(self, device_id: str) -> dict[str, Any]:
         """Return a diagnostics payload scoped to a single Home Assistant device."""
+        topology = self._topology.get(device_id)
+        effective_policy = None
+        entity_plan = None
+        if topology is not None:
+            resolved_policy = self._policy_resolver.resolve_for_device(
+                device_id=topology.device_id,
+                area_id=topology.area_id,
+            )
+            effective_policy = asdict(resolved_policy)
+            enabled_kinds = self._entity_plan_service.enabled_kinds_for_policy(
+                resolved_policy
+            )
+            entity_plan = {
+                "creatable_kinds": sorted(self.creatable_kinds_for_device(device_id)),
+                "blocked_sensor_kinds": sorted(topology.blocked_sensor_kinds),
+                "enabled_kinds": sorted(enabled_kinds),
+            }
+
         return {
             "device_id": device_id,
             "creatable_kinds": sorted(self.creatable_kinds_for_device(device_id)),
-            "topology": asdict(self._topology[device_id])
-            if device_id in self._topology
-            else None,
+            "topology": asdict(topology) if topology is not None else None,
             "snapshot": asdict(self.data[device_id])
             if self.data and device_id in self.data
             else None,
+            "effective_policy": effective_policy,
+            "entity_plan": entity_plan,
         }
 
     @callback

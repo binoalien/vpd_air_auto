@@ -41,21 +41,47 @@
     "step": {
       "init": {
         "title": "VPD Air Auto options",
-        "data": {
-          "scan_interval": "Topology rescan interval (seconds)",
-          "enable_air": "Create VPDair sensors",
-          "enable_leaf": "Create VPDleaf sensors",
-          "icon": "Global VPDair icon (for example: mdi:water-opacity)",
-          "display_name": "Global VPDair sensor name (for example: VPDair or Air VPD)",
-          "leaf_offset": "Global VPDleaf temperature offset in °C (for example: -2.0 means leaf = air - 2.0 °C)",
-          "leaf_icon": "Global VPDleaf icon (for example: mdi:leaf)",
-          "leaf_display_name": "Global VPDleaf sensor name (for example: VPDleaf or Leaf VPD)",
-          "enable_absolute_humidity": "Create absolute humidity sensors",
-          "absolute_humidity_icon": "Global absolute humidity icon (for example: mdi:water)",
-          "absolute_humidity_display_name": "Global absolute humidity sensor name (for example: Absolute Humidity)",
-          "enable_dew_point": "Create dew point sensors",
-          "dew_point_icon": "Global dew point icon (for example: mdi:thermometer-water)",
-          "dew_point_display_name": "Global dew point sensor name (for example: Dew Point)"
+        "menu_options": {
+          "global_defaults": "Global defaults",
+          "area_policies": "Area policies",
+          "device_policies": "Device policies",
+          "source_overrides": "Source overrides"
+        }
+      },
+      "global_defaults": {
+        "title": "VPD Air Auto options",
+        "menu_options": {
+          "global_defaults": "Global defaults",
+          "area_policies": "Area policies",
+          "device_policies": "Device policies",
+          "source_overrides": "Source overrides"
+        }
+      },
+      "area_policies": {
+        "title": "Area policies",
+        "menu_options": {
+          "area_policy_add": "Add area policy",
+          "area_policy_edit": "Edit area policy",
+          "area_policy_delete": "Delete area policy",
+          "init": "Back"
+        }
+      },
+      "device_policies": {
+        "title": "Device policies",
+        "menu_options": {
+          "device_policy_add": "Add device policy",
+          "device_policy_edit": "Edit device policy",
+          "device_policy_delete": "Delete device policy",
+          "init": "Back"
+        }
+      },
+      "source_overrides": {
+        "title": "Source overrides",
+        "menu_options": {
+          "source_override_add": "Add source override",
+          "source_override_edit": "Edit source override",
+          "source_override_delete": "Delete source override",
+          "init": "Back"
         }
       }
     },
@@ -68,7 +94,10 @@
       "invalid_absolute_humidity_icon": "Enter a valid non-empty icon string.",
       "invalid_absolute_humidity_display_name": "Enter a valid non-empty sensor name.",
       "invalid_dew_point_icon": "Enter a valid non-empty icon string.",
-      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name."
+      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_scope_id": "Enter a valid non-empty area/device id.",
+      "invalid_temperature_entity": "Enter a valid entity_id like sensor.my_temperature.",
+      "invalid_humidity_entity": "Enter a valid entity_id like sensor.my_humidity."
     }
   },
   "entity": {
