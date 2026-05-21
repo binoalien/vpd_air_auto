@@ -87,6 +87,65 @@
           "source_override_edit": "Quellüberschreibung bearbeiten",
           "source_override_delete": "Quellüberschreibung löschen"
         }
+      },
+      "global_defaults": {
+        "title": "Globale Standardwerte"
+      },
+      "edit_source_override": {
+        "title": "Quellüberschreibung bearbeiten",
+        "data": {
+          "temperature_entity_id": "Temperatur-Entity-ID",
+          "humidity_entity_id": "Feuchte-Entity-ID"
+        }
+      },
+      "area_policy_add": {
+        "title": "Bereichsrichtlinie hinzufügen",
+        "data": {
+          "scope_id": "Bereichs-ID"
+        }
+      },
+      "area_policy_edit": {
+        "title": "Bereichsrichtlinie bearbeiten",
+        "data": {
+          "scope_id": "Bereichs-ID"
+        }
+      },
+      "area_policy_delete": {
+        "title": "Bereichsrichtlinie löschen"
+      },
+      "device_policy_add": {
+        "title": "Geräterichtlinie hinzufügen",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "device_policy_edit": {
+        "title": "Geräterichtlinie bearbeiten",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "device_policy_delete": {
+        "title": "Geräterichtlinie löschen"
+      },
+      "source_override_add": {
+        "title": "Quellüberschreibung hinzufügen",
+        "data": {
+          "scope_id": "Geräte-ID",
+          "temperature_entity_id": "Temperatur-Entity-ID",
+          "humidity_entity_id": "Feuchte-Entity-ID"
+        }
+      },
+      "source_override_edit": {
+        "title": "Quellüberschreibung bearbeiten",
+        "data": {
+          "scope_id": "Geräte-ID",
+          "temperature_entity_id": "Temperatur-Entity-ID",
+          "humidity_entity_id": "Feuchte-Entity-ID"
+        }
+      },
+      "source_override_delete": {
+        "title": "Quellüberschreibung löschen"
       }
     },
     "error": {

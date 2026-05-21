@@ -209,7 +209,10 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 effective_policy
             )
             blocked_sensor_kinds = set(topology.blocked_sensor_kinds)
-            creatable_kinds = enabled_kinds.difference(blocked_sensor_kinds)
+            creatable_kinds = self._entity_plan_service.creatable_kinds_for_topology(
+                topology,
+                effective_policy,
+            )
             effective_policies[device_id] = asdict(effective_policy)
             entity_plan[device_id] = {
                 "creatable_kinds": sorted(creatable_kinds),
@@ -250,7 +253,14 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             else set()
         )
         blocked_sensor_kinds = set(topology.blocked_sensor_kinds) if topology else set()
-        creatable_kinds = enabled_kinds.difference(blocked_sensor_kinds)
+        creatable_kinds = (
+            self._entity_plan_service.creatable_kinds_for_topology(
+                topology,
+                effective_policy,
+            )
+            if topology is not None and effective_policy is not None
+            else set()
+        )
 
         return {
             "device_id": device_id,
