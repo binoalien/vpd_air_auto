@@ -407,7 +407,7 @@ async def test_flat_options_runtime_policy_respected_in_snapshot_builder(
             temperature_entity_id="sensor.grow_tent_temperature",
             humidity_entity_id="sensor.grow_tent_humidity",
             blocked_sensor_kinds=frozenset(
-                {SENSOR_KIND_LEAF, SENSOR_KIND_ABSOLUTE_HUMIDITY, SENSOR_KIND_DEW_POINT}
+                {SENSOR_KIND_AIR, SENSOR_KIND_ABSOLUTE_HUMIDITY, SENSOR_KIND_DEW_POINT}
             ),
         )
     }
