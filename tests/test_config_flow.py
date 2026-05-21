@@ -169,7 +169,7 @@ async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="global_defaults"
+        init_result["flow_id"], user_input={"next_step_id": "global_defaults"}
     )
     user_input = deepcopy(_valid_user_input())
     user_input[CONF_ENABLE_LEAF] = False
@@ -196,7 +196,7 @@ async def test_options_flow_returns_errors_for_invalid_fields(
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="global_defaults"
+        init_result["flow_id"], user_input={"next_step_id": "global_defaults"}
     )
     user_input = deepcopy(_valid_user_input())
     user_input[CONF_ICON] = "  "
@@ -229,10 +229,10 @@ async def test_options_flow_adds_area_policy(hass: HomeAssistant) -> None:
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policies"
+        init_result["flow_id"], user_input={"next_step_id": "area_policies"}
     )
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policy_add"
+        init_result["flow_id"], user_input={"next_step_id": "area_policy_add"}
     )
     result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
@@ -280,10 +280,10 @@ async def test_options_flow_edits_and_deletes_device_policy(
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="device_policies"
+        init_result["flow_id"], user_input={"next_step_id": "device_policies"}
     )
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="device_policy_edit"
+        init_result["flow_id"], user_input={"next_step_id": "device_policy_edit"}
     )
     await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"scope_id": "device_1"}
@@ -307,10 +307,10 @@ async def test_options_flow_edits_and_deletes_device_policy(
 
     delete_init = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        delete_init["flow_id"], user_input=None, next_step_id="device_policies"
+        delete_init["flow_id"], user_input={"next_step_id": "device_policies"}
     )
     await hass.config_entries.options.async_configure(
-        delete_init["flow_id"], user_input=None, next_step_id="device_policy_delete"
+        delete_init["flow_id"], user_input={"next_step_id": "device_policy_delete"}
     )
     delete_result = await hass.config_entries.options.async_configure(
         delete_init["flow_id"], user_input={"scope_id": "device_1"}
@@ -368,13 +368,13 @@ async def test_area_edit_delete_reads_policies_from_entry_data(
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policies"
+        init_result["flow_id"], user_input={"next_step_id": "area_policies"}
     )
     edit_form = await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policy_edit"
+        init_result["flow_id"], user_input={"next_step_id": "area_policy_edit"}
     )
     delete_form = await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policy_delete"
+        init_result["flow_id"], user_input={"next_step_id": "area_policy_delete"}
     )
 
     assert edit_form.get("type") is data_entry_flow.FlowResultType.FORM
@@ -399,10 +399,10 @@ async def test_saving_area_policy_preserves_other_maps_and_unknown_keys(
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policies"
+        init_result["flow_id"], user_input={"next_step_id": "area_policies"}
     )
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policy_add"
+        init_result["flow_id"], user_input={"next_step_id": "area_policy_add"}
     )
     result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
@@ -441,10 +441,10 @@ async def test_saving_device_policy_preserves_other_maps_and_unknown_keys(
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="device_policies"
+        init_result["flow_id"], user_input={"next_step_id": "device_policies"}
     )
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="device_policy_add"
+        init_result["flow_id"], user_input={"next_step_id": "device_policy_add"}
     )
     result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
@@ -472,10 +472,10 @@ async def test_area_policy_add_rejects_whitespace_scope_id(hass: HomeAssistant) 
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policies"
+        init_result["flow_id"], user_input={"next_step_id": "area_policies"}
     )
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policy_add"
+        init_result["flow_id"], user_input={"next_step_id": "area_policy_add"}
     )
     result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
@@ -515,10 +515,10 @@ async def test_area_delete_removes_selected_area_id(
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policies"
+        init_result["flow_id"], user_input={"next_step_id": "area_policies"}
     )
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=None, next_step_id="area_policy_delete"
+        init_result["flow_id"], user_input={"next_step_id": "area_policy_delete"}
     )
     result = await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"scope_id": "a1"}
