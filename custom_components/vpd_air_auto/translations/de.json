@@ -56,6 +56,36 @@
           "enable_dew_point": "Taupunkt-Sensoren erzeugen",
           "dew_point_icon": "Globales Taupunkt-Icon (zum Beispiel: mdi:thermometer-water)",
           "dew_point_display_name": "Globaler Name für den Taupunkt-Sensor (zum Beispiel: Taupunkt oder Dew Point)"
+        },
+        "menu_options": {
+          "global_defaults": "Globale Standardwerte",
+          "area_policies": "Bereichsrichtlinien",
+          "device_policies": "Geräterichtlinien",
+          "source_overrides": "Quellüberschreibungen"
+        }
+      },
+      "area_policies": {
+        "title": "Bereichsrichtlinien-Aktionen",
+        "menu_options": {
+          "area_policy_add": "Bereichsrichtlinie hinzufügen",
+          "area_policy_edit": "Bereichsrichtlinie bearbeiten",
+          "area_policy_delete": "Bereichsrichtlinie löschen"
+        }
+      },
+      "device_policies": {
+        "title": "Geräterichtlinien-Aktionen",
+        "menu_options": {
+          "device_policy_add": "Geräterichtlinie hinzufügen",
+          "device_policy_edit": "Geräterichtlinie bearbeiten",
+          "device_policy_delete": "Geräterichtlinie löschen"
+        }
+      },
+      "source_overrides": {
+        "title": "Quellüberschreibungs-Aktionen",
+        "menu_options": {
+          "source_override_add": "Quellüberschreibung hinzufügen",
+          "source_override_edit": "Quellüberschreibung bearbeiten",
+          "source_override_delete": "Quellüberschreibung löschen"
         }
       }
     },

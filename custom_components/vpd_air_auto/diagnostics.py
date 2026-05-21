@@ -52,7 +52,13 @@ async def async_get_device_diagnostics(
             },
             "topology": payload["topology"],
             "snapshot": payload["snapshot"],
+            "area_id": payload["area_id"],
+            "area_name": payload["area_name"],
             "creatable_kinds": payload["creatable_kinds"],
+            "blocked_sensor_kinds": payload["blocked_sensor_kinds"],
+            "enabled_kinds": payload["enabled_kinds"],
+            "effective_policy": payload["effective_policy"],
+            "entity_plan": payload["entity_plan"],
         },
         _TO_REDACT,
     )

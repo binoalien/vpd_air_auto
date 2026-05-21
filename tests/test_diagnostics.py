@@ -105,7 +105,27 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "vpd_leaf_kpa": snapshot.vpd_leaf_kpa,
                 "absolute_humidity_gm3": snapshot.absolute_humidity_gm3,
             },
+            "area_id": "area-1",
+            "area_name": "Grow Area",
             "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
+            "blocked_sensor_kinds": ["leaf"],
+            "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
+            "effective_policy": {
+                "enable_air": True,
+                "enable_leaf": True,
+                "enable_absolute_humidity": True,
+                "enable_dew_point": True,
+                "leaf_offset_c": -2.0,
+                "behavior_source": "global",
+                "leaf_offset_source": "global",
+                "source_override": None,
+                "display": {"display_name": "VPDair"},
+            },
+            "entity_plan": {
+                "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
+                "blocked_sensor_kinds": ["leaf"],
+                "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
+            },
         }
     )
 
@@ -122,4 +142,19 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
     assert diagnostics["snapshot"]["vpd_air_kpa"] == 1.27
     assert diagnostics["snapshot"]["absolute_humidity_gm3"] == 13.8
     assert diagnostics["snapshot"]["dew_point_c"] == 16.68
+    assert diagnostics["area_id"] == "area-1"
+    assert diagnostics["area_name"] == "Grow Area"
+    assert diagnostics["blocked_sensor_kinds"] == ["leaf"]
+    assert diagnostics["enabled_kinds"] == [
+        "absolute_humidity",
+        "air",
+        "dew_point",
+        "leaf",
+    ]
+    assert diagnostics["entity_plan"]["creatable_kinds"] == [
+        "absolute_humidity",
+        "air",
+        "dew_point",
+    ]
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+

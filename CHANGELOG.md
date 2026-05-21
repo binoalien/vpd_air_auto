@@ -2,6 +2,15 @@
 
 All notable changes to VPD Air Auto are documented in this file.
 
+## 1.6.0 (unreleased)
+
+### Changed
+
+- Finalize V2 documentation and options-flow translations for menu-based Global/Area/Device policy editing and source overrides.
+- Extend diagnostics payloads with repository policy data, effective per-device policy values including source metadata, area context, and per-device entity plans (enabled/blocked/creatable kinds).
+- Remove obsolete V1-oriented docs descriptions in favor of V2 architecture behavior.
+
+
 ## 1.5.13
 
 ### Changed
