@@ -101,6 +101,7 @@ async def test_user_flow_creates_entry(hass: HomeAssistant) -> None:
     assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
     assert result.get("title") == DEFAULT_NAME
     assert result.get("data") == _valid_user_input()
+    assert result.get("version") == 2
 
 
 async def test_user_flow_aborts_for_second_instance(hass: HomeAssistant) -> None:
