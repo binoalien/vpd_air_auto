@@ -73,9 +73,8 @@ class PolicyRepository:
             },
         }
 
-    def _mapping(self, key: str) -> Mapping[str, Any]:
-        value = self._raw.get(key, {})
-        return value if isinstance(value, Mapping) else {}
+    def _mapping(self, key: str) -> dict[str, Any]:
+        return self._mapping_or_empty(self._raw.get(key))
 
     def _parse_global_policy(self, raw_global: Mapping[str, Any]) -> GlobalPolicy:
         display_defaults = DisplayPolicy()
@@ -96,41 +95,37 @@ class PolicyRepository:
                 raw_global.get(CONF_ENABLE_DEW_POINT),
                 True,
             ),
-            leaf_offset_c=float(raw_global.get(CONF_LEAF_OFFSET, -2.0)),
+            leaf_offset_c=self._float_or_default(
+                raw_global.get(CONF_LEAF_OFFSET),
+                -2.0,
+            ),
             display=DisplayPolicy(
-                icon=str(raw_global.get(CONF_ICON, display_defaults.icon)),
-                display_name=str(
-                    raw_global.get(CONF_DISPLAY_NAME, display_defaults.display_name)
+                icon=self._str_or_default(raw_global.get(CONF_ICON), display_defaults.icon),
+                display_name=self._str_or_default(
+                    raw_global.get(CONF_DISPLAY_NAME),
+                    display_defaults.display_name,
                 ),
-                leaf_icon=str(
-                    raw_global.get(CONF_LEAF_ICON, display_defaults.leaf_icon)
+                leaf_icon=self._str_or_default(
+                    raw_global.get(CONF_LEAF_ICON), display_defaults.leaf_icon
                 ),
-                leaf_display_name=str(
-                    raw_global.get(
-                        CONF_LEAF_DISPLAY_NAME,
-                        display_defaults.leaf_display_name,
-                    )
+                leaf_display_name=self._str_or_default(
+                    raw_global.get(CONF_LEAF_DISPLAY_NAME),
+                    display_defaults.leaf_display_name,
                 ),
-                absolute_humidity_icon=str(
-                    raw_global.get(
-                        CONF_ABSOLUTE_HUMIDITY_ICON,
-                        display_defaults.absolute_humidity_icon,
-                    )
+                absolute_humidity_icon=self._str_or_default(
+                    raw_global.get(CONF_ABSOLUTE_HUMIDITY_ICON),
+                    display_defaults.absolute_humidity_icon,
                 ),
-                absolute_humidity_display_name=str(
-                    raw_global.get(
-                        CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
-                        display_defaults.absolute_humidity_display_name,
-                    )
+                absolute_humidity_display_name=self._str_or_default(
+                    raw_global.get(CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME),
+                    display_defaults.absolute_humidity_display_name,
                 ),
-                dew_point_icon=str(
-                    raw_global.get(CONF_DEW_POINT_ICON, display_defaults.dew_point_icon)
+                dew_point_icon=self._str_or_default(
+                    raw_global.get(CONF_DEW_POINT_ICON), display_defaults.dew_point_icon
                 ),
-                dew_point_display_name=str(
-                    raw_global.get(
-                        CONF_DEW_POINT_DISPLAY_NAME,
-                        display_defaults.dew_point_display_name,
-                    )
+                dew_point_display_name=self._str_or_default(
+                    raw_global.get(CONF_DEW_POINT_DISPLAY_NAME),
+                    display_defaults.dew_point_display_name,
                 ),
             ),
         )
@@ -152,7 +147,7 @@ class PolicyRepository:
                 enable_dew_point=self._as_optional_bool(
                     value.get(CONF_ENABLE_DEW_POINT)
                 ),
-                leaf_offset_c=self._optional_float(value, CONF_LEAF_OFFSET),
+                leaf_offset_c=self._optional_float(value.get(CONF_LEAF_OFFSET)),
             )
         return parsed
 
@@ -162,10 +157,10 @@ class PolicyRepository:
             if not isinstance(device_id, str) or not isinstance(value, Mapping):
                 continue
             parsed[device_id] = SourceOverride(
-                temperature_entity_id=self._optional_str(
-                    value, "temperature_entity_id"
+                temperature_entity_id=self._entity_id_or_none(
+                    value.get("temperature_entity_id")
                 ),
-                humidity_entity_id=self._optional_str(value, "humidity_entity_id"),
+                humidity_entity_id=self._entity_id_or_none(value.get("humidity_entity_id")),
             )
         return parsed
 
@@ -180,13 +175,37 @@ class PolicyRepository:
         return value if isinstance(value, bool) else None
 
     @staticmethod
-    def _optional_float(raw: Mapping[str, Any], key: str) -> float | None:
-        if key not in raw or raw[key] is None:
-            return None
-        return float(raw[key])
+    def _mapping_or_empty(value: Any) -> dict[str, Any]:
+        return dict(value) if isinstance(value, Mapping) else {}
 
     @staticmethod
-    def _optional_str(raw: Mapping[str, Any], key: str) -> str | None:
-        if key not in raw or raw[key] is None:
+    def _float_or_default(value: Any, default: float) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _optional_float(value: Any) -> float | None:
+        if value is None:
             return None
-        return str(raw[key])
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _optional_str(value: Any) -> str | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @staticmethod
+    def _str_or_default(value: Any, default: str) -> str:
+        normalized = PolicyRepository._optional_str(value)
+        return normalized if normalized is not None else default
+
+    @staticmethod
+    def _entity_id_or_none(value: Any) -> str | None:
+        return PolicyRepository._optional_str(value)

@@ -717,3 +717,21 @@ async def test_area_delete_removes_selected_area_id(
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
     assert "global_policy" in result["data"]
     assert result["data"]["global_policy"][CONF_ENABLE_AIR] is True
+
+
+async def test_options_flow_tolerates_malformed_policy_defaults(hass: HomeAssistant) -> None:
+    """Options flow should not crash when stored policy values are malformed."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_valid_user_input(),
+        options={
+            "global_policy": {CONF_LEAF_OFFSET: "bad", CONF_DISPLAY_NAME: 999},
+            "area_policies": {"area_1": {CONF_LEAF_OFFSET: "oops"}},
+            "source_overrides": {"dev_1": {"temperature_entity_id": 123}},
+        },
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    assert result.get("type") is data_entry_flow.FlowResultType.MENU

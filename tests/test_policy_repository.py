@@ -84,3 +84,24 @@ def test_repository_scoped_missing_bool_fields_stay_none() -> None:
     assert scoped.enable_leaf is None
     assert scoped.enable_absolute_humidity is None
     assert scoped.enable_dew_point is None
+
+
+def test_repository_ignores_malformed_nested_values() -> None:
+    """Malformed nested policy payloads should gracefully fall back."""
+    repository = PolicyRepository(
+        {
+            "global_policy": {
+                "leaf_offset": "not-a-number",
+                "display_name": 42,
+                "icon": "   ",
+            },
+            "area_policies": {"a1": {"leaf_offset": "bad"}},
+            "source_overrides": {"d1": {"temperature_entity_id": 123}},
+        }
+    )
+
+    assert repository.global_policy.leaf_offset_c == -2.0
+    assert repository.global_policy.display.display_name == "Air VPD"
+    assert repository.global_policy.display.icon == "mdi:water-opacity"
+    assert repository.area_policies["a1"].leaf_offset_c is None
+    assert repository.source_overrides["d1"].temperature_entity_id is None
