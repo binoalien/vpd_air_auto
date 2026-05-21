@@ -109,7 +109,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     _edited_scope_level: str
 
     async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
+        self, _user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Show options menu."""
         return self.async_show_menu(
@@ -157,7 +157,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         )
 
     async def async_step_area_policies(
-        self, user_input: dict[str, Any] | None = None
+        self, _user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Show area policy action menu."""
         return self.async_show_menu(
@@ -166,7 +166,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         )
 
     async def async_step_device_policies(
-        self, user_input: dict[str, Any] | None = None
+        self, _user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Show device policy action menu."""
         return self.async_show_menu(
@@ -329,11 +329,14 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     ) -> dict[str, Any]:
         """Build updated options while preserving unrelated and scoped keys."""
         updated = dict(self.config_entry.options)
-        updated[f"{scope_level}_policies"] = updated_scope
         updated["global_policy"] = self._entry_mapping("global_policy")
-        updated["area_policies"] = self._entry_mapping("area_policies")
-        updated["device_policies"] = self._entry_mapping("device_policies")
         updated["source_overrides"] = self._entry_mapping("source_overrides")
+        if scope_level == "area":
+            updated["area_policies"] = updated_scope
+            updated["device_policies"] = self._entry_mapping("device_policies")
+        else:
+            updated["device_policies"] = updated_scope
+            updated["area_policies"] = self._entry_mapping("area_policies")
         return updated
 
     def _scope_select_schema(self, scope_map: dict[str, Any]) -> vol.Schema:

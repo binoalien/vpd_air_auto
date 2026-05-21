@@ -105,7 +105,18 @@ async def test_user_flow_creates_entry(hass: HomeAssistant) -> None:
 
 async def test_user_flow_aborts_for_second_instance(hass: HomeAssistant) -> None:
     """Test user flow aborts for second instance."""
-    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_valid_user_input(),
+        options={
+            "device_policies": {"devx": {CONF_ENABLE_AIR: True}},
+            "global_policy": {CONF_ENABLE_AIR: True},
+            "source_overrides": {
+                "devx": {"temperature_entity_id": "sensor.x"}
+            },
+            "future_key": "keep",
+        },
+    )
     entry.add_to_hass(hass)
 
     result = await hass.config_entries.flow.async_init(
@@ -235,7 +246,11 @@ async def test_options_flow_adds_area_policy(hass: HomeAssistant) -> None:
         },
     )
     assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert entry.options["area_policies"]["living_room"][CONF_ENABLE_AIR] is False
+    assert result["data"]["area_policies"]["living_room"][CONF_ENABLE_AIR] is False
+    assert result["data"]["device_policies"] == entry.options["device_policies"]
+    assert result["data"]["global_policy"] == entry.options["global_policy"]
+    assert result["data"]["source_overrides"] == entry.options["source_overrides"]
+    assert result["data"]["future_key"] == entry.options["future_key"]
 
 
 async def test_options_flow_edits_and_deletes_device_policy(
@@ -246,6 +261,10 @@ async def test_options_flow_edits_and_deletes_device_policy(
         domain=DOMAIN,
         data=_valid_user_input(),
         options={
+            "area_policies": {"area_z": {CONF_ENABLE_DEW_POINT: True}},
+            "source_overrides": {"device_1": {"humidity_entity_id": "sensor.h1"}},
+            "global_policy": {CONF_ENABLE_LEAF: True},
+            "future_key": {"z": 2},
             "device_policies": {
                 "device_1": {
                     CONF_ENABLE_AIR: True,
@@ -280,7 +299,11 @@ async def test_options_flow_edits_and_deletes_device_policy(
         },
     )
     assert edit_result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert entry.options["device_policies"]["device_1"][CONF_ENABLE_LEAF] is False
+    assert edit_result["data"]["device_policies"]["device_1"][CONF_ENABLE_LEAF] is False
+    assert edit_result["data"]["area_policies"] == entry.options["area_policies"]
+    assert edit_result["data"]["source_overrides"] == entry.options["source_overrides"]
+    assert edit_result["data"]["global_policy"] == entry.options["global_policy"]
+    assert edit_result["data"]["future_key"] == entry.options["future_key"]
 
     delete_init = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
@@ -293,7 +316,13 @@ async def test_options_flow_edits_and_deletes_device_policy(
         delete_init["flow_id"], user_input={"scope_id": "device_1"}
     )
     assert delete_result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert entry.options["device_policies"] == {}
+    assert delete_result["data"]["device_policies"] == {}
+    assert delete_result["data"]["area_policies"] == entry.options["area_policies"]
+    assert delete_result["data"]["source_overrides"] == entry.options[
+        "source_overrides"
+    ]
+    assert delete_result["data"]["global_policy"] == entry.options["global_policy"]
+    assert delete_result["data"]["future_key"] == entry.options["future_key"]
 
 
 async def test_global_defaults_preserves_scoped_maps_from_entry_data(
@@ -462,3 +491,43 @@ async def test_area_policy_add_rejects_whitespace_scope_id(hass: HomeAssistant) 
 
     assert result.get("type") is data_entry_flow.FlowResultType.FORM
     assert result.get("errors") == {"scope_id": "invalid_scope_id"}
+
+
+async def test_area_delete_removes_selected_area_id(
+    hass: HomeAssistant,
+) -> None:
+    """Test area delete removes the selected area id and preserves other keys."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_valid_user_input(),
+        options={
+            "area_policies": {
+                "a1": {CONF_ENABLE_AIR: True},
+                "a2": {CONF_ENABLE_AIR: False},
+            },
+            "device_policies": {"d1": {CONF_ENABLE_LEAF: True}},
+            "global_policy": {CONF_ENABLE_AIR: True},
+            "source_overrides": {"d1": {"temperature_entity_id": "sensor.t1"}},
+            "future_key": "keep",
+        },
+    )
+    entry.add_to_hass(hass)
+
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="area_policies"
+    )
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="area_policy_delete"
+    )
+    result = await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"scope_id": "a1"}
+    )
+
+    assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert "a1" not in result["data"]["area_policies"]
+    assert "a2" in result["data"]["area_policies"]
+    assert result["data"]["device_policies"] == entry.options["device_policies"]
+    assert result["data"]["source_overrides"] == entry.options["source_overrides"]
+    assert result["data"]["global_policy"] == entry.options["global_policy"]
+    assert result["data"]["future_key"] == entry.options["future_key"]
