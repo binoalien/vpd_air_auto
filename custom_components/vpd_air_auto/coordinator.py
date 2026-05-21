@@ -19,6 +19,8 @@ from .const import DOMAIN, IntegrationOptions
 from .discovery.duplicates import DuplicateDetectionService
 from .discovery.topology import TopologyDiscoveryService
 from .models import DeviceSnapshot, DeviceTopology
+from .policy.repository import PolicyRepository
+from .policy.resolver import PolicyResolver
 from .services.entity_plan import EntityPlanService
 from .services.snapshot_builder import SnapshotBuilder
 from .services.subscriptions import SubscriptionManager
@@ -48,12 +50,13 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         self.config_entry = config_entry
         self.options = options
         self._scan_interval = timedelta(seconds=options.scan_interval_seconds)
-        self._snapshot_builder = SnapshotBuilder(hass, options.leaf_offset_c)
+        self._snapshot_builder = SnapshotBuilder(hass)
         self._duplicate_detection_service = DuplicateDetectionService(hass, options)
         self._topology_discovery_service = TopologyDiscoveryService(
             hass, self._duplicate_detection_service
         )
-        self._entity_plan_service = EntityPlanService(options)
+        self._policy_resolver = PolicyResolver(PolicyRepository(config_entry.options))
+        self._entity_plan_service = EntityPlanService()
         self._topology: dict[str, DeviceTopology] = {}
         self._source_to_device: dict[str, str] = {}
         self._subscription_manager = SubscriptionManager(hass)
@@ -77,17 +80,24 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
 
     async def _async_update_data(self) -> dict[str, DeviceSnapshot]:
         """Discover source devices and compute their current sensor values."""
-        if not self._entity_plan_service.enabled_kinds():
-            self._topology = {}
-            self._source_to_device = {}
-            self._refresh_state_listener()
-            return {}
-
         topology = self._topology_discovery_service.discover()
-        snapshots = {
-            device_id: self._snapshot_builder.build_snapshot(device_topology)
-            for device_id, device_topology in topology.items()
-        }
+        snapshots: dict[str, DeviceSnapshot] = {}
+        for device_id, device_topology in topology.items():
+            effective_policy = self._policy_resolver.resolve_for_device_area_only(
+                device_id=device_id,
+                area_id=device_topology.area_id,
+            )
+            creatable_kinds = self._entity_plan_service.creatable_kinds_for_topology(
+                device_topology,
+                effective_policy,
+            )
+            if not creatable_kinds:
+                continue
+            snapshots[device_id] = self._snapshot_builder.build_snapshot(
+                device_topology,
+                effective_policy,
+            )
+
 
         self._topology = topology
         self._source_to_device = {
@@ -117,7 +127,14 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         if device_topology is None:
             return set()
 
-        return self._entity_plan_service.creatable_kinds_for_topology(device_topology)
+        effective_policy = self._policy_resolver.resolve_for_device_area_only(
+            device_id=device_topology.device_id,
+            area_id=device_topology.area_id,
+        )
+        return self._entity_plan_service.creatable_kinds_for_topology(
+            device_topology,
+            effective_policy,
+        )
 
     @callback
     def diagnostics_payload(self) -> dict[str, object]:
@@ -180,7 +197,14 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return
 
         current_data = self.data or {}
-        next_snapshot = self._snapshot_builder.build_snapshot(device_topology)
+        effective_policy = self._policy_resolver.resolve_for_device_area_only(
+            device_id=device_topology.device_id,
+            area_id=device_topology.area_id,
+        )
+        next_snapshot = self._snapshot_builder.build_snapshot(
+            device_topology,
+            effective_policy,
+        )
         if current_data.get(device_id) == next_snapshot:
             return
 

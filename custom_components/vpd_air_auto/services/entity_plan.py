@@ -7,36 +7,34 @@ from ..const import (
     SENSOR_KIND_AIR,
     SENSOR_KIND_DEW_POINT,
     SENSOR_KIND_LEAF,
-    IntegrationOptions,
 )
 from ..models import DeviceTopology
+from ..policy.models import EffectiveDevicePolicy
 
 
 class EntityPlanService:
     """Resolve enabled and creatable sensor kinds for discovered devices."""
 
-    def __init__(self, options: IntegrationOptions) -> None:
-        """Initialize the service with resolved integration options."""
+    @staticmethod
+    def enabled_kinds_for_policy(policy: EffectiveDevicePolicy) -> set[str]:
+        """Return enabled sensor kinds from an effective policy."""
         enabled_kinds: set[str] = set()
-        if options.enable_air:
+        if policy.enable_air:
             enabled_kinds.add(SENSOR_KIND_AIR)
-        if options.enable_leaf:
+        if policy.enable_leaf:
             enabled_kinds.add(SENSOR_KIND_LEAF)
-        if options.enable_absolute_humidity:
+        if policy.enable_absolute_humidity:
             enabled_kinds.add(SENSOR_KIND_ABSOLUTE_HUMIDITY)
-        if options.enable_dew_point:
+        if policy.enable_dew_point:
             enabled_kinds.add(SENSOR_KIND_DEW_POINT)
-        self._enabled_kinds = frozenset(enabled_kinds)
-
-    def enabled_kinds(self) -> set[str]:
-        """Return globally enabled sensor kinds from integration options."""
-        return set(self._enabled_kinds)
+        return enabled_kinds
 
     def creatable_kinds_for_topology(
         self,
         topology: DeviceTopology | None,
+        policy: EffectiveDevicePolicy,
     ) -> set[str]:
-        """Return enabled kinds minus blocked kinds for one device topology."""
+        """Return policy-enabled kinds minus blocked kinds for one topology."""
         if topology is None:
             return set()
-        return self.enabled_kinds().difference(topology.blocked_sensor_kinds)
+        return self.enabled_kinds_for_policy(policy).difference(topology.blocked_sensor_kinds)

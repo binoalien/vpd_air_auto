@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.core import HomeAssistant
 
 from custom_components.vpd_air_auto.models import DeviceTopology
+from custom_components.vpd_air_auto.policy.models import DisplayPolicy, EffectiveDevicePolicy
 from custom_components.vpd_air_auto.services.snapshot_builder import SnapshotBuilder
 
 
@@ -17,9 +18,20 @@ def _topology() -> DeviceTopology:
     )
 
 
+def _policy(*, leaf_offset_c: float = -2.0) -> EffectiveDevicePolicy:
+    return EffectiveDevicePolicy(
+        enable_air=True,
+        enable_leaf=True,
+        enable_absolute_humidity=True,
+        enable_dew_point=True,
+        leaf_offset_c=leaf_offset_c,
+        display=DisplayPolicy(),
+    )
+
+
 def test_build_snapshot_computes_all_values(hass: HomeAssistant) -> None:
     """Test build snapshot computes all values."""
-    builder = SnapshotBuilder(hass, -2.0)
+    builder = SnapshotBuilder(hass)
     topology = _topology()
     hass.states.async_set(
         "sensor.grow_tent_temperature",
@@ -32,7 +44,7 @@ def test_build_snapshot_computes_all_values(hass: HomeAssistant) -> None:
         {"device_class": "humidity", "unit_of_measurement": "%"},
     )
 
-    snapshot = builder.build_snapshot(topology)
+    snapshot = builder.build_snapshot(topology, _policy())
 
     assert snapshot.device_id == "device-1"
     assert snapshot.device_name == "Grow Tent"
@@ -50,7 +62,7 @@ def test_build_snapshot_computes_all_values(hass: HomeAssistant) -> None:
 
 def test_build_snapshot_handles_invalid_source_states(hass: HomeAssistant) -> None:
     """Test build snapshot handles invalid source states."""
-    builder = SnapshotBuilder(hass, -2.0)
+    builder = SnapshotBuilder(hass)
     topology = _topology()
     hass.states.async_set(
         "sensor.grow_tent_temperature",
@@ -63,7 +75,7 @@ def test_build_snapshot_handles_invalid_source_states(hass: HomeAssistant) -> No
         {"device_class": "humidity", "unit_of_measurement": "%"},
     )
 
-    snapshot = builder.build_snapshot(topology)
+    snapshot = builder.build_snapshot(topology, _policy())
 
     assert snapshot.device_id == "device-1"
     assert snapshot.device_name == "Grow Tent"

@@ -66,6 +66,31 @@ class PolicyResolver:  # pylint: disable=too-few-public-methods
             ),
         )
 
+
+    def resolve_for_device_area_only(
+        self,
+        *,
+        device_id: str,
+        area_id: str | None = None,
+    ) -> EffectiveDevicePolicy:
+        """Resolve effective policy using only global + area overrides."""
+        global_policy = self._repository.global_policy
+        area_override = self._repository.area_policies.get(area_id) if area_id else None
+
+        return EffectiveDevicePolicy(
+            enable_air=self._resolve_bool(global_policy.enable_air, area_override, None, "enable_air"),
+            enable_leaf=self._resolve_bool(global_policy.enable_leaf, area_override, None, "enable_leaf"),
+            enable_absolute_humidity=self._resolve_bool(
+                global_policy.enable_absolute_humidity, area_override, None, "enable_absolute_humidity"
+            ),
+            enable_dew_point=self._resolve_bool(global_policy.enable_dew_point, area_override, None, "enable_dew_point"),
+            leaf_offset_c=self._resolve_leaf_offset(global_policy.leaf_offset_c, area_override, None),
+            display=global_policy.display,
+            source_override=self._repository.source_overrides.get(device_id),
+            behavior_source=self._resolve_behavior_source(area_override, None),
+            leaf_offset_source=self._resolve_leaf_offset_source(area_override, None),
+        )
+
     @staticmethod
     def _resolve_bool(
         default: bool,

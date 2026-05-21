@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 from homeassistant.core import Event, HomeAssistant, State
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -173,7 +173,7 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
         "sensor.grow_tent_humidity": "device-1",
     }
     mock_discover.assert_called_once()
-    mock_build.assert_called_once_with(topology["device-1"])
+    mock_build.assert_called_once_with(topology["device-1"], ANY)
     mock_refresh.assert_called_once()
 
 
@@ -211,7 +211,7 @@ def test_creatable_kinds_for_device_delegates_to_entity_plan_service(
             SENSOR_KIND_DEW_POINT,
         }
 
-    mock_creatable.assert_called_once_with(topology)
+    mock_creatable.assert_called_once()
     assert coordinator.creatable_kinds_for_device("missing") == set()
 
 

@@ -106,6 +106,14 @@ def test_discover_returns_topology_with_best_sources_and_blocked_kinds(
             return_value=device_registry,
         ),
         patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=SimpleNamespace(async_get_area=lambda _area_id: None),
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=SimpleNamespace(async_get_area=lambda _area_id: None),
+        ),
+        patch(
             "custom_components.vpd_air_auto.discovery.topology.er.async_get",
             return_value=entity_registry,
         ),
@@ -161,6 +169,10 @@ def test_discover_skips_devices_without_complete_source_pair(
         patch(
             "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
             return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=SimpleNamespace(async_get_area=lambda _area_id: None),
         ),
         patch(
             "custom_components.vpd_air_auto.discovery.topology.er.async_get",

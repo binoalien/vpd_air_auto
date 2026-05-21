@@ -14,6 +14,8 @@ class DeviceTopology:
     temperature_entity_id: str
     humidity_entity_id: str
     blocked_sensor_kinds: frozenset[str] = field(default_factory=frozenset)
+    area_id: str | None = None
+    area_name: str | None = None
 
 
 @dataclass(frozen=True, slots=True)  # pylint: disable=too-many-instance-attributes
