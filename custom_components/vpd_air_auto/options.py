@@ -7,6 +7,12 @@ from typing import Any
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.selector import (
+    AreaSelector,
+    AreaSelectorConfig,
+    DeviceSelector,
+    DeviceSelectorConfig,
+    EntitySelector,
+    EntitySelectorConfig,
     IconSelector,
     IconSelectorConfig,
     NumberSelector,
@@ -235,12 +241,18 @@ def build_scoped_policy_schema(
     scope_id: str = "",
     policy: dict[str, Any] | None = None,
     include_scope_id: bool,
+    scope_selector: str | None = None,
 ) -> vol.Schema:
     """Build schema for area/device behavior override editing."""
     policy = dict(policy or {})
     schema: dict[Any, Any] = {}
     if include_scope_id:
-        schema[vol.Required("scope_id", default=scope_id)] = str
+        scope_id_schema: Any = str
+        if scope_selector == "area":
+            scope_id_schema = AreaSelector(AreaSelectorConfig())
+        elif scope_selector == "device":
+            scope_id_schema = DeviceSelector(DeviceSelectorConfig())
+        schema[vol.Required("scope_id", default=scope_id)] = scope_id_schema
 
     schema.update(
         {
@@ -359,22 +371,43 @@ def build_source_override_schema(
     scope_id: str = "",
     override: dict[str, Any] | None = None,
     include_scope_id: bool,
+    use_selectors: bool = True,
 ) -> vol.Schema:
     """Build schema for source override editing."""
     override = dict(override or {})
     schema: dict[Any, Any] = {}
     if include_scope_id:
-        schema[vol.Required("scope_id", default=scope_id)] = str
+        schema[vol.Required("scope_id", default=scope_id)] = (
+            DeviceSelector(DeviceSelectorConfig()) if use_selectors else str
+        )
     schema.update(
         {
             vol.Optional(
                 "temperature_entity_id",
                 default=str(override.get("temperature_entity_id", "") or ""),
-            ): str,
+            ): (
+                EntitySelector(
+                    EntitySelectorConfig(
+                        domain="sensor",
+                        multiple=False,
+                    )
+                )
+                if use_selectors
+                else str
+            ),
             vol.Optional(
                 "humidity_entity_id",
                 default=str(override.get("humidity_entity_id", "") or ""),
-            ): str,
+            ): (
+                EntitySelector(
+                    EntitySelectorConfig(
+                        domain="sensor",
+                        multiple=False,
+                    )
+                )
+                if use_selectors
+                else str
+            ),
         }
     )
     return vol.Schema(schema)

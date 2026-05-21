@@ -101,13 +101,13 @@
       "area_policy_add": {
         "title": "Bereichsrichtlinie hinzufügen",
         "data": {
-          "scope_id": "Bereichs-ID"
+          "scope_id": "Bereich"
         }
       },
       "area_policy_edit": {
         "title": "Bereichsrichtlinie bearbeiten",
         "data": {
-          "scope_id": "Bereichs-ID"
+          "scope_id": "Bereich"
         }
       },
       "area_policy_delete": {
@@ -116,13 +116,13 @@
       "device_policy_add": {
         "title": "Geräterichtlinie hinzufügen",
         "data": {
-          "scope_id": "Geräte-ID"
+          "scope_id": "Gerät"
         }
       },
       "device_policy_edit": {
         "title": "Geräterichtlinie bearbeiten",
         "data": {
-          "scope_id": "Geräte-ID"
+          "scope_id": "Gerät"
         }
       },
       "device_policy_delete": {
@@ -131,7 +131,7 @@
       "source_override_add": {
         "title": "Quellüberschreibung hinzufügen",
         "data": {
-          "scope_id": "Geräte-ID",
+          "scope_id": "Gerät",
           "temperature_entity_id": "Temperatur-Entity-ID",
           "humidity_entity_id": "Feuchte-Entity-ID"
         }
@@ -139,7 +139,7 @@
       "source_override_edit": {
         "title": "Quellüberschreibung bearbeiten",
         "data": {
-          "scope_id": "Geräte-ID",
+          "scope_id": "Gerät",
           "temperature_entity_id": "Temperatur-Entity-ID",
           "humidity_entity_id": "Feuchte-Entity-ID"
         }

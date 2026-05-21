@@ -356,6 +356,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
                 scope_id=scope_id or "",
                 policy=existing_policy,
                 include_scope_id=include_scope_id,
+                scope_selector=scope_level if include_scope_id else None,
             ),
             errors=errors,
         )
