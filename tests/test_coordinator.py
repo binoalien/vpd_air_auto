@@ -482,10 +482,10 @@ async def test_source_change_does_not_re_add_policy_filtered_device(
     coordinator.async_set_updated_data.assert_not_called()
 
 
-async def test_global_disabled_area_enabled_device_stays_active_and_uses_area_offset(
+async def test_runtime_policy_uses_device_over_area_over_global_priority(
     hass: HomeAssistant,
 ) -> None:
-    """Area override should enable a globally disabled device and set leaf offset."""
+    """Runtime policy resolution should apply Device > Area > Global."""
     coordinator = _build_coordinator(
         hass,
         options=_options(
@@ -501,7 +501,13 @@ async def test_global_disabled_area_enabled_device_stays_active_and_uses_area_of
                     CONF_ENABLE_AIR: True,
                     CONF_LEAF_OFFSET: -0.8,
                 }
-            }
+            },
+            "device_policies": {
+                "device-1": {
+                    CONF_ENABLE_AIR: False,
+                    CONF_LEAF_OFFSET: -1.4,
+                }
+            },
         },
     )
     topology = {
@@ -534,5 +540,5 @@ async def test_global_disabled_area_enabled_device_stays_active_and_uses_area_of
 
     assert result == {"device-1": _snapshot("device-1")}
     policy = mock_build.call_args.args[1]
-    assert policy.enable_air is True
-    assert policy.leaf_offset_c == -0.8
+    assert policy.enable_air is False
+    assert policy.leaf_offset_c == -1.4
