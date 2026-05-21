@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
+import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -63,12 +65,12 @@ class VpdAirAutoConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="single_instance_allowed")
 
         errors: dict[str, str] = {}
-
         if user_input is not None:
             normalized_input, errors = normalize_user_input(user_input)
             if not errors:
                 return self.async_create_entry(
-                    title=DEFAULT_NAME, data=normalized_input
+                    title=DEFAULT_NAME,
+                    data=normalized_input,
                 )
 
         defaults = IntegrationOptions(
@@ -109,7 +111,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage the integration options."""
+        """Show options menu."""
         return self.async_show_menu(
             step_id="init",
             menu_options=["global_defaults", "area_policies", "device_policies"],
@@ -120,29 +122,33 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     ) -> ConfigFlowResult:
         """Edit global defaults and flat compatibility options."""
         errors: dict[str, str] = {}
-
         if user_input is not None:
             normalized_input, errors = normalize_user_input(user_input)
             if not errors:
-                normalized_input["global_policy"] = {
-                    CONF_ENABLE_AIR: normalized_input[CONF_ENABLE_AIR],
-                    CONF_ENABLE_LEAF: normalized_input[CONF_ENABLE_LEAF],
-                    CONF_ENABLE_ABSOLUTE_HUMIDITY: normalized_input[
-                        CONF_ENABLE_ABSOLUTE_HUMIDITY
-                    ],
-                    CONF_ENABLE_DEW_POINT: normalized_input[CONF_ENABLE_DEW_POINT],
-                    CONF_LEAF_OFFSET: normalized_input[CONF_LEAF_OFFSET],
-                }
-                normalized_input["area_policies"] = dict(
-                    self.config_entry.options.get("area_policies", {})
+                updated_options = dict(self.config_entry.options)
+                updated_options.update(normalized_input)
+
+                global_policy = self._entry_mapping("global_policy")
+                global_policy.update(
+                    {
+                        CONF_ENABLE_AIR: normalized_input[CONF_ENABLE_AIR],
+                        CONF_ENABLE_LEAF: normalized_input[CONF_ENABLE_LEAF],
+                        CONF_ENABLE_ABSOLUTE_HUMIDITY: normalized_input[
+                            CONF_ENABLE_ABSOLUTE_HUMIDITY
+                        ],
+                        CONF_ENABLE_DEW_POINT: normalized_input[CONF_ENABLE_DEW_POINT],
+                        CONF_LEAF_OFFSET: normalized_input[CONF_LEAF_OFFSET],
+                    }
                 )
-                normalized_input["device_policies"] = dict(
-                    self.config_entry.options.get("device_policies", {})
+                updated_options["global_policy"] = global_policy
+                updated_options["area_policies"] = self._entry_mapping("area_policies")
+                updated_options["device_policies"] = self._entry_mapping(
+                    "device_policies"
                 )
-                normalized_input["source_overrides"] = dict(
-                    self.config_entry.options.get("source_overrides", {})
+                updated_options["source_overrides"] = self._entry_mapping(
+                    "source_overrides"
                 )
-                return self.async_create_entry(data=normalized_input)
+                return self.async_create_entry(data=updated_options)
 
         return self.async_show_form(
             step_id="global_defaults",
@@ -153,7 +159,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     async def async_step_area_policies(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Show area policy actions."""
+        """Show area policy action menu."""
         return self.async_show_menu(
             step_id="area_policies",
             menu_options=["area_policy_add", "area_policy_edit", "area_policy_delete"],
@@ -162,7 +168,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     async def async_step_device_policies(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Show device policy actions."""
+        """Show device policy action menu."""
         return self.async_show_menu(
             step_id="device_policies",
             menu_options=[
@@ -175,36 +181,43 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     async def async_step_area_policy_add(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Add an area policy override."""
         return await self._async_step_scoped_policy_edit("area", None, user_input)
 
     async def async_step_area_policy_edit(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Select and edit an area policy override."""
         return await self._async_step_select_scope("area", user_input)
 
     async def async_step_area_policy_delete(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Delete an area policy override."""
         return await self._async_step_delete_scope("area", user_input)
 
     async def async_step_device_policy_add(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Add a device policy override."""
         return await self._async_step_scoped_policy_edit("device", None, user_input)
 
     async def async_step_device_policy_edit(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Select and edit a device policy override."""
         return await self._async_step_select_scope("device", user_input)
 
     async def async_step_device_policy_delete(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Delete a device policy override."""
         return await self._async_step_delete_scope("device", user_input)
 
     async def async_step_edit_scoped_policy(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        """Edit the currently selected scoped policy."""
         return await self._async_step_scoped_policy_edit(
             self._edited_scope_level,
             self._edited_scope_id,
@@ -213,7 +226,9 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         )
 
     async def _async_step_select_scope(
-        self, scope_level: str, user_input: dict[str, Any] | None
+        self,
+        scope_level: str,
+        user_input: dict[str, Any] | None,
     ) -> ConfigFlowResult:
         scope_map = self._scope_map(scope_level)
         if user_input is not None:
@@ -227,6 +242,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
                 data_schema=self._scope_select_schema(scope_map),
                 errors={"scope_id": "invalid_scope_id"},
             )
+
         return self.async_show_form(
             step_id=f"{scope_level}_policy_edit",
             data_schema=self._scope_select_schema(scope_map),
@@ -234,19 +250,24 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         )
 
     async def _async_step_delete_scope(
-        self, scope_level: str, user_input: dict[str, Any] | None
+        self,
+        scope_level: str,
+        user_input: dict[str, Any] | None,
     ) -> ConfigFlowResult:
         scope_map = self._scope_map(scope_level)
         if user_input is not None:
             selected_scope = user_input.get("scope_id")
             if isinstance(selected_scope, str) and selected_scope in scope_map:
                 scope_map.pop(selected_scope)
-                return self.async_create_entry(data=self._build_updated_options(scope_level, scope_map))
+                return self.async_create_entry(
+                    data=self._build_updated_options(scope_level, scope_map)
+                )
             return self.async_show_form(
                 step_id=f"{scope_level}_policy_delete",
                 data_schema=self._scope_select_schema(scope_map),
                 errors={"scope_id": "invalid_scope_id"},
             )
+
         return self.async_show_form(
             step_id=f"{scope_level}_policy_delete",
             data_schema=self._scope_select_schema(scope_map),
@@ -263,42 +284,62 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         scope_map = self._scope_map(scope_level)
-        existing = scope_map.get(scope_id, {}) if scope_id else {}
+        existing_policy = scope_map.get(scope_id, {}) if scope_id else {}
+
         if user_input is not None:
             normalized, errors = normalize_scoped_policy_input(
-                user_input, include_scope_id=include_scope_id
+                user_input,
+                include_scope_id=include_scope_id,
             )
             if not errors:
                 resolved_scope_id = scope_id or normalized.pop("scope_id")
                 scope_map[resolved_scope_id] = normalized
-                return self.async_create_entry(data=self._build_updated_options(scope_level, scope_map))
+                return self.async_create_entry(
+                    data=self._build_updated_options(scope_level, scope_map)
+                )
 
+        step_id = (
+            "edit_scoped_policy"
+            if not include_scope_id
+            else f"{scope_level}_policy_add"
+        )
         return self.async_show_form(
-            step_id=("edit_scoped_policy" if not include_scope_id else f"{scope_level}_policy_add"),
+            step_id=step_id,
             data_schema=build_scoped_policy_schema(
                 scope_id=scope_id or "",
-                policy=existing,
+                policy=existing_policy,
                 include_scope_id=include_scope_id,
             ),
             errors=errors,
         )
 
+    def _entry_mapping(self, key: str) -> dict[str, Any]:
+        """Return key mapping from options with entry.data fallback."""
+        value = self.config_entry.options.get(key, self.config_entry.data.get(key, {}))
+        return dict(value) if isinstance(value, Mapping) else {}
+
     def _scope_map(self, scope_level: str) -> dict[str, Any]:
-        return dict(self.config_entry.options.get(f"{scope_level}_policies", {}))
+        """Return scoped map for area/device with options-data fallback."""
+        return self._entry_mapping(f"{scope_level}_policies")
 
     def _build_updated_options(
-        self, scope_level: str, updated_scope: dict[str, Any]
+        self,
+        scope_level: str,
+        updated_scope: dict[str, Any],
     ) -> dict[str, Any]:
+        """Build updated options while preserving unrelated and scoped keys."""
         updated = dict(self.config_entry.options)
         updated[f"{scope_level}_policies"] = updated_scope
-        updated.setdefault("global_policy", {})
-        updated.setdefault("area_policies", dict(self.config_entry.options.get("area_policies", {})))
-        updated.setdefault("device_policies", dict(self.config_entry.options.get("device_policies", {})))
-        updated.setdefault("source_overrides", dict(self.config_entry.options.get("source_overrides", {})))
+        updated["global_policy"] = self._entry_mapping("global_policy")
+        updated["area_policies"] = self._entry_mapping("area_policies")
+        updated["device_policies"] = self._entry_mapping("device_policies")
+        updated["source_overrides"] = self._entry_mapping("source_overrides")
         return updated
 
-    def _scope_select_schema(self, scope_map: dict[str, Any]) -> Any:
-        import voluptuous as vol
-
+    def _scope_select_schema(self, scope_map: dict[str, Any]) -> vol.Schema:
+        """Build selector schema for choosing a scope id."""
         default_scope = next(iter(scope_map), "")
-        return vol.Schema({vol.Required("scope_id", default=default_scope): vol.In(list(scope_map) or [""])})
+        choices = list(scope_map) or [""]
+        return vol.Schema(
+            {vol.Required("scope_id", default=default_scope): vol.In(choices)}
+        )

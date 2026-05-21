@@ -262,7 +262,9 @@ def build_scoped_policy_schema(
             ): bool,
             vol.Required(
                 CONF_ENABLE_DEW_POINT,
-                default=bool(policy.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT)),
+                default=bool(
+                    policy.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT)
+                ),
             ): bool,
             vol.Required(
                 CONF_LEAF_OFFSET,
@@ -307,7 +309,9 @@ def normalize_scoped_policy_input(
         normalized[key] = bool(user_input[key])
 
     try:
-        normalized[CONF_LEAF_OFFSET] = validated_leaf_offset(user_input[CONF_LEAF_OFFSET])
+        normalized[CONF_LEAF_OFFSET] = validated_leaf_offset(
+            user_input[CONF_LEAF_OFFSET]
+        )
     except vol.Invalid as err:
         errors[CONF_LEAF_OFFSET] = str(err)
 
