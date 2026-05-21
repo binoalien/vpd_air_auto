@@ -377,6 +377,21 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
     )
     assert diagnostics["snapshots"]["device-1"]["vpd_air_kpa"] == 1.27
     assert diagnostics["snapshots"]["device-1"]["dew_point_c"] == 16.68
+    assert diagnostics["policy"]["global_policy"]["enable_air"] is True
+    assert diagnostics["effective_policies"]["device-1"]["behavior_source"] == "global"
+    assert (
+        diagnostics["effective_policies"]["device-1"]["display"]["display_name"]
+        == "VPDair"
+    )
+    assert diagnostics["entity_plan"]["device-1"]["blocked_sensor_kinds"] == [
+        SENSOR_KIND_LEAF
+    ]
+    assert diagnostics["entity_plan"]["device-1"]["enabled_kinds"] == [
+        SENSOR_KIND_ABSOLUTE_HUMIDITY,
+        SENSOR_KIND_AIR,
+        SENSOR_KIND_DEW_POINT,
+        SENSOR_KIND_LEAF,
+    ]
 
 
 def _contexts(device_ids: set[str]):

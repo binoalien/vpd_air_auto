@@ -198,6 +198,28 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
     @callback
     def diagnostics_payload(self) -> dict[str, Any]:
         """Return a sanitized diagnostics payload for the whole config entry."""
+        effective_policies: dict[str, Any] = {}
+        entity_plan: dict[str, Any] = {}
+        for device_id, topology in self._topology.items():
+            effective_policy = self._policy_resolver.resolve_for_device(
+                device_id=device_id,
+                area_id=topology.area_id,
+            )
+            enabled_kinds = self._entity_plan_service.enabled_kinds_for_policy(
+                effective_policy
+            )
+            blocked_sensor_kinds = set(topology.blocked_sensor_kinds)
+            creatable_kinds = self._entity_plan_service.creatable_kinds_for_topology(
+                topology,
+                effective_policy,
+            )
+            effective_policies[device_id] = asdict(effective_policy)
+            entity_plan[device_id] = {
+                "creatable_kinds": sorted(creatable_kinds),
+                "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
+                "enabled_kinds": sorted(enabled_kinds),
+            }
+
         return {
             "options": asdict(self.options),
             "tracked_entity_ids": sorted(self._subscription_manager.tracked_entity_ids),
@@ -209,20 +231,58 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 device_id: asdict(snapshot)
                 for device_id, snapshot in (self.data or {}).items()
             },
+            "policy": self._policy_repository.as_dict(),
+            "effective_policies": effective_policies,
+            "entity_plan": entity_plan,
         }
 
     @callback
     def device_diagnostics_payload(self, device_id: str) -> dict[str, Any]:
         """Return a diagnostics payload scoped to a single Home Assistant device."""
+        topology = self._topology.get(device_id)
+        effective_policy = None
+        if topology is not None:
+            effective_policy = self._policy_resolver.resolve_for_device(
+                device_id=device_id,
+                area_id=topology.area_id,
+            )
+
+        enabled_kinds = (
+            self._entity_plan_service.enabled_kinds_for_policy(effective_policy)
+            if effective_policy is not None
+            else set()
+        )
+        blocked_sensor_kinds = set(topology.blocked_sensor_kinds) if topology else set()
+        creatable_kinds = (
+            self._entity_plan_service.creatable_kinds_for_topology(
+                topology,
+                effective_policy,
+            )
+            if topology is not None and effective_policy is not None
+            else set()
+        )
+
         return {
             "device_id": device_id,
-            "creatable_kinds": sorted(self.creatable_kinds_for_device(device_id)),
-            "topology": asdict(self._topology[device_id])
-            if device_id in self._topology
+            "area_id": topology.area_id if topology else None,
+            "area_name": topology.area_name if topology else None,
+            "creatable_kinds": sorted(creatable_kinds),
+            "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
+            "enabled_kinds": sorted(enabled_kinds),
+            "effective_policy": asdict(effective_policy)
+            if effective_policy is not None
             else None,
-            "snapshot": asdict(self.data[device_id])
-            if self.data and device_id in self.data
-            else None,
+            "entity_plan": {
+                "creatable_kinds": sorted(creatable_kinds),
+                "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
+                "enabled_kinds": sorted(enabled_kinds),
+            },
+            "topology": asdict(topology) if topology else None,
+            "snapshot": (
+                asdict(self.data[device_id])
+                if self.data and device_id in self.data
+                else None
+            ),
         }
 
     @callback

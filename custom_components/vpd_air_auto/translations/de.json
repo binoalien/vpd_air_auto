@@ -56,7 +56,96 @@
           "enable_dew_point": "Taupunkt-Sensoren erzeugen",
           "dew_point_icon": "Globales Taupunkt-Icon (zum Beispiel: mdi:thermometer-water)",
           "dew_point_display_name": "Globaler Name für den Taupunkt-Sensor (zum Beispiel: Taupunkt oder Dew Point)"
+        },
+        "menu_options": {
+          "global_defaults": "Globale Standardwerte",
+          "area_policies": "Bereichsrichtlinien",
+          "device_policies": "Geräterichtlinien",
+          "source_overrides": "Quellüberschreibungen"
         }
+      },
+      "area_policies": {
+        "title": "Bereichsrichtlinien-Aktionen",
+        "menu_options": {
+          "area_policy_add": "Bereichsrichtlinie hinzufügen",
+          "area_policy_edit": "Bereichsrichtlinie bearbeiten",
+          "area_policy_delete": "Bereichsrichtlinie löschen"
+        }
+      },
+      "device_policies": {
+        "title": "Geräterichtlinien-Aktionen",
+        "menu_options": {
+          "device_policy_add": "Geräterichtlinie hinzufügen",
+          "device_policy_edit": "Geräterichtlinie bearbeiten",
+          "device_policy_delete": "Geräterichtlinie löschen"
+        }
+      },
+      "source_overrides": {
+        "title": "Quellüberschreibungs-Aktionen",
+        "menu_options": {
+          "source_override_add": "Quellüberschreibung hinzufügen",
+          "source_override_edit": "Quellüberschreibung bearbeiten",
+          "source_override_delete": "Quellüberschreibung löschen"
+        }
+      },
+      "global_defaults": {
+        "title": "Globale Standardwerte"
+      },
+      "edit_source_override": {
+        "title": "Quellüberschreibung bearbeiten",
+        "data": {
+          "temperature_entity_id": "Temperatur-Entity-ID",
+          "humidity_entity_id": "Feuchte-Entity-ID"
+        }
+      },
+      "area_policy_add": {
+        "title": "Bereichsrichtlinie hinzufügen",
+        "data": {
+          "scope_id": "Bereichs-ID"
+        }
+      },
+      "area_policy_edit": {
+        "title": "Bereichsrichtlinie bearbeiten",
+        "data": {
+          "scope_id": "Bereichs-ID"
+        }
+      },
+      "area_policy_delete": {
+        "title": "Bereichsrichtlinie löschen"
+      },
+      "device_policy_add": {
+        "title": "Geräterichtlinie hinzufügen",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "device_policy_edit": {
+        "title": "Geräterichtlinie bearbeiten",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "device_policy_delete": {
+        "title": "Geräterichtlinie löschen"
+      },
+      "source_override_add": {
+        "title": "Quellüberschreibung hinzufügen",
+        "data": {
+          "scope_id": "Geräte-ID",
+          "temperature_entity_id": "Temperatur-Entity-ID",
+          "humidity_entity_id": "Feuchte-Entity-ID"
+        }
+      },
+      "source_override_edit": {
+        "title": "Quellüberschreibung bearbeiten",
+        "data": {
+          "scope_id": "Geräte-ID",
+          "temperature_entity_id": "Temperatur-Entity-ID",
+          "humidity_entity_id": "Feuchte-Entity-ID"
+        }
+      },
+      "source_override_delete": {
+        "title": "Quellüberschreibung löschen"
       }
     },
     "error": {

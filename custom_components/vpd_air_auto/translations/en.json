@@ -56,7 +56,96 @@
           "enable_dew_point": "Create dew point sensors",
           "dew_point_icon": "Global dew point icon (for example: mdi:thermometer-water)",
           "dew_point_display_name": "Global dew point sensor name (for example: Dew Point)"
+        },
+        "menu_options": {
+          "global_defaults": "Global defaults",
+          "area_policies": "Area policies",
+          "device_policies": "Device policies",
+          "source_overrides": "Source overrides"
         }
+      },
+      "area_policies": {
+        "title": "Area policy actions",
+        "menu_options": {
+          "area_policy_add": "Add area policy",
+          "area_policy_edit": "Edit area policy",
+          "area_policy_delete": "Delete area policy"
+        }
+      },
+      "device_policies": {
+        "title": "Device policy actions",
+        "menu_options": {
+          "device_policy_add": "Add device policy",
+          "device_policy_edit": "Edit device policy",
+          "device_policy_delete": "Delete device policy"
+        }
+      },
+      "source_overrides": {
+        "title": "Source override actions",
+        "menu_options": {
+          "source_override_add": "Add source override",
+          "source_override_edit": "Edit source override",
+          "source_override_delete": "Delete source override"
+        }
+      },
+      "global_defaults": {
+        "title": "Global defaults"
+      },
+      "edit_source_override": {
+        "title": "Edit source override",
+        "data": {
+          "temperature_entity_id": "Temperature entity ID",
+          "humidity_entity_id": "Humidity entity ID"
+        }
+      },
+      "area_policy_add": {
+        "title": "Add area policy",
+        "data": {
+          "scope_id": "Area ID"
+        }
+      },
+      "area_policy_edit": {
+        "title": "Edit area policy",
+        "data": {
+          "scope_id": "Area ID"
+        }
+      },
+      "area_policy_delete": {
+        "title": "Delete area policy"
+      },
+      "device_policy_add": {
+        "title": "Add device policy",
+        "data": {
+          "scope_id": "Device ID"
+        }
+      },
+      "device_policy_edit": {
+        "title": "Edit device policy",
+        "data": {
+          "scope_id": "Device ID"
+        }
+      },
+      "device_policy_delete": {
+        "title": "Delete device policy"
+      },
+      "source_override_add": {
+        "title": "Add source override",
+        "data": {
+          "scope_id": "Device ID",
+          "temperature_entity_id": "Temperature entity ID",
+          "humidity_entity_id": "Humidity entity ID"
+        }
+      },
+      "source_override_edit": {
+        "title": "Edit source override",
+        "data": {
+          "scope_id": "Device ID",
+          "temperature_entity_id": "Temperature entity ID",
+          "humidity_entity_id": "Humidity entity ID"
+        }
+      },
+      "source_override_delete": {
+        "title": "Delete source override"
       }
     },
     "error": {

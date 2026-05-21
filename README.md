@@ -14,9 +14,11 @@ Derived sensors:
 ## Features
 
 - UI setup through Home Assistant config flow.
-- Global options for enabling or disabling each derived sensor type.
+- V2 policy model with Global Defaults, Area Policies and Device Policies.
+- Policy priority: Device > Area > Global.
 - Global display names and icons for every derived sensor type.
-- Configurable VPDleaf temperature offset.
+- Optional manual source overrides per device (temperature/humidity entity IDs).
+- Configurable VPDleaf temperature offset per scope.
 - Automatic device discovery based on existing temperature and humidity sensors.
 - Duplicate protection when a device already exposes equivalent sensors.
 - Diagnostics support for troubleshooting.
@@ -45,18 +47,24 @@ Then restart Home Assistant and add **VPD Air Auto** from **Settings → Devices
 
 The integration is configured entirely through the Home Assistant UI. YAML configuration is not supported.
 
-Available global options:
+Options are organized in a menu-based V2 Options Flow:
 
-- Topology rescan interval
-- Enable/disable VPDair sensors
-- Enable/disable VPDleaf sensors
-- Enable/disable Absolute Humidity sensors
-- Enable/disable Dew Point sensors
-- VPDair display name and icon
-- VPDleaf display name and icon
-- Absolute Humidity display name and icon
-- Dew Point display name and icon
-- VPDleaf temperature offset in °C
+- **Global defaults**
+  - Topology rescan interval
+  - Global enable/disable flags for all derived kinds
+  - Global VPDleaf offset
+  - Global display names and icons
+- **Area policies**
+  - Add/edit/delete area-level behavior overrides
+  - Override enable/disable flags and VPDleaf offset for one area
+- **Device policies**
+  - Add/edit/delete device-level behavior overrides
+  - Override enable/disable flags and VPDleaf offset for one device
+- **Source overrides**
+  - Add/edit/delete manual source entity IDs per device
+  - Optional `temperature_entity_id` and `humidity_entity_id`
+
+Policy resolution is deterministic: **Device > Area > Global**.
 
 ## Compatibility
 
