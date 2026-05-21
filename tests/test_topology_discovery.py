@@ -58,6 +58,7 @@ class _EntityRegistryStub:  # pylint: disable=too-few-public-methods
         self._entities = entities
 
     def async_get(self, entity_id: str) -> SimpleNamespace | None:
+        """Return a stubbed registry entry by entity id."""
         return self._entities.get(entity_id)
 
 

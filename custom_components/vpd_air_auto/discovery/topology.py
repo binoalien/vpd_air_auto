@@ -54,19 +54,11 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 )
             )
 
-            auto_temperature_entity_id = self._pick_best_entity(
-                candidates, target_device_class=TARGET_TEMPERATURE
-            )
-            auto_humidity_entity_id = self._pick_best_entity(
-                candidates, target_device_class=TARGET_HUMIDITY
-            )
-            selected_sources = self._resolve_source_pair(
+            temperature_entity_id, humidity_entity_id = self._resolve_source_pair(
                 entity_registry=entity_registry,
                 source_override=source_overrides.get(device.id),
-                auto_temperature_entity_id=auto_temperature_entity_id,
-                auto_humidity_entity_id=auto_humidity_entity_id,
+                candidates=candidates,
             )
-            temperature_entity_id, humidity_entity_id = selected_sources
 
             if temperature_entity_id is None or humidity_entity_id is None:
                 continue
@@ -76,11 +68,6 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                     candidates
                 )
             )
-            area_name = None
-            if device.area_id is not None:
-                area_entry = area_registry.async_get_area(device.area_id)
-                area_name = area_entry.name if area_entry is not None else None
-
             topology[device.id] = DeviceTopology(
                 device_id=device.id,
                 device_name=device.name_by_user or device.name or device.id,
@@ -88,7 +75,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 humidity_entity_id=humidity_entity_id,
                 blocked_sensor_kinds=blocked_sensor_kinds,
                 area_id=device.area_id,
-                area_name=area_name,
+                area_name=self._resolve_area_name(area_registry, device.area_id),
             )
 
         return topology
@@ -98,10 +85,15 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         *,
         entity_registry: er.EntityRegistry,
         source_override: SourceOverride | None,
-        auto_temperature_entity_id: str | None,
-        auto_humidity_entity_id: str | None,
+        candidates: list[er.RegistryEntry],
     ) -> tuple[str | None, str | None]:
         """Resolve final temperature/humidity source IDs for one device."""
+        auto_temperature_entity_id = self._pick_best_entity(
+            candidates, target_device_class=TARGET_TEMPERATURE
+        )
+        auto_humidity_entity_id = self._pick_best_entity(
+            candidates, target_device_class=TARGET_HUMIDITY
+        )
         return (
             self._resolve_source_entity_id(
                 entity_registry=entity_registry,
@@ -116,6 +108,16 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 auto_entity_id=auto_humidity_entity_id,
             ),
         )
+
+    @staticmethod
+    def _resolve_area_name(
+        area_registry: ar.AreaRegistry,
+        area_id: str | None,
+    ) -> str | None:
+        if area_id is None:
+            return None
+        area_entry = area_registry.async_get_area(area_id)
+        return area_entry.name if area_entry is not None else None
 
     def _resolve_source_entity_id(
         self,
