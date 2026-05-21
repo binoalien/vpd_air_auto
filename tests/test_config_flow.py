@@ -144,55 +144,62 @@ async def test_options_flow_returns_form_with_entry_values(hass: HomeAssistant) 
 
     assert result.get("type") is data_entry_flow.FlowResultType.FORM
     assert result.get("step_id") == "init"
-    schema = result.get("data_schema")
-    assert schema is not None
-    assert schema({}) == _valid_user_input()
+    assert result.get("menu_options") == ["global_defaults", "area_policies", "device_policies"]
 
 
-async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:
-    """Test options flow updates entry options."""
+async def test_options_flow_updates_global_defaults(hass: HomeAssistant) -> None:
+    """Test options flow updates global behavior defaults."""
     entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
     entry.add_to_hass(hass)
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
-    user_input = deepcopy(_valid_user_input())
-    user_input[CONF_ENABLE_LEAF] = False
-    user_input[CONF_DISPLAY_NAME] = "VPD Air"
-    user_input[CONF_LEAF_OFFSET] = -1.2
+    menu_result = await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": "global_defaults"}
+    )
+    assert menu_result.get("step_id") == "global_defaults"
 
+    user_input = {
+        CONF_ENABLE_AIR: False,
+        CONF_ENABLE_LEAF: True,
+        CONF_ENABLE_ABSOLUTE_HUMIDITY: False,
+        CONF_ENABLE_DEW_POINT: True,
+        CONF_LEAF_OFFSET: -1.2,
+    }
     result = await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=user_input
+        menu_result["flow_id"], user_input=user_input
     )
     await hass.async_block_till_done()
 
     assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert result.get("data") == user_input
-    assert entry.options == user_input
+    assert result.get("data")[CONF_ENABLE_AIR] is False
+    assert result.get("data")["global_policy"][CONF_ENABLE_AIR] is False
 
 
 async def test_options_flow_returns_errors_for_invalid_fields(
     hass: HomeAssistant,
 ) -> None:
-    """Test options flow returns errors for invalid fields."""
+    """Test options flow returns errors for invalid behavior fields."""
     entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
     entry.add_to_hass(hass)
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
-    user_input = deepcopy(_valid_user_input())
-    user_input[CONF_ICON] = "  "
-    user_input[CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME] = ""
-    user_input[CONF_DEW_POINT_DISPLAY_NAME] = "  "
+    menu_result = await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": "global_defaults"}
+    )
 
     result = await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input=user_input
+        menu_result["flow_id"],
+        user_input={
+            CONF_ENABLE_AIR: True,
+            CONF_ENABLE_LEAF: True,
+            CONF_ENABLE_ABSOLUTE_HUMIDITY: True,
+            CONF_ENABLE_DEW_POINT: True,
+            CONF_LEAF_OFFSET: 50,
+        },
     )
 
     assert result.get("type") is data_entry_flow.FlowResultType.FORM
-    assert result.get("errors") == {
-        CONF_ICON: "invalid_icon",
-        CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME: "invalid_absolute_humidity_display_name",
-        CONF_DEW_POINT_DISPLAY_NAME: "invalid_dew_point_display_name",
-    }
+    assert result.get("errors") == {CONF_LEAF_OFFSET: "invalid_leaf_offset"}
 
 
 def test_async_get_options_flow_returns_handler() -> None:
@@ -200,3 +207,33 @@ def test_async_get_options_flow_returns_handler() -> None:
     flow = VpdAirAutoOptionsFlow()
 
     assert isinstance(flow, VpdAirAutoOptionsFlow)
+
+
+async def test_options_flow_add_area_policy(hass: HomeAssistant) -> None:
+    """Test adding an area policy override."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
+    entry.add_to_hass(hass)
+
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    area_menu = await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": "area_policies"}
+    )
+    add_id = await hass.config_entries.options.async_configure(
+        area_menu["flow_id"], user_input={"next_step_id": "area_policy_add"}
+    )
+    edit_form = await hass.config_entries.options.async_configure(
+        add_id["flow_id"], user_input={"area_id": "grow_room"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        edit_form["flow_id"],
+        user_input={
+            CONF_ENABLE_AIR: True,
+            CONF_ENABLE_LEAF: False,
+            CONF_ENABLE_ABSOLUTE_HUMIDITY: True,
+            CONF_ENABLE_DEW_POINT: False,
+            CONF_LEAF_OFFSET: -0.5,
+        },
+    )
+
+    assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert result.get("data")["area_policies"]["grow_room"][CONF_ENABLE_LEAF] is False

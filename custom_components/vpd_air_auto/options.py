@@ -50,6 +50,14 @@ from .const import (
     IntegrationOptions,
 )
 
+BEHAVIOR_FIELDS: tuple[str, ...] = (
+    CONF_ENABLE_AIR,
+    CONF_ENABLE_LEAF,
+    CONF_ENABLE_ABSOLUTE_HUMIDITY,
+    CONF_ENABLE_DEW_POINT,
+    CONF_LEAF_OFFSET,
+)
+
 
 def trimmed_nonempty_string(value: Any, error_key: str) -> str:
     """Validate and normalize a non-empty string setting."""
@@ -264,3 +272,57 @@ def normalize_user_input(
         errors[CONF_LEAF_OFFSET] = str(err)
 
     return normalized_input, errors
+
+
+def build_behavior_schema(defaults: Mapping[str, Any] | None = None) -> vol.Schema:
+    """Build schema for behavior-only policy editing."""
+    source = dict(defaults or {})
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_ENABLE_AIR,
+                default=bool(source.get(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR)),
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_LEAF,
+                default=bool(source.get(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF)),
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_ABSOLUTE_HUMIDITY,
+                default=bool(
+                    source.get(
+                        CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
+                    )
+                ),
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_DEW_POINT,
+                default=bool(source.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT)),
+            ): bool,
+            vol.Required(
+                CONF_LEAF_OFFSET,
+                default=float(source.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET)),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=MIN_LEAF_OFFSET,
+                    max=MAX_LEAF_OFFSET,
+                    step=0.1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="°C",
+                )
+            ),
+        }
+    )
+
+
+def normalize_behavior_input(
+    user_input: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Normalize and validate behavior-only scope input."""
+    normalized = dict(user_input)
+    errors: dict[str, str] = {}
+    try:
+        normalized[CONF_LEAF_OFFSET] = validated_leaf_offset(user_input[CONF_LEAF_OFFSET])
+    except vol.Invalid as err:
+        errors[CONF_LEAF_OFFSET] = str(err)
+    return normalized, errors
