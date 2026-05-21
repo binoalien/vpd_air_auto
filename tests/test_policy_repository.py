@@ -119,6 +119,10 @@ def test_repository_tolerates_malformed_values() -> None:
                 42: {"temperature_entity_id": "sensor.t"},
                 "d3": {"temperature_entity_id": None, "humidity_entity_id": "   "},
                 "  d4 ": {"temperature_entity_id": "sensor.t4"},
+                "d5": {"temperature_entity_id": "not_an_entity_id"},
+                "d6": {"temperature_entity_id": 123},
+                "d7": {"temperature_entity_id": ""},
+                "d8": {"temperature_entity_id": "   "},
             },
         }
     )
@@ -133,11 +137,15 @@ def test_repository_tolerates_malformed_values() -> None:
     assert repository.device_policies["d1"].enable_leaf is None
     assert repository.device_policies["d1"].leaf_offset_c == 2.2
     assert "d2" in repository.device_policies
-    assert repository.source_overrides["d1"].temperature_entity_id is None
+    assert repository.source_overrides["d1"].temperature_entity_id == "climate.room"
     assert repository.source_overrides["d1"].humidity_entity_id == "sensor.h1"
     assert "d2" not in repository.source_overrides
     assert "d3" not in repository.source_overrides
     assert repository.source_overrides["d4"].temperature_entity_id == "sensor.t4"
+    assert "d5" not in repository.source_overrides
+    assert "d6" not in repository.source_overrides
+    assert "d7" not in repository.source_overrides
+    assert "d8" not in repository.source_overrides
 
 
 def test_repository_rejects_non_finite_leaf_offsets() -> None:
