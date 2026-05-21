@@ -68,7 +68,7 @@ Policy resolution is deterministic: **Device > Area > Global**.
 
 ## Compatibility
 
-The minimum supported Home Assistant version is declared in `hacs.json`.
+This repository targets the 2.0.0 release series. The minimum supported Home Assistant version is declared in `hacs.json`.
 
 ## Development container
 
