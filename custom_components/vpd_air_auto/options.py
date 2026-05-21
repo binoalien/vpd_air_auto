@@ -264,3 +264,58 @@ def normalize_user_input(
         errors[CONF_LEAF_OFFSET] = str(err)
 
     return normalized_input, errors
+
+
+def build_behavior_schema(defaults: dict[str, Any], allow_none: bool = False) -> vol.Schema:
+    """Build schema for scoped behavior fields."""
+    maybe_bool = vol.Any(None, bool) if allow_none else bool
+    maybe_offset = vol.Any(None, NumberSelector(
+        NumberSelectorConfig(
+            min=MIN_LEAF_OFFSET,
+            max=MAX_LEAF_OFFSET,
+            step=0.1,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement="°C",
+        )
+    )) if allow_none else NumberSelector(
+        NumberSelectorConfig(
+            min=MIN_LEAF_OFFSET,
+            max=MAX_LEAF_OFFSET,
+            step=0.1,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement="°C",
+        )
+    )
+    return vol.Schema({
+        vol.Required(CONF_ENABLE_AIR, default=defaults.get(CONF_ENABLE_AIR)): maybe_bool,
+        vol.Required(CONF_ENABLE_LEAF, default=defaults.get(CONF_ENABLE_LEAF)): maybe_bool,
+        vol.Required(CONF_ENABLE_ABSOLUTE_HUMIDITY, default=defaults.get(CONF_ENABLE_ABSOLUTE_HUMIDITY)): maybe_bool,
+        vol.Required(CONF_ENABLE_DEW_POINT, default=defaults.get(CONF_ENABLE_DEW_POINT)): maybe_bool,
+        vol.Required(CONF_LEAF_OFFSET, default=defaults.get(CONF_LEAF_OFFSET)): maybe_offset,
+    })
+
+
+def normalize_behavior_input(user_input: dict[str, Any], allow_none: bool = False) -> tuple[dict[str, Any], dict[str, str]]:
+    """Normalize scoped behavior form input."""
+    normalized = dict(user_input)
+    errors: dict[str, str] = {}
+
+    for key in (CONF_ENABLE_AIR, CONF_ENABLE_LEAF, CONF_ENABLE_ABSOLUTE_HUMIDITY, CONF_ENABLE_DEW_POINT):
+        value = user_input.get(key)
+        if value is None and allow_none:
+            normalized[key] = None
+        elif isinstance(value, bool):
+            normalized[key] = value
+        else:
+            errors[key] = "invalid_boolean"
+
+    value = user_input.get(CONF_LEAF_OFFSET)
+    if value is None and allow_none:
+        normalized[CONF_LEAF_OFFSET] = None
+    else:
+        try:
+            normalized[CONF_LEAF_OFFSET] = validated_leaf_offset(value)
+        except vol.Invalid as err:
+            errors[CONF_LEAF_OFFSET] = str(err)
+
+    return normalized, errors
