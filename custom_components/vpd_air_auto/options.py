@@ -8,11 +8,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.selector import (
     AreaSelector,
-    AreaSelectorConfig,
     DeviceSelector,
-    DeviceSelectorConfig,
-    EntitySelector,
-    EntitySelectorConfig,
     IconSelector,
     IconSelectorConfig,
     NumberSelector,
@@ -378,11 +374,11 @@ def build_source_override_schema(
             vol.Optional(
                 "temperature_entity_id",
                 default=str(override.get("temperature_entity_id", "") or ""),
-            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            ): str,
             vol.Optional(
                 "humidity_entity_id",
                 default=str(override.get("humidity_entity_id", "") or ""),
-            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            ): str,
         }
     )
     return vol.Schema(schema)

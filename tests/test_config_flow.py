@@ -5,9 +5,9 @@ from __future__ import annotations
 from copy import deepcopy
 
 from homeassistant import config_entries, data_entry_flow
-from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.selector import AreaSelector, DeviceSelector, EntitySelector
+from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.selector import AreaSelector, DeviceSelector
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.config_flow import (
@@ -200,8 +200,8 @@ async def test_source_override_menu_adds_edits_and_deletes(
     assert add_form.get("type") is FlowResultType.FORM
     validators = list(add_form["data_schema"].schema.values())
     assert isinstance(validators[0], DeviceSelector)
-    assert isinstance(validators[1], EntitySelector)
-    assert isinstance(validators[2], EntitySelector)
+    assert validators[1] is str
+    assert validators[2] is str
     add_result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
         user_input={
@@ -287,6 +287,54 @@ async def test_source_override_validation_errors(hass: HomeAssistant) -> None:
         == "invalid_temperature_entity"
     )
     assert invalid_domain["errors"]["humidity_entity_id"] == "invalid_humidity_entity"
+
+
+async def test_source_override_add_accepts_temperature_only(
+    hass: HomeAssistant,
+) -> None:
+    """Test source override add with temperature only succeeds."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
+    entry.add_to_hass(hass)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        flow["flow_id"], user_input={"next_step_id": "source_overrides"}
+    )
+    await hass.config_entries.options.async_configure(
+        flow["flow_id"], user_input={"next_step_id": "source_override_add"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        flow["flow_id"],
+        user_input={"scope_id": "d-temp", "temperature_entity_id": "sensor.temp"},
+    )
+    assert result.get("type") is FlowResultType.CREATE_ENTRY
+    assert result["data"]["source_overrides"]["d-temp"] == {
+        "temperature_entity_id": "sensor.temp",
+        "humidity_entity_id": None,
+    }
+
+
+async def test_source_override_add_accepts_humidity_only(
+    hass: HomeAssistant,
+) -> None:
+    """Test source override add with humidity only succeeds."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
+    entry.add_to_hass(hass)
+    flow = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        flow["flow_id"], user_input={"next_step_id": "source_overrides"}
+    )
+    await hass.config_entries.options.async_configure(
+        flow["flow_id"], user_input={"next_step_id": "source_override_add"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        flow["flow_id"],
+        user_input={"scope_id": "d-hum", "humidity_entity_id": "sensor.hum"},
+    )
+    assert result.get("type") is FlowResultType.CREATE_ENTRY
+    assert result["data"]["source_overrides"]["d-hum"] == {
+        "temperature_entity_id": None,
+        "humidity_entity_id": "sensor.hum",
+    }
 
 
 async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:
@@ -578,9 +626,12 @@ async def test_saving_device_policy_preserves_other_maps_and_unknown_keys(
     await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "device_policies"}
     )
-    await hass.config_entries.options.async_configure(
+    add_form = await hass.config_entries.options.async_configure(
         init_result["flow_id"], user_input={"next_step_id": "device_policy_add"}
     )
+    assert add_form.get("type") is FlowResultType.FORM
+    scope_validator = next(iter(add_form["data_schema"].schema.values()))
+    assert isinstance(scope_validator, DeviceSelector)
     result = await hass.config_entries.options.async_configure(
         init_result["flow_id"],
         user_input={
