@@ -136,17 +136,19 @@ async def test_user_flow_returns_errors_for_invalid_fields(hass: HomeAssistant) 
 
 
 async def test_options_flow_returns_form_with_entry_values(hass: HomeAssistant) -> None:
-    """Test options flow returns form with entry values."""
+    """Test options flow opens with menu."""
     entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
     entry.add_to_hass(hass)
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
 
-    assert result.get("type") is data_entry_flow.FlowResultType.FORM
+    assert result.get("type") is data_entry_flow.FlowResultType.MENU
     assert result.get("step_id") == "init"
-    schema = result.get("data_schema")
-    assert schema is not None
-    assert schema({}) == _valid_user_input()
+    assert result.get("menu_options") == [
+        "global_defaults",
+        "area_policies",
+        "device_policies",
+    ]
 
 
 async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:
@@ -155,6 +157,9 @@ async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:
     entry.add_to_hass(hass)
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="global_defaults"
+    )
     user_input = deepcopy(_valid_user_input())
     user_input[CONF_ENABLE_LEAF] = False
     user_input[CONF_DISPLAY_NAME] = "VPD Air"
@@ -166,8 +171,9 @@ async def test_options_flow_updates_entry_options(hass: HomeAssistant) -> None:
     await hass.async_block_till_done()
 
     assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
-    assert result.get("data") == user_input
-    assert entry.options == user_input
+    assert result.get("data")[CONF_ENABLE_LEAF] is False
+    assert result.get("data")["global_policy"][CONF_ENABLE_LEAF] is False
+    assert entry.options[CONF_ENABLE_LEAF] is False
 
 
 async def test_options_flow_returns_errors_for_invalid_fields(
@@ -178,6 +184,9 @@ async def test_options_flow_returns_errors_for_invalid_fields(
     entry.add_to_hass(hass)
 
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="global_defaults"
+    )
     user_input = deepcopy(_valid_user_input())
     user_input[CONF_ICON] = "  "
     user_input[CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME] = ""
@@ -200,3 +209,86 @@ def test_async_get_options_flow_returns_handler() -> None:
     flow = VpdAirAutoOptionsFlow()
 
     assert isinstance(flow, VpdAirAutoOptionsFlow)
+
+
+async def test_options_flow_adds_area_policy(hass: HomeAssistant) -> None:
+    """Test options flow can add area scoped override."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input())
+    entry.add_to_hass(hass)
+
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="area_policies"
+    )
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="area_policy_add"
+    )
+    result = await hass.config_entries.options.async_configure(
+        init_result["flow_id"],
+        user_input={
+            "scope_id": "living_room",
+            CONF_ENABLE_AIR: False,
+            CONF_ENABLE_LEAF: True,
+            CONF_ENABLE_ABSOLUTE_HUMIDITY: True,
+            CONF_ENABLE_DEW_POINT: False,
+            CONF_LEAF_OFFSET: -1.5,
+        },
+    )
+    assert result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert entry.options["area_policies"]["living_room"][CONF_ENABLE_AIR] is False
+
+
+async def test_options_flow_edits_and_deletes_device_policy(hass: HomeAssistant) -> None:
+    """Test options flow can edit and delete device scoped override."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data=_valid_user_input(),
+        options={
+            "device_policies": {
+                "device_1": {
+                    CONF_ENABLE_AIR: True,
+                    CONF_ENABLE_LEAF: True,
+                    CONF_ENABLE_ABSOLUTE_HUMIDITY: True,
+                    CONF_ENABLE_DEW_POINT: True,
+                    CONF_LEAF_OFFSET: -2.0,
+                }
+            }
+        },
+    )
+    entry.add_to_hass(hass)
+
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="device_policies"
+    )
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input=None, next_step_id="device_policy_edit"
+    )
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"scope_id": "device_1"}
+    )
+    edit_result = await hass.config_entries.options.async_configure(
+        init_result["flow_id"],
+        user_input={
+            CONF_ENABLE_AIR: False,
+            CONF_ENABLE_LEAF: False,
+            CONF_ENABLE_ABSOLUTE_HUMIDITY: True,
+            CONF_ENABLE_DEW_POINT: False,
+            CONF_LEAF_OFFSET: -0.5,
+        },
+    )
+    assert edit_result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert entry.options["device_policies"]["device_1"][CONF_ENABLE_LEAF] is False
+
+    delete_init = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        delete_init["flow_id"], user_input=None, next_step_id="device_policies"
+    )
+    await hass.config_entries.options.async_configure(
+        delete_init["flow_id"], user_input=None, next_step_id="device_policy_delete"
+    )
+    delete_result = await hass.config_entries.options.async_configure(
+        delete_init["flow_id"], user_input={"scope_id": "device_1"}
+    )
+    assert delete_result.get("type") is data_entry_flow.FlowResultType.CREATE_ENTRY
+    assert entry.options["device_policies"] == {}
