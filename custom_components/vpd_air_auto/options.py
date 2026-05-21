@@ -53,6 +53,29 @@ from .const import (
 )
 
 
+
+
+def _as_bool(value: Any, default: bool) -> bool:
+    return value if isinstance(value, bool) else default
+
+
+def _as_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_float(value: Any, default: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _as_str(value: Any, default: str) -> str:
+    return value if isinstance(value, str) else default
+
 def trimmed_nonempty_string(value: Any, error_key: str) -> str:
     """Validate and normalize a non-empty string setting."""
     if not isinstance(value, str):
@@ -81,93 +104,106 @@ def validated_leaf_offset(value: Any) -> float:
 def resolve_options(entry: ConfigEntry) -> IntegrationOptions:
     """Resolve effective options from entry data and entry options."""
     return IntegrationOptions(
-        scan_interval_seconds=int(
+        scan_interval_seconds=_as_int(
             entry.options.get(
                 CONF_SCAN_INTERVAL,
                 entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-            )
+            ),
+            DEFAULT_SCAN_INTERVAL,
         ),
-        enable_air=bool(
+        enable_air=_as_bool(
             entry.options.get(
                 CONF_ENABLE_AIR,
                 entry.data.get(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR),
-            )
+            ),
+            DEFAULT_ENABLE_AIR,
         ),
-        enable_leaf=bool(
+        enable_leaf=_as_bool(
             entry.options.get(
                 CONF_ENABLE_LEAF,
                 entry.data.get(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF),
-            )
+            ),
+            DEFAULT_ENABLE_LEAF,
         ),
-        enable_absolute_humidity=bool(
+        enable_absolute_humidity=_as_bool(
             entry.options.get(
                 CONF_ENABLE_ABSOLUTE_HUMIDITY,
                 entry.data.get(
                     CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
                 ),
-            )
+            ),
+            DEFAULT_ENABLE_ABSOLUTE_HUMIDITY,
         ),
-        enable_dew_point=bool(
+        enable_dew_point=_as_bool(
             entry.options.get(
                 CONF_ENABLE_DEW_POINT,
                 entry.data.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT),
-            )
+            ),
+            DEFAULT_ENABLE_DEW_POINT,
         ),
-        icon=str(entry.options.get(CONF_ICON, entry.data.get(CONF_ICON, DEFAULT_ICON))),
-        display_name=str(
+        icon=_as_str(entry.options.get(CONF_ICON, entry.data.get(CONF_ICON, DEFAULT_ICON)), DEFAULT_ICON),
+        display_name=_as_str(
             entry.options.get(
                 CONF_DISPLAY_NAME,
                 entry.data.get(CONF_DISPLAY_NAME, DEFAULT_DISPLAY_NAME),
-            )
+            ),
+            DEFAULT_DISPLAY_NAME,
         ),
-        leaf_icon=str(
+        leaf_icon=_as_str(
             entry.options.get(
                 CONF_LEAF_ICON,
                 entry.data.get(CONF_LEAF_ICON, DEFAULT_LEAF_ICON),
-            )
+            ),
+            DEFAULT_LEAF_ICON,
         ),
-        leaf_display_name=str(
+        leaf_display_name=_as_str(
             entry.options.get(
                 CONF_LEAF_DISPLAY_NAME,
                 entry.data.get(CONF_LEAF_DISPLAY_NAME, DEFAULT_LEAF_DISPLAY_NAME),
-            )
+            ),
+            DEFAULT_LEAF_DISPLAY_NAME,
         ),
-        leaf_offset_c=float(
+        leaf_offset_c=_as_float(
             entry.options.get(
                 CONF_LEAF_OFFSET,
                 entry.data.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET),
-            )
+            ),
+            DEFAULT_LEAF_OFFSET,
         ),
-        absolute_humidity_icon=str(
+        absolute_humidity_icon=_as_str(
             entry.options.get(
                 CONF_ABSOLUTE_HUMIDITY_ICON,
                 entry.data.get(
                     CONF_ABSOLUTE_HUMIDITY_ICON, DEFAULT_ABSOLUTE_HUMIDITY_ICON
                 ),
-            )
+            ),
+            DEFAULT_ABSOLUTE_HUMIDITY_ICON,
         ),
-        absolute_humidity_display_name=str(
+        absolute_humidity_display_name=_as_str(
             entry.options.get(
                 CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
                 entry.data.get(
                     CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
                     DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
                 ),
-            )
+            ),
+            DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
         ),
-        dew_point_icon=str(
+        dew_point_icon=_as_str(
             entry.options.get(
                 CONF_DEW_POINT_ICON,
                 entry.data.get(CONF_DEW_POINT_ICON, DEFAULT_DEW_POINT_ICON),
-            )
+            ),
+            DEFAULT_DEW_POINT_ICON,
         ),
-        dew_point_display_name=str(
+        dew_point_display_name=_as_str(
             entry.options.get(
                 CONF_DEW_POINT_DISPLAY_NAME,
                 entry.data.get(
                     CONF_DEW_POINT_DISPLAY_NAME, DEFAULT_DEW_POINT_DISPLAY_NAME
                 ),
-            )
+            ),
+            DEFAULT_DEW_POINT_DISPLAY_NAME,
         ),
     )
 

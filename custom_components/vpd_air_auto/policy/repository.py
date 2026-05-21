@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from math import isfinite
 from dataclasses import asdict
 from typing import Any
 
@@ -31,11 +32,11 @@ class PolicyRepository:
     def __init__(self, raw: Mapping[str, Any] | None = None) -> None:
         """Initialize repository with optional raw mapping."""
         self._raw = dict(raw or {})
-        self._global_policy = self._parse_global_policy(self._mapping("global_policy"))
-        self._area_policies = self._parse_scoped_map(self._mapping("area_policies"))
-        self._device_policies = self._parse_scoped_map(self._mapping("device_policies"))
+        self._global_policy = self._parse_global_policy(self._mapping_or_empty(self._raw.get("global_policy")))
+        self._area_policies = self._parse_scoped_map(self._mapping_or_empty(self._raw.get("area_policies")))
+        self._device_policies = self._parse_scoped_map(self._mapping_or_empty(self._raw.get("device_policies")))
         self._source_overrides = self._parse_source_map(
-            self._mapping("source_overrides")
+            self._mapping_or_empty(self._raw.get("source_overrides"))
         )
 
     @property
@@ -73,64 +74,52 @@ class PolicyRepository:
             },
         }
 
-    def _mapping(self, key: str) -> Mapping[str, Any]:
-        value = self._raw.get(key, {})
-        return value if isinstance(value, Mapping) else {}
-
     def _parse_global_policy(self, raw_global: Mapping[str, Any]) -> GlobalPolicy:
         display_defaults = DisplayPolicy()
         return GlobalPolicy(
-            enable_air=self._as_bool_or_default(
+            enable_air=self._bool_or_default(
                 raw_global.get(CONF_ENABLE_AIR),
                 True,
             ),
-            enable_leaf=self._as_bool_or_default(
+            enable_leaf=self._bool_or_default(
                 raw_global.get(CONF_ENABLE_LEAF),
                 True,
             ),
-            enable_absolute_humidity=self._as_bool_or_default(
+            enable_absolute_humidity=self._bool_or_default(
                 raw_global.get(CONF_ENABLE_ABSOLUTE_HUMIDITY),
                 True,
             ),
-            enable_dew_point=self._as_bool_or_default(
+            enable_dew_point=self._bool_or_default(
                 raw_global.get(CONF_ENABLE_DEW_POINT),
                 True,
             ),
-            leaf_offset_c=float(raw_global.get(CONF_LEAF_OFFSET, -2.0)),
+            leaf_offset_c=self._float_or_default(raw_global.get(CONF_LEAF_OFFSET), -2.0),
             display=DisplayPolicy(
-                icon=str(raw_global.get(CONF_ICON, display_defaults.icon)),
-                display_name=str(
-                    raw_global.get(CONF_DISPLAY_NAME, display_defaults.display_name)
+                icon=self._str_or_default(raw_global.get(CONF_ICON), display_defaults.icon),
+                display_name=self._str_or_default(
+                    raw_global.get(CONF_DISPLAY_NAME), display_defaults.display_name
                 ),
-                leaf_icon=str(
-                    raw_global.get(CONF_LEAF_ICON, display_defaults.leaf_icon)
+                leaf_icon=self._str_or_default(
+                    raw_global.get(CONF_LEAF_ICON), display_defaults.leaf_icon
                 ),
-                leaf_display_name=str(
-                    raw_global.get(
-                        CONF_LEAF_DISPLAY_NAME,
-                        display_defaults.leaf_display_name,
-                    )
+                leaf_display_name=self._str_or_default(
+                    raw_global.get(CONF_LEAF_DISPLAY_NAME),
+                    display_defaults.leaf_display_name,
                 ),
-                absolute_humidity_icon=str(
-                    raw_global.get(
-                        CONF_ABSOLUTE_HUMIDITY_ICON,
-                        display_defaults.absolute_humidity_icon,
-                    )
+                absolute_humidity_icon=self._str_or_default(
+                    raw_global.get(CONF_ABSOLUTE_HUMIDITY_ICON),
+                    display_defaults.absolute_humidity_icon,
                 ),
-                absolute_humidity_display_name=str(
-                    raw_global.get(
-                        CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME,
-                        display_defaults.absolute_humidity_display_name,
-                    )
+                absolute_humidity_display_name=self._str_or_default(
+                    raw_global.get(CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME),
+                    display_defaults.absolute_humidity_display_name,
                 ),
-                dew_point_icon=str(
-                    raw_global.get(CONF_DEW_POINT_ICON, display_defaults.dew_point_icon)
+                dew_point_icon=self._str_or_default(
+                    raw_global.get(CONF_DEW_POINT_ICON), display_defaults.dew_point_icon
                 ),
-                dew_point_display_name=str(
-                    raw_global.get(
-                        CONF_DEW_POINT_DISPLAY_NAME,
-                        display_defaults.dew_point_display_name,
-                    )
+                dew_point_display_name=self._str_or_default(
+                    raw_global.get(CONF_DEW_POINT_DISPLAY_NAME),
+                    display_defaults.dew_point_display_name,
                 ),
             ),
         )
@@ -144,15 +133,15 @@ class PolicyRepository:
             if not isinstance(scope_id, str) or not isinstance(value, Mapping):
                 continue
             parsed[scope_id] = ScopedPolicyOverride(
-                enable_air=self._as_optional_bool(value.get(CONF_ENABLE_AIR)),
-                enable_leaf=self._as_optional_bool(value.get(CONF_ENABLE_LEAF)),
-                enable_absolute_humidity=self._as_optional_bool(
+                enable_air=self._optional_bool(value.get(CONF_ENABLE_AIR)),
+                enable_leaf=self._optional_bool(value.get(CONF_ENABLE_LEAF)),
+                enable_absolute_humidity=self._optional_bool(
                     value.get(CONF_ENABLE_ABSOLUTE_HUMIDITY)
                 ),
-                enable_dew_point=self._as_optional_bool(
+                enable_dew_point=self._optional_bool(
                     value.get(CONF_ENABLE_DEW_POINT)
                 ),
-                leaf_offset_c=self._optional_float(value, CONF_LEAF_OFFSET),
+                leaf_offset_c=self._optional_float(value.get(CONF_LEAF_OFFSET)),
             )
         return parsed
 
@@ -162,31 +151,60 @@ class PolicyRepository:
             if not isinstance(device_id, str) or not isinstance(value, Mapping):
                 continue
             parsed[device_id] = SourceOverride(
-                temperature_entity_id=self._optional_str(
-                    value, "temperature_entity_id"
+                temperature_entity_id=self._entity_id_or_none(
+                    self._optional_str(value.get("temperature_entity_id"))
                 ),
-                humidity_entity_id=self._optional_str(value, "humidity_entity_id"),
+                humidity_entity_id=self._entity_id_or_none(
+                    self._optional_str(value.get("humidity_entity_id"))
+                ),
             )
         return parsed
 
     @staticmethod
-    def _as_bool_or_default(value: Any, default: bool) -> bool:
+    def _mapping_or_empty(value: Any) -> Mapping[str, Any]:
+        return value if isinstance(value, Mapping) else {}
+
+    @staticmethod
+    def _bool_or_default(value: Any, default: bool) -> bool:
         """Return bool only for real bool input, otherwise fallback default."""
         return value if isinstance(value, bool) else default
 
     @staticmethod
-    def _as_optional_bool(value: Any) -> bool | None:
+    def _optional_bool(value: Any) -> bool | None:
         """Return bool only for real bool input, otherwise None."""
         return value if isinstance(value, bool) else None
 
     @staticmethod
-    def _optional_float(raw: Mapping[str, Any], key: str) -> float | None:
-        if key not in raw or raw[key] is None:
-            return None
-        return float(raw[key])
+    def _float_or_default(value: Any, default: float) -> float:
+        """Safely parse finite float; fallback to default."""
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if isfinite(parsed) else default
 
     @staticmethod
-    def _optional_str(raw: Mapping[str, Any], key: str) -> str | None:
-        if key not in raw or raw[key] is None:
+    def _optional_float(value: Any) -> float | None:
+        """Safely parse optional finite float."""
+        if value is None:
             return None
-        return str(raw[key])
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if isfinite(parsed) else None
+
+    @staticmethod
+    def _str_or_default(value: Any, default: str) -> str:
+        return value if isinstance(value, str) else default
+
+    @staticmethod
+    def _optional_str(value: Any) -> str | None:
+        return value if isinstance(value, str) else None
+
+    @staticmethod
+    def _entity_id_or_none(value: Any) -> str | None:
+        if not isinstance(value, str):
+            return None
+        candidate = value.strip()
+        return candidate or None

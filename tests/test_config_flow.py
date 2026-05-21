@@ -47,6 +47,7 @@ from custom_components.vpd_air_auto.const import (
     DOMAIN,
 )
 from custom_components.vpd_air_auto.migrations import V2_ENTRY_VERSION
+from custom_components.vpd_air_auto.options import resolve_options
 
 
 def test_config_flow_entry_version_is_v2() -> None:
@@ -717,3 +718,23 @@ async def test_area_delete_removes_selected_area_id(
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
     assert "global_policy" in result["data"]
     assert result["data"]["global_policy"][CONF_ENABLE_AIR] is True
+
+
+def test_resolve_options_tolerates_malformed_stored_values() -> None:
+    """Malformed values in entry data/options should fall back safely."""
+
+    class _Entry:
+        data = {CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL}
+        options = {
+            CONF_SCAN_INTERVAL: "bad",
+            CONF_ENABLE_AIR: "false",
+            CONF_LEAF_OFFSET: "bad",
+            CONF_DISPLAY_NAME: 7,
+        }
+
+    options = resolve_options(_Entry())  # type: ignore[arg-type]
+
+    assert options.scan_interval_seconds == DEFAULT_SCAN_INTERVAL
+    assert options.enable_air is DEFAULT_ENABLE_AIR
+    assert options.leaf_offset_c == DEFAULT_LEAF_OFFSET
+    assert options.display_name == DEFAULT_DISPLAY_NAME

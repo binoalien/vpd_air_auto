@@ -84,3 +84,59 @@ def test_repository_scoped_missing_bool_fields_stay_none() -> None:
     assert scoped.enable_leaf is None
     assert scoped.enable_absolute_humidity is None
     assert scoped.enable_dew_point is None
+
+
+def test_repository_handles_malformed_sections_without_crashing() -> None:
+    """Malformed top-level sections are ignored safely."""
+    repository = PolicyRepository(
+        {
+            "global_policy": ["bad"],
+            "area_policies": "bad",
+            "device_policies": 123,
+            "source_overrides": None,
+        }
+    )
+
+    assert repository.global_policy.enable_air is True
+    assert repository.area_policies == {}
+    assert repository.device_policies == {}
+    assert repository.source_overrides == {}
+
+
+def test_repository_invalid_scalar_values_fall_back_to_defaults() -> None:
+    """Invalid numeric/string types in global policy use defaults."""
+    repository = PolicyRepository(
+        {
+            "global_policy": {
+                "leaf_offset": "not-a-number",
+                "icon": 123,
+                "display_name": ["bad"],
+            }
+        }
+    )
+
+    assert repository.global_policy.leaf_offset_c == -2.0
+    assert repository.global_policy.display.icon == "mdi:water-opacity"
+    assert repository.global_policy.display.display_name == "Air VPD"
+
+
+def test_repository_invalid_scoped_values_become_none() -> None:
+    """Invalid scoped values should not raise and should normalize to None."""
+    repository = PolicyRepository(
+        {
+            "area_policies": {
+                "a1": {
+                    "enable_air": "nope",
+                    "leaf_offset": "bad",
+                }
+            },
+            "source_overrides": {
+                "d1": {"temperature_entity_id": 5, "humidity_entity_id": "   "}
+            },
+        }
+    )
+
+    assert repository.area_policies["a1"].enable_air is None
+    assert repository.area_policies["a1"].leaf_offset_c is None
+    assert repository.source_overrides["d1"].temperature_entity_id is None
+    assert repository.source_overrides["d1"].humidity_entity_id is None
