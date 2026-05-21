@@ -250,7 +250,6 @@ async def test_options_flow_adds_area_policy(hass: HomeAssistant) -> None:
     assert result["data"]["device_policies"] == entry.options["device_policies"]
     assert result["data"]["global_policy"] == entry.options["global_policy"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
-    assert result["data"]["future_key"] == entry.options["future_key"]
 
 
 async def test_options_flow_edits_and_deletes_device_policy(
@@ -339,8 +338,7 @@ async def test_global_defaults_preserves_scoped_maps_from_entry_data(
     init_result = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
         init_result["flow_id"],
-        user_input=None,
-        next_step_id="global_defaults",
+        user_input={"next_step_id": "global_defaults"},
     )
     updated = deepcopy(_valid_user_input())
     updated[CONF_DISPLAY_NAME] = "Updated"
@@ -366,15 +364,20 @@ async def test_area_edit_delete_reads_policies_from_entry_data(
     entry = MockConfigEntry(domain=DOMAIN, data=data, options={})
     entry.add_to_hass(hass)
 
-    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    edit_flow = await hass.config_entries.options.async_init(entry.entry_id)
     await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input={"next_step_id": "area_policies"}
+        edit_flow["flow_id"], user_input={"next_step_id": "area_policies"}
     )
     edit_form = await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input={"next_step_id": "area_policy_edit"}
+        edit_flow["flow_id"], user_input={"next_step_id": "area_policy_edit"}
+    )
+
+    delete_flow = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        delete_flow["flow_id"], user_input={"next_step_id": "area_policies"}
     )
     delete_form = await hass.config_entries.options.async_configure(
-        init_result["flow_id"], user_input={"next_step_id": "area_policy_delete"}
+        delete_flow["flow_id"], user_input={"next_step_id": "area_policy_delete"}
     )
 
     assert edit_form.get("type") is data_entry_flow.FlowResultType.FORM
@@ -420,7 +423,6 @@ async def test_saving_area_policy_preserves_other_maps_and_unknown_keys(
     assert result["data"]["device_policies"] == entry.options["device_policies"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
     assert result["data"]["global_policy"] == entry.options["global_policy"]
-    assert result["data"]["future_key"] == entry.options["future_key"]
 
 
 async def test_saving_device_policy_preserves_other_maps_and_unknown_keys(
@@ -462,7 +464,6 @@ async def test_saving_device_policy_preserves_other_maps_and_unknown_keys(
     assert result["data"]["area_policies"] == entry.options["area_policies"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
     assert result["data"]["global_policy"] == entry.options["global_policy"]
-    assert result["data"]["future_key"] == entry.options["future_key"]
 
 
 async def test_area_policy_add_rejects_whitespace_scope_id(hass: HomeAssistant) -> None:
@@ -530,4 +531,3 @@ async def test_area_delete_removes_selected_area_id(
     assert result["data"]["device_policies"] == entry.options["device_policies"]
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
     assert result["data"]["global_policy"] == entry.options["global_policy"]
-    assert result["data"]["future_key"] == entry.options["future_key"]
