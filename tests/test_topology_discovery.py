@@ -10,8 +10,12 @@ from homeassistant.core import HomeAssistant
 from custom_components.vpd_air_auto.discovery.topology import TopologyDiscoveryService
 
 
-def _device(device_id: str, name: str = "Grow Tent") -> SimpleNamespace:
-    return SimpleNamespace(id=device_id, name=name, name_by_user=None)
+def _device(
+    device_id: str,
+    name: str = "Grow Tent",
+    area_id: str | None = None,
+) -> SimpleNamespace:
+    return SimpleNamespace(id=device_id, name=name, name_by_user=None, area_id=area_id)
 
 
 def _entry(  # pylint: disable=too-many-arguments
@@ -97,7 +101,7 @@ def test_discover_returns_topology_with_best_sources_and_blocked_kinds(
         {"device_class": "humidity", "unit_of_measurement": "g/m3"},
     )
 
-    device_registry = SimpleNamespace(devices={"dev1": _device("dev1", "Tent")})
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1", "Tent", "area-1")})
     entity_registry = SimpleNamespace()
 
     with (
@@ -118,6 +122,12 @@ def test_discover_returns_topology_with_best_sources_and_blocked_kinds(
                 best_humidity_entry,
             ],
         ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=SimpleNamespace(
+                async_get_area=lambda area_id: SimpleNamespace(name="Grow Area") if area_id == "area-1" else None
+            ),
+        ),
     ):
         topology = service.discover()
 
@@ -125,6 +135,8 @@ def test_discover_returns_topology_with_best_sources_and_blocked_kinds(
     assert topology["dev1"].temperature_entity_id == "sensor.grow_tent_temperature"
     assert topology["dev1"].humidity_entity_id == "sensor.grow_tent_humidity"
     assert topology["dev1"].blocked_sensor_kinds == frozenset({"air"})
+    assert topology["dev1"].area_id == "area-1"
+    assert topology["dev1"].area_name == "Grow Area"
     assert duplicate_detection.calls == [
         [
             "sensor.grow_tent_temperature_diag",

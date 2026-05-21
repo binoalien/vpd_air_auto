@@ -73,3 +73,27 @@ def test_creatable_kinds_for_topology_returns_empty_for_missing_topology() -> No
     service = EntityPlanService(_options())
 
     assert service.creatable_kinds_for_topology(None) == set()
+
+
+def test_creatable_kinds_for_topology_uses_effective_policy_over_global() -> None:
+    """Test per-device policy input overrides global enabled kinds during planning."""
+    from custom_components.vpd_air_auto.policy.models import EffectiveDevicePolicy, DisplayPolicy
+    service = EntityPlanService(_options(enable_air=True, enable_leaf=True))
+    topology = DeviceTopology(
+        device_id="device-1",
+        device_name="Grow Tent",
+        temperature_entity_id="sensor.grow_tent_temperature",
+        humidity_entity_id="sensor.grow_tent_humidity",
+    )
+    effective = EffectiveDevicePolicy(
+        enable_air=False,
+        enable_leaf=True,
+        enable_absolute_humidity=False,
+        enable_dew_point=False,
+        leaf_offset_c=-1.0,
+        display=DisplayPolicy(),
+    )
+
+    assert service.creatable_kinds_for_topology(topology, policy=effective) == {
+        SENSOR_KIND_LEAF,
+    }

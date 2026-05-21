@@ -19,6 +19,8 @@ from .const import DOMAIN, IntegrationOptions
 from .discovery.duplicates import DuplicateDetectionService
 from .discovery.topology import TopologyDiscoveryService
 from .models import DeviceSnapshot, DeviceTopology
+from .policy.repository import PolicyRepository
+from .policy.resolver import PolicyResolver
 from .services.entity_plan import EntityPlanService
 from .services.snapshot_builder import SnapshotBuilder
 from .services.subscriptions import SubscriptionManager
@@ -54,6 +56,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             hass, self._duplicate_detection_service
         )
         self._entity_plan_service = EntityPlanService(options)
+        self._policy_resolver = PolicyResolver(PolicyRepository(config_entry.options))
         self._topology: dict[str, DeviceTopology] = {}
         self._source_to_device: dict[str, str] = {}
         self._subscription_manager = SubscriptionManager(hass)
@@ -84,10 +87,17 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return {}
 
         topology = self._topology_discovery_service.discover()
-        snapshots = {
-            device_id: self._snapshot_builder.build_snapshot(device_topology)
-            for device_id, device_topology in topology.items()
-        }
+        snapshots = {}
+        for device_id, device_topology in topology.items():
+            effective_policy = self._policy_resolver.resolve_for_device(
+                device_id=device_id,
+                area_id=device_topology.area_id,
+                allow_device_policies=False,
+            )
+            snapshots[device_id] = self._snapshot_builder.build_snapshot(
+                device_topology,
+                leaf_offset_c=effective_policy.leaf_offset_c,
+            )
 
         self._topology = topology
         self._source_to_device = {
@@ -117,7 +127,15 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         if device_topology is None:
             return set()
 
-        return self._entity_plan_service.creatable_kinds_for_topology(device_topology)
+        effective_policy = self._policy_resolver.resolve_for_device(
+            device_id=device_id,
+            area_id=device_topology.area_id,
+            allow_device_policies=False,
+        )
+        return self._entity_plan_service.creatable_kinds_for_topology(
+            device_topology,
+            policy=effective_policy,
+        )
 
     @callback
     def diagnostics_payload(self) -> dict[str, object]:
@@ -180,7 +198,15 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return
 
         current_data = self.data or {}
-        next_snapshot = self._snapshot_builder.build_snapshot(device_topology)
+        effective_policy = self._policy_resolver.resolve_for_device(
+            device_id=device_id,
+            area_id=device_topology.area_id,
+            allow_device_policies=False,
+        )
+        next_snapshot = self._snapshot_builder.build_snapshot(
+            device_topology,
+            leaf_offset_c=effective_policy.leaf_offset_c,
+        )
         if current_data.get(device_id) == next_snapshot:
             return
 

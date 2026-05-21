@@ -61,3 +61,24 @@ def test_resolver_applies_device_override_with_highest_priority() -> None:
     assert effective.behavior_source == "device"
     assert effective.source_override is not None
     assert effective.source_override.temperature_entity_id == "sensor.t"
+
+
+def test_resolver_can_ignore_device_overrides_when_disabled() -> None:
+    """Runtime can intentionally defer device policy activation."""
+    repository = PolicyRepository(
+        {
+            "global_policy": {"enable_air": True, "leaf_offset": -2.0},
+            "area_policies": {"grow": {"enable_air": False, "leaf_offset": -0.5}},
+            "device_policies": {"device-1": {"enable_air": True, "leaf_offset": -1.2}},
+        }
+    )
+    effective = PolicyResolver(repository).resolve_for_device(
+        device_id="device-1",
+        area_id="grow",
+        allow_device_policies=False,
+    )
+
+    assert effective.enable_air is False
+    assert effective.leaf_offset_c == -0.5
+    assert effective.behavior_source == "area"
+    assert effective.leaf_offset_source == "area"

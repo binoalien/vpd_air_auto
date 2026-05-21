@@ -24,15 +24,18 @@ class SnapshotBuilder:  # pylint: disable=too-few-public-methods
         self._hass = hass
         self._leaf_offset_c = leaf_offset_c
 
-    def build_snapshot(self, device_topology: DeviceTopology) -> DeviceSnapshot:
+    def build_snapshot(
+        self, device_topology: DeviceTopology, leaf_offset_c: float | None = None
+    ) -> DeviceSnapshot:
         """Build the current snapshot for one Home Assistant device."""
         temp_state = self._hass.states.get(device_topology.temperature_entity_id)
         humidity_state = self._hass.states.get(device_topology.humidity_entity_id)
 
         temperature_c = coerce_temperature_c(temp_state)
         humidity_pct = coerce_humidity_pct(humidity_state)
+        effective_leaf_offset_c = self._leaf_offset_c if leaf_offset_c is None else leaf_offset_c
         leaf_temperature_c = calculate_leaf_temperature_c(
-            temperature_c, self._leaf_offset_c
+            temperature_c, effective_leaf_offset_c
         )
         dew_point_c = calculate_dew_point_c(temperature_c, humidity_pct)
         vpd_air_kpa = calculate_vpd_air_kpa(temperature_c, humidity_pct)
@@ -50,7 +53,7 @@ class SnapshotBuilder:  # pylint: disable=too-few-public-methods
             humidity_entity_id=device_topology.humidity_entity_id,
             temperature_c=temperature_c,
             humidity_pct=humidity_pct,
-            leaf_offset_c=self._leaf_offset_c,
+            leaf_offset_c=effective_leaf_offset_c,
             leaf_temperature_c=leaf_temperature_c,
             dew_point_c=dew_point_c,
             vpd_air_kpa=vpd_air_kpa,

@@ -173,7 +173,7 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
         "sensor.grow_tent_humidity": "device-1",
     }
     mock_discover.assert_called_once()
-    mock_build.assert_called_once_with(topology["device-1"])
+    mock_build.assert_called_once_with(topology["device-1"], leaf_offset_c=-2.0)
     mock_refresh.assert_called_once()
 
 
@@ -211,7 +211,9 @@ def test_creatable_kinds_for_device_delegates_to_entity_plan_service(
             SENSOR_KIND_DEW_POINT,
         }
 
-    mock_creatable.assert_called_once_with(topology)
+    assert mock_creatable.call_count == 1
+    assert mock_creatable.call_args.args[0] is topology
+    assert mock_creatable.call_args.kwargs["policy"].leaf_offset_c == -2.0
     assert coordinator.creatable_kinds_for_device("missing") == set()
 
 
@@ -320,7 +322,7 @@ async def test_source_state_changed_updates_only_affected_device(
         )
     )
 
-    coordinator._snapshot_builder.build_snapshot.assert_called_once_with(topology)
+    coordinator._snapshot_builder.build_snapshot.assert_called_once_with(topology, leaf_offset_c=-2.0)
     coordinator.async_set_updated_data.assert_called_once_with(
         {"device-1": next_snapshot}
     )
