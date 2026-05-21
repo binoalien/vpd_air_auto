@@ -57,6 +57,96 @@
           "dew_point_icon": "Global dew point icon (for example: mdi:thermometer-water)",
           "dew_point_display_name": "Global dew point sensor name (for example: Dew Point)"
         }
+      },
+      "global_defaults": {
+        "title": "Edit global defaults",
+        "description": "Configure integration-wide defaults for generated sensors."
+      },
+      "area_policies": {
+        "title": "Area policies",
+        "description": "Add, edit, or delete area-level behavior overrides."
+      },
+      "device_policies": {
+        "title": "Device policies",
+        "description": "Add, edit, or delete device-level behavior overrides."
+      },
+      "source_overrides": {
+        "title": "Source overrides",
+        "description": "Add, edit, or delete manual source selections per device."
+      },
+      "area_policy_add": {
+        "title": "Add area policy",
+        "data": {
+          "scope_id": "Area ID",
+          "enable_air": "Enable VPDair",
+          "enable_leaf": "Enable VPDleaf",
+          "enable_absolute_humidity": "Enable absolute humidity",
+          "enable_dew_point": "Enable dew point",
+          "leaf_offset": "Leaf temperature offset (°C)"
+        }
+      },
+      "area_policy_edit": {
+        "title": "Edit area policy",
+        "data": {
+          "scope_id": "Area ID"
+        }
+      },
+      "area_policy_delete": {
+        "title": "Delete area policy",
+        "data": {
+          "scope_id": "Area ID"
+        }
+      },
+      "device_policy_add": {
+        "title": "Add device policy",
+        "data": {
+          "scope_id": "Device ID",
+          "enable_air": "Enable VPDair",
+          "enable_leaf": "Enable VPDleaf",
+          "enable_absolute_humidity": "Enable absolute humidity",
+          "enable_dew_point": "Enable dew point",
+          "leaf_offset": "Leaf temperature offset (°C)"
+        }
+      },
+      "device_policy_edit": {
+        "title": "Edit device policy",
+        "data": {
+          "scope_id": "Device ID"
+        }
+      },
+      "device_policy_delete": {
+        "title": "Delete device policy",
+        "data": {
+          "scope_id": "Device ID"
+        }
+      },
+      "source_override_add": {
+        "title": "Add source override",
+        "data": {
+          "scope_id": "Device ID",
+          "temperature_entity_id": "Temperature source entity ID",
+          "humidity_entity_id": "Humidity source entity ID"
+        }
+      },
+      "source_override_edit": {
+        "title": "Edit source override",
+        "data": {
+          "scope_id": "Device ID"
+        }
+      },
+      "source_override_delete": {
+        "title": "Delete source override",
+        "data": {
+          "scope_id": "Device ID"
+        }
+      },
+      "edit_source_override": {
+        "title": "Edit source override",
+        "data": {
+          "scope_id": "Device ID",
+          "temperature_entity_id": "Temperature source entity ID",
+          "humidity_entity_id": "Humidity source entity ID"
+        }
       }
     },
     "error": {
@@ -68,7 +158,10 @@
       "invalid_absolute_humidity_icon": "Enter a valid non-empty icon string.",
       "invalid_absolute_humidity_display_name": "Enter a valid non-empty sensor name.",
       "invalid_dew_point_icon": "Enter a valid non-empty icon string.",
-      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name."
+      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_scope_id": "Enter a valid non-empty scope identifier.",
+      "invalid_temperature_entity_id": "Enter a valid temperature entity ID or leave empty.",
+      "invalid_humidity_entity_id": "Enter a valid humidity entity ID or leave empty."
     }
   },
   "entity": {

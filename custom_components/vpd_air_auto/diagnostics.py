@@ -53,6 +53,8 @@ async def async_get_device_diagnostics(
             "topology": payload["topology"],
             "snapshot": payload["snapshot"],
             "creatable_kinds": payload["creatable_kinds"],
+            "effective_policy": payload["effective_policy"],
+            "entity_plan": payload["entity_plan"],
         },
         _TO_REDACT,
     )

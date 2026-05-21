@@ -57,6 +57,96 @@
           "dew_point_icon": "Globales Taupunkt-Icon (zum Beispiel: mdi:thermometer-water)",
           "dew_point_display_name": "Globaler Name für den Taupunkt-Sensor (zum Beispiel: Taupunkt oder Dew Point)"
         }
+      },
+      "global_defaults": {
+        "title": "Globale Standardwerte bearbeiten",
+        "description": "Konfigurieren Sie integrationsweite Standardwerte für erzeugte Sensoren."
+      },
+      "area_policies": {
+        "title": "Bereichsrichtlinien",
+        "description": "Bereichs-Overrides hinzufügen, bearbeiten oder löschen."
+      },
+      "device_policies": {
+        "title": "Geräterichtlinien",
+        "description": "Geräte-Overrides hinzufügen, bearbeiten oder löschen."
+      },
+      "source_overrides": {
+        "title": "Quell-Overrides",
+        "description": "Manuelle Quellauswahl pro Gerät hinzufügen, bearbeiten oder löschen."
+      },
+      "area_policy_add": {
+        "title": "Bereichsrichtlinie hinzufügen",
+        "data": {
+          "scope_id": "Bereichs-ID",
+          "enable_air": "VPDair aktivieren",
+          "enable_leaf": "VPDleaf aktivieren",
+          "enable_absolute_humidity": "Absolute Luftfeuchte aktivieren",
+          "enable_dew_point": "Taupunkt aktivieren",
+          "leaf_offset": "Blatt-Temperatur-Offset (°C)"
+        }
+      },
+      "area_policy_edit": {
+        "title": "Bereichsrichtlinie bearbeiten",
+        "data": {
+          "scope_id": "Bereichs-ID"
+        }
+      },
+      "area_policy_delete": {
+        "title": "Bereichsrichtlinie löschen",
+        "data": {
+          "scope_id": "Bereichs-ID"
+        }
+      },
+      "device_policy_add": {
+        "title": "Geräterichtlinie hinzufügen",
+        "data": {
+          "scope_id": "Geräte-ID",
+          "enable_air": "VPDair aktivieren",
+          "enable_leaf": "VPDleaf aktivieren",
+          "enable_absolute_humidity": "Absolute Luftfeuchte aktivieren",
+          "enable_dew_point": "Taupunkt aktivieren",
+          "leaf_offset": "Blatt-Temperatur-Offset (°C)"
+        }
+      },
+      "device_policy_edit": {
+        "title": "Geräterichtlinie bearbeiten",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "device_policy_delete": {
+        "title": "Geräterichtlinie löschen",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "source_override_add": {
+        "title": "Quell-Override hinzufügen",
+        "data": {
+          "scope_id": "Geräte-ID",
+          "temperature_entity_id": "Temperatur-Quellentität",
+          "humidity_entity_id": "Feuchte-Quellentität"
+        }
+      },
+      "source_override_edit": {
+        "title": "Quell-Override bearbeiten",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "source_override_delete": {
+        "title": "Quell-Override löschen",
+        "data": {
+          "scope_id": "Geräte-ID"
+        }
+      },
+      "edit_source_override": {
+        "title": "Quell-Override bearbeiten",
+        "data": {
+          "scope_id": "Geräte-ID",
+          "temperature_entity_id": "Temperatur-Quellentität",
+          "humidity_entity_id": "Feuchte-Quellentität"
+        }
       }
     },
     "error": {
@@ -68,7 +158,10 @@
       "invalid_absolute_humidity_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
       "invalid_absolute_humidity_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
       "invalid_dew_point_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
-      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben."
+      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_scope_id": "Bitte eine gültige, nicht leere Scope-ID eingeben.",
+      "invalid_temperature_entity_id": "Bitte eine gültige Temperatur-Entity-ID eingeben oder leer lassen.",
+      "invalid_humidity_entity_id": "Bitte eine gültige Feuchte-Entity-ID eingeben oder leer lassen."
     }
   },
   "entity": {

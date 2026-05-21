@@ -106,6 +106,22 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "absolute_humidity_gm3": snapshot.absolute_humidity_gm3,
             },
             "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
+            "effective_policy": {
+                "enable_air": True,
+                "enable_leaf": False,
+                "enable_absolute_humidity": True,
+                "enable_dew_point": True,
+                "leaf_offset_c": -2.0,
+                "behavior_source": "device",
+                "leaf_offset_source": "global",
+                "source_override": None,
+                "display": {"display_name": "VPDair"},
+            },
+            "entity_plan": {
+                "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
+                "blocked_sensor_kinds": ["leaf"],
+                "enabled_kinds": ["absolute_humidity", "air", "dew_point"],
+            },
         }
     )
 
@@ -123,3 +139,5 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
     assert diagnostics["snapshot"]["absolute_humidity_gm3"] == 13.8
     assert diagnostics["snapshot"]["dew_point_c"] == 16.68
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+    assert diagnostics["effective_policy"]["behavior_source"] == "device"
+    assert diagnostics["entity_plan"]["blocked_sensor_kinds"] == ["leaf"]
