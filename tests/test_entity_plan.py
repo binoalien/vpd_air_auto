@@ -10,6 +10,7 @@ from custom_components.vpd_air_auto.const import (
     IntegrationOptions,
 )
 from custom_components.vpd_air_auto.models import DeviceTopology
+from custom_components.vpd_air_auto.policy.models import DisplayPolicy, EffectiveDevicePolicy
 from custom_components.vpd_air_auto.services.entity_plan import EntityPlanService
 
 
@@ -73,3 +74,27 @@ def test_creatable_kinds_for_topology_returns_empty_for_missing_topology() -> No
     service = EntityPlanService(_options())
 
     assert service.creatable_kinds_for_topology(None) == set()
+
+
+def test_creatable_kinds_for_topology_uses_effective_area_policy() -> None:
+    """Test effective policy can disable kinds regardless of global defaults."""
+    service = EntityPlanService(_options())
+    topology = DeviceTopology(
+        device_id="device-1",
+        device_name="Grow Tent",
+        temperature_entity_id="sensor.grow_tent_temperature",
+        humidity_entity_id="sensor.grow_tent_humidity",
+        blocked_sensor_kinds=frozenset({SENSOR_KIND_AIR}),
+    )
+    effective_policy = EffectiveDevicePolicy(
+        enable_air=True,
+        enable_leaf=False,
+        enable_absolute_humidity=True,
+        enable_dew_point=False,
+        leaf_offset_c=-1.0,
+        display=DisplayPolicy(),
+    )
+
+    assert service.creatable_kinds_for_topology(topology, effective_policy) == {
+        SENSOR_KIND_ABSOLUTE_HUMIDITY
+    }

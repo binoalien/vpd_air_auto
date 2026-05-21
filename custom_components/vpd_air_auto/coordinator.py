@@ -19,6 +19,8 @@ from .const import DOMAIN, IntegrationOptions
 from .discovery.duplicates import DuplicateDetectionService
 from .discovery.topology import TopologyDiscoveryService
 from .models import DeviceSnapshot, DeviceTopology
+from .policy.repository import PolicyRepository
+from .policy.resolver import PolicyResolver
 from .services.entity_plan import EntityPlanService
 from .services.snapshot_builder import SnapshotBuilder
 from .services.subscriptions import SubscriptionManager
@@ -48,12 +50,15 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         self.config_entry = config_entry
         self.options = options
         self._scan_interval = timedelta(seconds=options.scan_interval_seconds)
-        self._snapshot_builder = SnapshotBuilder(hass, options.leaf_offset_c)
+        self._snapshot_builder = SnapshotBuilder(hass)
         self._duplicate_detection_service = DuplicateDetectionService(hass, options)
         self._topology_discovery_service = TopologyDiscoveryService(
             hass, self._duplicate_detection_service
         )
         self._entity_plan_service = EntityPlanService(options)
+        self._policy_resolver = PolicyResolver(
+            PolicyRepository({**config_entry.data, **config_entry.options})
+        )
         self._topology: dict[str, DeviceTopology] = {}
         self._source_to_device: dict[str, str] = {}
         self._subscription_manager = SubscriptionManager(hass)
@@ -85,7 +90,10 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
 
         topology = self._topology_discovery_service.discover()
         snapshots = {
-            device_id: self._snapshot_builder.build_snapshot(device_topology)
+            device_id: self._snapshot_builder.build_snapshot(
+                device_topology,
+                self._effective_policy_for_topology(device_topology).leaf_offset_c,
+            )
             for device_id, device_topology in topology.items()
         }
 
@@ -117,7 +125,10 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         if device_topology is None:
             return set()
 
-        return self._entity_plan_service.creatable_kinds_for_topology(device_topology)
+        return self._entity_plan_service.creatable_kinds_for_topology(
+            device_topology,
+            self._effective_policy_for_topology(device_topology),
+        )
 
     @callback
     def diagnostics_payload(self) -> dict[str, object]:
@@ -180,10 +191,21 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return
 
         current_data = self.data or {}
-        next_snapshot = self._snapshot_builder.build_snapshot(device_topology)
+        next_snapshot = self._snapshot_builder.build_snapshot(
+            device_topology,
+            self._effective_policy_for_topology(device_topology).leaf_offset_c,
+        )
         if current_data.get(device_id) == next_snapshot:
             return
 
         next_data = dict(current_data)
         next_data[device_id] = next_snapshot
         self.async_set_updated_data(next_data)
+
+    def _effective_policy_for_topology(self, topology: DeviceTopology):
+        """Resolve active runtime policy for one topology device."""
+        return self._policy_resolver.resolve_for_device(
+            device_id=topology.device_id,
+            area_id=topology.area_id,
+            apply_device_overrides=False,
+        )

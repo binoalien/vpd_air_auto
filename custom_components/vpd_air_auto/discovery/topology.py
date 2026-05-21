@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
@@ -35,6 +36,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         """Build the source-entity topology for all matching Home Assistant devices."""
         entity_registry = er.async_get(self._hass)
         device_registry = dr.async_get(self._hass)
+        area_registry = ar.async_get(self._hass)
 
         topology: dict[str, DeviceTopology] = {}
 
@@ -67,6 +69,8 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 device_name=device.name_by_user or device.name or device.id,
                 temperature_entity_id=temperature_entity_id,
                 humidity_entity_id=humidity_entity_id,
+                area_id=device.area_id,
+                area_name=self._resolve_area_name(area_registry, device.area_id),
                 blocked_sensor_kinds=blocked_sensor_kinds,
             )
 
@@ -102,6 +106,18 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             )
 
         return choose_best_entity_id(normalized_candidates, target_device_class)
+
+    @staticmethod
+    def _resolve_area_name(
+        area_registry: ar.AreaRegistry,
+        area_id: str | None,
+    ) -> str | None:
+        if not area_id:
+            return None
+        area_entry = area_registry.async_get_area(area_id)
+        if area_entry is None:
+            return None
+        return area_entry.name
 
     def _normalized_entry_identifiers(self, entry: er.RegistryEntry) -> set[str]:
         identifiers = {normalize_identifier(entry.entity_id.split(".", 1)[1])}

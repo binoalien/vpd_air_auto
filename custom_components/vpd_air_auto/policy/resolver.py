@@ -18,11 +18,16 @@ class PolicyResolver:  # pylint: disable=too-few-public-methods
         *,
         device_id: str,
         area_id: str | None = None,
+        apply_device_overrides: bool = True,
     ) -> EffectiveDevicePolicy:
         """Resolve effective policy for one device and optional area."""
         global_policy = self._repository.global_policy
         area_override = self._repository.area_policies.get(area_id) if area_id else None
-        device_override = self._repository.device_policies.get(device_id)
+        device_override = (
+            self._repository.device_policies.get(device_id)
+            if apply_device_overrides
+            else None
+        )
 
         return EffectiveDevicePolicy(
             enable_air=self._resolve_bool(

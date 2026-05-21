@@ -173,8 +173,45 @@ async def test_async_update_data_discovers_topology_builds_snapshots_and_maps_so
         "sensor.grow_tent_humidity": "device-1",
     }
     mock_discover.assert_called_once()
-    mock_build.assert_called_once_with(topology["device-1"])
+    mock_build.assert_called_once_with(topology["device-1"], -2.0)
     mock_refresh.assert_called_once()
+
+
+async def test_async_update_data_applies_area_policy_but_not_device_policy(
+    hass: HomeAssistant,
+) -> None:
+    """Test runtime applies area override while keeping device override inactive."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={},
+        options={
+            "global_policy": {"leaf_offset": -2.0},
+            "area_policies": {"area-grow": {"leaf_offset": -0.9}},
+            "device_policies": {"device-1": {"leaf_offset": -4.0}},
+        },
+    )
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.grow_tent_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+            area_id="area-grow",
+        )
+    }
+
+    with (
+        patch.object(
+            coordinator._topology_discovery_service, "discover", return_value=topology
+        ),
+        patch.object(coordinator, "_refresh_state_listener"),
+        patch.object(coordinator._snapshot_builder, "build_snapshot", return_value=_snapshot("device-1")) as mock_build,
+    ):
+        await coordinator._async_update_data()
+
+    mock_build.assert_called_once_with(topology["device-1"], -0.9)
 
 
 async def test_periodic_rescan_requests_refresh(hass: HomeAssistant) -> None:
@@ -211,7 +248,9 @@ def test_creatable_kinds_for_device_delegates_to_entity_plan_service(
             SENSOR_KIND_DEW_POINT,
         }
 
-    mock_creatable.assert_called_once_with(topology)
+    mock_creatable.assert_called_once()
+    assert mock_creatable.call_args.args[0] is topology
+    assert mock_creatable.call_args.args[1].behavior_source == "global"
     assert coordinator.creatable_kinds_for_device("missing") == set()
 
 
@@ -320,7 +359,7 @@ async def test_source_state_changed_updates_only_affected_device(
         )
     )
 
-    coordinator._snapshot_builder.build_snapshot.assert_called_once_with(topology)
+    coordinator._snapshot_builder.build_snapshot.assert_called_once_with(topology, -2.0)
     coordinator.async_set_updated_data.assert_called_once_with(
         {"device-1": next_snapshot}
     )
