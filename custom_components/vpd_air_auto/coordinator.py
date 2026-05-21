@@ -106,9 +106,10 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             hass,
             self._duplicate_detection_service,
         )
-        self._policy_resolver = PolicyResolver(
-            PolicyRepository(_policy_data_from_options(config_entry, options))
+        self._policy_repository = PolicyRepository(
+            _policy_data_from_options(config_entry, options)
         )
+        self._policy_resolver = PolicyResolver(self._policy_repository)
         self._entity_plan_service = EntityPlanService()
         self._topology: dict[str, DeviceTopology] = {}
         self._source_to_device: dict[str, str] = {}
@@ -133,7 +134,9 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
 
     async def _async_update_data(self) -> dict[str, DeviceSnapshot]:
         """Discover source devices and compute their current sensor values."""
-        topology = self._topology_discovery_service.discover()
+        topology = self._topology_discovery_service.discover(
+            dict(self._policy_repository.source_overrides)
+        )
         snapshots: dict[str, DeviceSnapshot] = {}
         active_topology: dict[str, DeviceTopology] = {}
 

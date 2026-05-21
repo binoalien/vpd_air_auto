@@ -8,6 +8,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from ..calculations import coerce_humidity_pct, coerce_temperature_c
+from ..policy.models import SourceOverride
 from ..const import DOMAIN, SOURCE_DOMAIN_SENSOR
 from ..models import DeviceTopology
 from .duplicates import DuplicateDetectionService
@@ -32,13 +33,17 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         self._hass = hass
         self._duplicate_detection_service = duplicate_detection_service
 
-    def discover(self) -> dict[str, DeviceTopology]:
+    def discover(
+        self,
+        source_overrides: dict[str, SourceOverride] | None = None,
+    ) -> dict[str, DeviceTopology]:
         """Build the source-entity topology for all matching Home Assistant devices."""
         entity_registry = er.async_get(self._hass)
         device_registry = dr.async_get(self._hass)
         area_registry = ar.async_get(self._hass)
 
         topology: dict[str, DeviceTopology] = {}
+        source_overrides = source_overrides or {}
 
         for device in device_registry.devices.values():
             candidates = list(
@@ -55,6 +60,21 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             humidity_entity_id = self._pick_best_entity(
                 candidates, target_device_class=TARGET_HUMIDITY
             )
+
+            source_override = source_overrides.get(device.id)
+            if source_override is not None:
+                if source_override.temperature_entity_id and self._is_valid_manual_source(
+                    candidates,
+                    source_override.temperature_entity_id,
+                    TARGET_TEMPERATURE,
+                ):
+                    temperature_entity_id = source_override.temperature_entity_id
+                if source_override.humidity_entity_id and self._is_valid_manual_source(
+                    candidates,
+                    source_override.humidity_entity_id,
+                    TARGET_HUMIDITY,
+                ):
+                    humidity_entity_id = source_override.humidity_entity_id
 
             if temperature_entity_id is None or humidity_entity_id is None:
                 continue

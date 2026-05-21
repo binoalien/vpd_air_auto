@@ -254,3 +254,79 @@ def test_discover_skips_devices_without_complete_source_pair(
 
     assert not topology
     assert not duplicate_detection.calls
+
+
+def test_discover_applies_valid_manual_source_overrides(
+    hass: HomeAssistant,
+) -> None:
+    """Manual source overrides replace auto-selected entities when valid."""
+    duplicate_detection = _DuplicateDetectionStub()
+    service = TopologyDiscoveryService(hass, duplicate_detection)
+
+    auto_temp = _entry("sensor.auto_temp", original_device_class="temperature")
+    manual_temp = _entry("sensor.manual_temp", original_device_class="temperature")
+    auto_humidity = _entry("sensor.auto_humidity", original_device_class="humidity")
+
+    hass.states.async_set("sensor.auto_temp", "24", {"device_class": "temperature"})
+    hass.states.async_set("sensor.manual_temp", "25", {"device_class": "temperature"})
+    hass.states.async_set("sensor.auto_humidity", "62", {"device_class": "humidity"})
+
+    area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
+    entity_registry = SimpleNamespace()
+
+    with (
+        patch("custom_components.vpd_air_auto.discovery.topology.dr.async_get", return_value=device_registry),
+        patch("custom_components.vpd_air_auto.discovery.topology.ar.async_get", return_value=area_registry),
+        patch("custom_components.vpd_air_auto.discovery.topology.er.async_get", return_value=entity_registry),
+        patch("custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device", return_value=[auto_temp, manual_temp, auto_humidity]),
+    ):
+        topology = service.discover(
+            {
+                "dev1": SimpleNamespace(
+                    temperature_entity_id="sensor.manual_temp",
+                    humidity_entity_id=None,
+                )
+            }
+        )
+
+    assert topology["dev1"].temperature_entity_id == "sensor.manual_temp"
+    assert topology["dev1"].humidity_entity_id == "sensor.auto_humidity"
+
+
+def test_discover_ignores_invalid_manual_source_overrides(
+    hass: HomeAssistant,
+) -> None:
+    """Invalid manual source overrides fall back to auto-selection heuristics."""
+    duplicate_detection = _DuplicateDetectionStub()
+    service = TopologyDiscoveryService(hass, duplicate_detection)
+
+    auto_temp = _entry("sensor.auto_temp", original_device_class="temperature")
+    auto_humidity = _entry("sensor.auto_humidity", original_device_class="humidity")
+    wrong_class = _entry("sensor.bad_humidity", original_device_class="temperature")
+
+    hass.states.async_set("sensor.auto_temp", "24", {"device_class": "temperature"})
+    hass.states.async_set("sensor.auto_humidity", "62", {"device_class": "humidity"})
+    hass.states.async_set("sensor.bad_humidity", "62", {"device_class": "temperature"})
+
+    area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
+    entity_registry = SimpleNamespace()
+
+    with (
+        patch("custom_components.vpd_air_auto.discovery.topology.dr.async_get", return_value=device_registry),
+        patch("custom_components.vpd_air_auto.discovery.topology.ar.async_get", return_value=area_registry),
+        patch("custom_components.vpd_air_auto.discovery.topology.er.async_get", return_value=entity_registry),
+        patch("custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device", return_value=[auto_temp, auto_humidity, wrong_class]),
+    ):
+        topology = service.discover(
+            {
+                "dev1": SimpleNamespace(
+                    temperature_entity_id="sensor.missing",
+                    humidity_entity_id="sensor.bad_humidity",
+                )
+            }
+        )
+
+    assert topology["dev1"].temperature_entity_id == "sensor.auto_temp"
+    assert topology["dev1"].humidity_entity_id == "sensor.auto_humidity"
