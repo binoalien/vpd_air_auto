@@ -179,6 +179,35 @@ def test_resolve_options_falls_back_to_entry_data_and_defaults() -> None:
     assert resolved.dew_point_display_name == DEFAULT_DEW_POINT_DISPLAY_NAME
 
 
+def test_resolve_options_tolerates_malformed_stored_values() -> None:
+    """Malformed stored values should gracefully fall back to defaults."""
+    entry = MockConfigEntry(
+        domain="vpd_air_auto",
+        data={
+            CONF_SCAN_INTERVAL: "nan",
+            CONF_ENABLE_AIR: "false",
+            CONF_ICON: "   ",
+            CONF_LEAF_OFFSET: "bad",
+        },
+        options={
+            CONF_ENABLE_LEAF: "true",
+            CONF_ABSOLUTE_HUMIDITY_DISPLAY_NAME: None,
+        },
+    )
+
+    resolved = resolve_options(entry)
+
+    assert resolved.scan_interval_seconds == DEFAULT_SCAN_INTERVAL
+    assert resolved.enable_air is DEFAULT_ENABLE_AIR
+    assert resolved.enable_leaf is DEFAULT_ENABLE_LEAF
+    assert resolved.icon == DEFAULT_ICON
+    assert resolved.leaf_offset_c == DEFAULT_LEAF_OFFSET
+    assert (
+        resolved.absolute_humidity_display_name
+        == DEFAULT_ABSOLUTE_HUMIDITY_DISPLAY_NAME
+    )
+
+
 def test_build_schema_applies_defaults_and_validates_scan_interval_bounds() -> None:
     """Test build schema applies defaults and validates scan interval bounds."""
     options = resolve_options(
