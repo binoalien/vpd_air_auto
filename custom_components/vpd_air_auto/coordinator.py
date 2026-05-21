@@ -138,7 +138,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         active_topology: dict[str, DeviceTopology] = {}
 
         for device_id, device_topology in topology.items():
-            effective_policy = self._policy_resolver.resolve_for_device_area_only(
+            effective_policy = self._policy_resolver.resolve_for_device(
                 device_id=device_id,
                 area_id=device_topology.area_id,
             )
@@ -183,7 +183,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         if device_topology is None:
             return set()
 
-        effective_policy = self._policy_resolver.resolve_for_device_area_only(
+        effective_policy = self._policy_resolver.resolve_for_device(
             device_id=device_topology.device_id,
             area_id=device_topology.area_id,
         )
@@ -254,7 +254,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             return
 
         current_data = self.data or {}
-        effective_policy = self._policy_resolver.resolve_for_device_area_only(
+        effective_policy = self._policy_resolver.resolve_for_device(
             device_id=device_topology.device_id,
             area_id=device_topology.area_id,
         )
