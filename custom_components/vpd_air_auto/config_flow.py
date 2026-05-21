@@ -14,6 +14,12 @@ from homeassistant.config_entries import (
     OptionsFlowWithReload,
 )
 from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    AreaSelector,
+    AreaSelectorConfig,
+    DeviceSelector,
+    DeviceSelectorConfig,
+)
 
 from .const import (
     CONF_ENABLE_ABSOLUTE_HUMIDITY,
@@ -356,6 +362,9 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
                 scope_id=scope_id or "",
                 policy=existing_policy,
                 include_scope_id=include_scope_id,
+                scope_selector=self._scope_id_selector(scope_level)
+                if include_scope_id
+                else None,
             ),
             errors=errors,
         )
@@ -393,6 +402,12 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         return vol.Schema(
             {vol.Required("scope_id", default=default_scope): vol.In(choices)}
         )
+
+    def _scope_id_selector(self, scope_level: str) -> AreaSelector | DeviceSelector:
+        """Build selector for scoped policy add forms."""
+        if scope_level == "area":
+            return AreaSelector(AreaSelectorConfig())
+        return DeviceSelector(DeviceSelectorConfig())
 
     async def _async_step_select_source_override(
         self, user_input: dict[str, Any] | None
@@ -476,6 +491,9 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
                 scope_id=scope_id or "",
                 override=existing_override,
                 include_scope_id=include_scope_id,
+                scope_selector=DeviceSelector(DeviceSelectorConfig())
+                if include_scope_id
+                else None,
             ),
             errors=errors,
         )
