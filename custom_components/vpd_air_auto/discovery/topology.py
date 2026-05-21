@@ -60,19 +60,13 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             auto_humidity_entity_id = self._pick_best_entity(
                 candidates, target_device_class=TARGET_HUMIDITY
             )
-            source_override = source_overrides.get(device.id)
-            temperature_entity_id = self._resolve_source_entity_id(
+            selected_sources = self._resolve_source_pair(
                 entity_registry=entity_registry,
-                source_override=source_override,
-                target_device_class=TARGET_TEMPERATURE,
-                auto_entity_id=auto_temperature_entity_id,
+                source_override=source_overrides.get(device.id),
+                auto_temperature_entity_id=auto_temperature_entity_id,
+                auto_humidity_entity_id=auto_humidity_entity_id,
             )
-            humidity_entity_id = self._resolve_source_entity_id(
-                entity_registry=entity_registry,
-                source_override=source_override,
-                target_device_class=TARGET_HUMIDITY,
-                auto_entity_id=auto_humidity_entity_id,
-            )
+            temperature_entity_id, humidity_entity_id = selected_sources
 
             if temperature_entity_id is None or humidity_entity_id is None:
                 continue
@@ -98,6 +92,30 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             )
 
         return topology
+
+    def _resolve_source_pair(
+        self,
+        *,
+        entity_registry: er.EntityRegistry,
+        source_override: SourceOverride | None,
+        auto_temperature_entity_id: str | None,
+        auto_humidity_entity_id: str | None,
+    ) -> tuple[str | None, str | None]:
+        """Resolve final temperature/humidity source IDs for one device."""
+        return (
+            self._resolve_source_entity_id(
+                entity_registry=entity_registry,
+                source_override=source_override,
+                target_device_class=TARGET_TEMPERATURE,
+                auto_entity_id=auto_temperature_entity_id,
+            ),
+            self._resolve_source_entity_id(
+                entity_registry=entity_registry,
+                source_override=source_override,
+                target_device_class=TARGET_HUMIDITY,
+                auto_entity_id=auto_humidity_entity_id,
+            ),
+        )
 
     def _resolve_source_entity_id(
         self,

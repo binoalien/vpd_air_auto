@@ -53,6 +53,14 @@ class _DuplicateDetectionStub:  # pylint: disable=too-few-public-methods
         return frozenset({"air"})
 
 
+class _EntityRegistryStub:  # pylint: disable=too-few-public-methods
+    def __init__(self, entities: dict[str, SimpleNamespace]) -> None:
+        self._entities = entities
+
+    def async_get(self, entity_id: str) -> SimpleNamespace | None:
+        return self._entities.get(entity_id)
+
+
 def test_discover_returns_topology_with_best_sources_and_blocked_kinds(
     hass: HomeAssistant,
 ) -> None:
@@ -279,11 +287,11 @@ def test_discover_prefers_valid_manual_overrides(
     hass.states.async_set("sensor.manual_hum", "55.0", {"device_class": "humidity"})
     area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
     device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
-    entity_registry = SimpleNamespace(
-        async_get=lambda entity_id: {
+    entity_registry = _EntityRegistryStub(
+        {
             "sensor.manual_temp": temp_entry,
             "sensor.manual_hum": hum_entry,
-        }.get(entity_id)
+        }
     )
 
     with (
@@ -338,12 +346,12 @@ def test_discover_ignores_invalid_manual_override_and_falls_back_to_auto(
     hass.states.async_set("sensor.invalid_temp", "55.0", {"device_class": "humidity"})
     area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
     device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
-    entity_registry = SimpleNamespace(
-        async_get=lambda entity_id: {
+    entity_registry = _EntityRegistryStub(
+        {
             "sensor.auto_temp": auto_temp,
             "sensor.auto_hum": auto_hum,
             "sensor.invalid_temp": invalid_temp,
-        }.get(entity_id)
+        }
     )
 
     with (
