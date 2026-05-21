@@ -230,6 +230,94 @@ def build_schema(options: IntegrationOptions) -> vol.Schema:
     )
 
 
+def build_scoped_policy_schema(
+    *,
+    scope_id: str = "",
+    policy: dict[str, Any] | None = None,
+    include_scope_id: bool,
+) -> vol.Schema:
+    """Build schema for area/device behavior override editing."""
+    policy = dict(policy or {})
+    schema: dict[Any, Any] = {}
+    if include_scope_id:
+        schema[vol.Required("scope_id", default=scope_id)] = str
+
+    schema.update(
+        {
+            vol.Required(
+                CONF_ENABLE_AIR,
+                default=bool(policy.get(CONF_ENABLE_AIR, DEFAULT_ENABLE_AIR)),
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_LEAF,
+                default=bool(policy.get(CONF_ENABLE_LEAF, DEFAULT_ENABLE_LEAF)),
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_ABSOLUTE_HUMIDITY,
+                default=bool(
+                    policy.get(
+                        CONF_ENABLE_ABSOLUTE_HUMIDITY, DEFAULT_ENABLE_ABSOLUTE_HUMIDITY
+                    )
+                ),
+            ): bool,
+            vol.Required(
+                CONF_ENABLE_DEW_POINT,
+                default=bool(
+                    policy.get(CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT)
+                ),
+            ): bool,
+            vol.Required(
+                CONF_LEAF_OFFSET,
+                default=float(policy.get(CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET)),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=MIN_LEAF_OFFSET,
+                    max=MAX_LEAF_OFFSET,
+                    step=0.1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="°C",
+                )
+            ),
+        }
+    )
+    return vol.Schema(schema)
+
+
+def normalize_scoped_policy_input(
+    user_input: dict[str, Any],
+    *,
+    include_scope_id: bool,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Normalize area/device policy form input."""
+    normalized: dict[str, Any] = {}
+    errors: dict[str, str] = {}
+
+    if include_scope_id:
+        try:
+            normalized["scope_id"] = trimmed_nonempty_string(
+                user_input.get("scope_id"), "invalid_scope_id"
+            )
+        except vol.Invalid as err:
+            errors["scope_id"] = str(err)
+
+    for key in (
+        CONF_ENABLE_AIR,
+        CONF_ENABLE_LEAF,
+        CONF_ENABLE_ABSOLUTE_HUMIDITY,
+        CONF_ENABLE_DEW_POINT,
+    ):
+        normalized[key] = bool(user_input[key])
+
+    try:
+        normalized[CONF_LEAF_OFFSET] = validated_leaf_offset(
+            user_input[CONF_LEAF_OFFSET]
+        )
+    except vol.Invalid as err:
+        errors[CONF_LEAF_OFFSET] = str(err)
+
+    return normalized, errors
+
+
 def normalize_user_input(
     user_input: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, str]]:
