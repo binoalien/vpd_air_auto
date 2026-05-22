@@ -17,9 +17,10 @@ def coerce_number(value: str | None) -> float | None:
         return None
 
     try:
-        return float(value)
+        number = float(value)
     except TypeError, ValueError:
         return None
+    return number if math.isfinite(number) else None
 
 
 def coerce_temperature_c(state: State | None) -> float | None:
@@ -37,6 +38,8 @@ def coerce_temperature_c(state: State | None) -> float | None:
     if unit in ("°F", "°f", "F", "f"):
         return (value - 32.0) * 5.0 / 9.0
     if unit in ("K", "k", "°K", "°k"):
+        if value < 0:
+            return None
         return value - 273.15
     return None
 

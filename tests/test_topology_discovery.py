@@ -437,7 +437,161 @@ def test_discover_keeps_manual_override_when_state_temporarily_unavailable(
             return_value=[auto_temp, auto_hum, manual_temp],
         ),
     ):
-        topology = service.discover({"dev1": SourceOverride("sensor.manual_temp", None)})
+        topology = service.discover(
+            {"dev1": SourceOverride("sensor.manual_temp", None)}
+        )
 
     assert topology["dev1"].temperature_entity_id == "sensor.manual_temp"
+    assert topology["dev1"].humidity_entity_id == "sensor.auto_hum"
+
+
+def test_discover_keeps_manual_humidity_override_when_state_unknown(
+    hass: HomeAssistant,
+) -> None:
+    """Manual humidity override stays valid based on metadata with unknown state."""
+    duplicate_detection = _DuplicateDetectionStub()
+    service = TopologyDiscoveryService(hass, duplicate_detection)
+    auto_temp = _entry(
+        "sensor.auto_temp",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
+    )
+    auto_hum = _entry(
+        "sensor.auto_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
+    )
+    manual_hum = _entry(
+        "sensor.manual_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="%RH",
+    )
+    hass.states.async_set("sensor.auto_temp", "24.0", {"device_class": "temperature"})
+    hass.states.async_set("sensor.auto_hum", "55.0", {"device_class": "humidity"})
+    hass.states.async_set(
+        "sensor.manual_hum",
+        "unknown",
+        {"device_class": "humidity", "unit_of_measurement": "%RH"},
+    )
+    area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
+    entity_registry = _EntityRegistryStub(
+        {
+            "sensor.auto_temp": auto_temp,
+            "sensor.auto_hum": auto_hum,
+            "sensor.manual_hum": manual_hum,
+        }
+    )
+    with (
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=area_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_get",
+            return_value=entity_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device",
+            return_value=[auto_temp, auto_hum, manual_hum],
+        ),
+    ):
+        topology = service.discover({"dev1": SourceOverride(None, "sensor.manual_hum")})
+
+    assert topology["dev1"].temperature_entity_id == "sensor.auto_temp"
+    assert topology["dev1"].humidity_entity_id == "sensor.manual_hum"
+
+
+def test_discover_invalid_manual_override_keeps_valid_auto_device(
+    hass: HomeAssistant,
+) -> None:
+    """Invalid override should not remove a device that has valid auto sources."""
+    duplicate_detection = _DuplicateDetectionStub()
+    service = TopologyDiscoveryService(hass, duplicate_detection)
+    auto_temp = _entry(
+        "sensor.auto_temp",
+        original_device_class="temperature",
+        original_unit_of_measurement="K",
+    )
+    auto_hum = _entry(
+        "sensor.auto_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="RH%",
+    )
+    wrong_class = _entry(
+        "sensor.wrong_class",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
+    )
+    non_sensor = _entry(
+        "binary_sensor.manual_hum",
+        domain="binary_sensor",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
+    )
+    generated = _entry(
+        "sensor.generated_temp",
+        platform="vpd_air_auto",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
+    )
+    bad_unit = _entry(
+        "sensor.bad_unit_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="g/m3",
+    )
+    hass.states.async_set(
+        "sensor.auto_temp",
+        "298.15",
+        {"device_class": "temperature", "unit_of_measurement": "K"},
+    )
+    hass.states.async_set(
+        "sensor.auto_hum",
+        "unavailable",
+        {"device_class": "humidity", "unit_of_measurement": "RH%"},
+    )
+    area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
+    entity_registry = _EntityRegistryStub(
+        {
+            "sensor.auto_temp": auto_temp,
+            "sensor.auto_hum": auto_hum,
+            "sensor.wrong_class": wrong_class,
+            "binary_sensor.manual_hum": non_sensor,
+            "sensor.generated_temp": generated,
+            "sensor.bad_unit_hum": bad_unit,
+        }
+    )
+    with (
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=area_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_get",
+            return_value=entity_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device",
+            return_value=[auto_temp, auto_hum, bad_unit],
+        ),
+    ):
+        topology = service.discover(
+            {
+                "dev1": SourceOverride(
+                    "sensor.generated_temp",
+                    "binary_sensor.manual_hum",
+                )
+            }
+        )
+
+    assert topology["dev1"].temperature_entity_id == "sensor.auto_temp"
     assert topology["dev1"].humidity_entity_id == "sensor.auto_hum"

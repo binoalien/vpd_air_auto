@@ -254,6 +254,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
 
     @staticmethod
     def _unit_supported(unit: str | None, target_device_class: str) -> bool:
+        normalized_unit = normalize_identifier(unit)
         if target_device_class == TARGET_TEMPERATURE:
             return unit is None or unit in (
                 "°C",
@@ -269,7 +270,14 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 "°K",
                 "°k",
             )
-        return unit is None or unit == "%"
+        return unit is None or unit == "%" or normalized_unit in {
+            "rh",
+            "rhpercent",
+            "percentrh",
+            "percent",
+            "percentage",
+            "relativehumidity",
+        }
 
     def _entry_value_valid(
         self, entry: er.RegistryEntry, target_device_class: str
