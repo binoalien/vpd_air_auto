@@ -379,3 +379,137 @@ def test_discover_ignores_invalid_manual_override_and_falls_back_to_auto(
 
     assert topology["dev1"].temperature_entity_id == "sensor.auto_temp"
     assert topology["dev1"].humidity_entity_id == "sensor.auto_hum"
+
+
+def test_discover_keeps_manual_override_when_state_is_temporarily_unavailable(
+    hass: HomeAssistant,
+) -> None:
+    """Manual source overrides remain valid based on metadata when state is unavailable."""
+    duplicate_detection = _DuplicateDetectionStub()
+    service = TopologyDiscoveryService(hass, duplicate_detection)
+    temp_entry = _entry(
+        "sensor.manual_temp",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
+    )
+    hum_entry = _entry(
+        "sensor.manual_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
+    )
+    auto_temp = _entry(
+        "sensor.auto_temp",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
+    )
+    auto_hum = _entry(
+        "sensor.auto_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
+    )
+
+    hass.states.async_set("sensor.manual_temp", "unknown", {"device_class": "temperature"})
+    hass.states.async_set(
+        "sensor.manual_hum", "unavailable", {"device_class": "humidity"}
+    )
+    hass.states.async_set("sensor.auto_temp", "24.0", {"device_class": "temperature"})
+    hass.states.async_set("sensor.auto_hum", "55.0", {"device_class": "humidity"})
+
+    area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
+    entity_registry = _EntityRegistryStub(
+        {
+            "sensor.manual_temp": temp_entry,
+            "sensor.manual_hum": hum_entry,
+            "sensor.auto_temp": auto_temp,
+            "sensor.auto_hum": auto_hum,
+        }
+    )
+
+    with (
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=area_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_get",
+            return_value=entity_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device",
+            return_value=[auto_temp, auto_hum, temp_entry, hum_entry],
+        ),
+    ):
+        topology = service.discover(
+            {"dev1": SourceOverride("sensor.manual_temp", "sensor.manual_hum")}
+        )
+
+    assert topology["dev1"].temperature_entity_id == "sensor.manual_temp"
+    assert topology["dev1"].humidity_entity_id == "sensor.manual_hum"
+
+
+def test_discover_excludes_temperature_candidates_with_unsupported_units(
+    hass: HomeAssistant,
+) -> None:
+    """Unsupported temperature units are metadata-invalid for automatic discovery."""
+    duplicate_detection = _DuplicateDetectionStub()
+    service = TopologyDiscoveryService(hass, duplicate_detection)
+    kelvin_temp = _entry(
+        "sensor.temp_kelvin",
+        original_device_class="temperature",
+        original_unit_of_measurement="K",
+    )
+    celsius_temp = _entry(
+        "sensor.temp_celsius",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
+    )
+    hum_entry = _entry(
+        "sensor.room_humidity",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
+    )
+    hass.states.async_set(
+        "sensor.temp_kelvin", "296.5", {"device_class": "temperature", "unit_of_measurement": "K"}
+    )
+    hass.states.async_set(
+        "sensor.temp_celsius", "23.4", {"device_class": "temperature", "unit_of_measurement": "°C"}
+    )
+    hass.states.async_set(
+        "sensor.room_humidity", "48", {"device_class": "humidity", "unit_of_measurement": "%"}
+    )
+    area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
+    entity_registry = _EntityRegistryStub(
+        {
+            "sensor.temp_kelvin": kelvin_temp,
+            "sensor.temp_celsius": celsius_temp,
+            "sensor.room_humidity": hum_entry,
+        }
+    )
+
+    with (
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=area_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_get",
+            return_value=entity_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device",
+            return_value=[kelvin_temp, celsius_temp, hum_entry],
+        ),
+    ):
+        topology = service.discover()
+
+    assert topology["dev1"].temperature_entity_id == "sensor.temp_celsius"
