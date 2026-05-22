@@ -379,3 +379,55 @@ def test_discover_ignores_invalid_manual_override_and_falls_back_to_auto(
 
     assert topology["dev1"].temperature_entity_id == "sensor.auto_temp"
     assert topology["dev1"].humidity_entity_id == "sensor.auto_hum"
+
+
+def test_discover_accepts_manual_override_with_unknown_state(
+    hass: HomeAssistant,
+) -> None:
+    """Manual override remains valid from metadata even when state is unknown."""
+    duplicate_detection = _DuplicateDetectionStub()
+    service = TopologyDiscoveryService(hass, duplicate_detection)
+    manual_temp = _entry(
+        "sensor.manual_temp",
+        original_device_class="temperature",
+        original_unit_of_measurement="°C",
+    )
+    auto_hum = _entry(
+        "sensor.auto_hum",
+        original_device_class="humidity",
+        original_unit_of_measurement="%",
+    )
+    hass.states.async_set(
+        "sensor.manual_temp",
+        "unknown",
+        {"device_class": "temperature", "unit_of_measurement": "°C"},
+    )
+    hass.states.async_set("sensor.auto_hum", "55.0", {"device_class": "humidity"})
+    area_registry = SimpleNamespace(async_get_area=lambda _area_id: None)
+    device_registry = SimpleNamespace(devices={"dev1": _device("dev1")})
+    entity_registry = _EntityRegistryStub(
+        {"sensor.manual_temp": manual_temp, "sensor.auto_hum": auto_hum}
+    )
+
+    with (
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.dr.async_get",
+            return_value=device_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.ar.async_get",
+            return_value=area_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_get",
+            return_value=entity_registry,
+        ),
+        patch(
+            "custom_components.vpd_air_auto.discovery.topology.er.async_entries_for_device",
+            return_value=[manual_temp, auto_hum],
+        ),
+    ):
+        topology = service.discover({"dev1": SourceOverride("sensor.manual_temp", None)})
+
+    assert topology["dev1"].temperature_entity_id == "sensor.manual_temp"
+    assert topology["dev1"].humidity_entity_id == "sensor.auto_hum"
