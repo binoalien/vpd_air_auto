@@ -158,9 +158,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             return False
         if entry.domain != SOURCE_DOMAIN_SENSOR or entry.platform == DOMAIN:
             return False
-        if self._entry_device_class(entry) != target_device_class:
-            return False
-        return self._entry_value_valid(entry, target_device_class)
+        return self._entry_metadata_valid(entry, target_device_class)
 
     def _pick_best_entity(
         self,
@@ -175,7 +173,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
                 continue
             if entry.platform == DOMAIN:
                 continue
-            if self._entry_device_class(entry) != target_device_class:
+            if not self._entry_metadata_valid(entry, target_device_class):
                 continue
 
             normalized_candidates.append(
@@ -242,6 +240,36 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         if entity_category is None:
             return None
         return str(entity_category)
+
+
+    def _entry_metadata_valid(
+        self, entry: er.RegistryEntry, target_device_class: str
+    ) -> bool:
+        if self._entry_device_class(entry) != target_device_class:
+            return False
+        return self._unit_supported(
+            self._entry_unit_of_measurement(entry),
+            target_device_class,
+        )
+
+    @staticmethod
+    def _unit_supported(unit: str | None, target_device_class: str) -> bool:
+        if target_device_class == TARGET_TEMPERATURE:
+            return unit is None or unit in (
+                "°C",
+                "°c",
+                "C",
+                "c",
+                "°F",
+                "°f",
+                "F",
+                "f",
+                "K",
+                "k",
+                "°K",
+                "°k",
+            )
+        return unit is None or unit == "%"
 
     def _entry_value_valid(
         self, entry: er.RegistryEntry, target_device_class: str

@@ -59,8 +59,8 @@ def test_coerce_number_handles_unknown_invalid_and_numeric_values() -> None:
     assert coerce_number("12.5") == 12.5
 
 
-def test_coerce_temperature_c_handles_celsius_fahrenheit_and_invalid_units() -> None:
-    """Test coerce temperature c handles celsius fahrenheit and invalid units."""
+def test_coerce_temperature_c_handles_celsius_fahrenheit_kelvin_and_invalid_units() -> None:
+    """Test coerce temperature c handles celsius fahrenheit kelvin and invalid units."""
     assert coerce_temperature_c(None) is None
     assert (
         coerce_temperature_c(
@@ -73,9 +73,14 @@ def test_coerce_temperature_c_handles_celsius_fahrenheit_and_invalid_units() -> 
     )
     assert result is not None
     assert round(result, 3) == 25.0
+    result = coerce_temperature_c(
+        State("sensor.temp_k", "298.15", {"unit_of_measurement": "K"}, None)
+    )
+    assert result is not None
+    assert round(result, 3) == 25.0
     assert (
         coerce_temperature_c(
-            State("sensor.temp_invalid", "12", {"unit_of_measurement": "K"}, None)
+            State("sensor.temp_invalid", "12", {"unit_of_measurement": "R"}, None)
         )
         is None
     )

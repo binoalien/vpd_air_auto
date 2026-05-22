@@ -36,6 +36,8 @@ def coerce_temperature_c(state: State | None) -> float | None:
         return value
     if unit in ("°F", "°f", "F", "f"):
         return (value - 32.0) * 5.0 / 9.0
+    if unit in ("K", "k", "°K", "°k"):
+        return value - 273.15
     return None
 
 
