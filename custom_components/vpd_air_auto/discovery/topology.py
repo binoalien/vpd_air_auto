@@ -160,7 +160,7 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             return False
         if self._entry_device_class(entry) != target_device_class:
             return False
-        return self._entry_value_valid(entry, target_device_class)
+        return self._entry_unit_supported(entry, target_device_class)
 
     def _pick_best_entity(
         self,
@@ -176,6 +176,8 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
             if entry.platform == DOMAIN:
                 continue
             if self._entry_device_class(entry) != target_device_class:
+                continue
+            if not self._entry_unit_supported(entry, target_device_class):
                 continue
 
             normalized_candidates.append(
@@ -242,6 +244,14 @@ class TopologyDiscoveryService:  # pylint: disable=too-few-public-methods
         if entity_category is None:
             return None
         return str(entity_category)
+
+    def _entry_unit_supported(
+        self, entry: er.RegistryEntry, target_device_class: str
+    ) -> bool:
+        unit = self._entry_unit_of_measurement(entry)
+        if target_device_class == TARGET_TEMPERATURE:
+            return unit in (None, "°C", "°c", "C", "c", "°F", "°f", "F", "f")
+        return unit in (None, "%")
 
     def _entry_value_valid(
         self, entry: er.RegistryEntry, target_device_class: str

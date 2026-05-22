@@ -101,7 +101,7 @@ def candidate_score(
 def _unit_score(unit: str | None, target_device_class: str) -> int:
     normalized = normalize_identifier(unit)
     if target_device_class == TARGET_TEMPERATURE:
-        if normalized in {"c", "f", "k"}:
+        if normalized in {"c", "f"}:
             return 25
         return 0
 
