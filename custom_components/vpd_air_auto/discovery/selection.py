@@ -33,6 +33,14 @@ _HUMIDITY_TOKENS = {
     "relativehumidity",
     "rh",
 }
+_HUMIDITY_UNIT_IDENTIFIERS = {
+    "percent",
+    "percentage",
+    "relativehumidity",
+    "rh",
+    "rhpercent",
+    "percentrh",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,7 +113,9 @@ def _unit_score(unit: str | None, target_device_class: str) -> int:
             return 25
         return 0
 
-    return 25 if unit == "%" else 0
+    if unit == "%" or normalized in _HUMIDITY_UNIT_IDENTIFIERS:
+        return 25
+    return 0
 
 
 def _suffix_score(entity_id: str, target_device_class: str) -> int:
