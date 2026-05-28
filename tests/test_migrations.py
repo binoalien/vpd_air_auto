@@ -157,3 +157,36 @@ async def test_async_migrate_entry_skips_future_versions(hass: HomeAssistant) ->
     assert entry.version == 3
     assert entry.data == before_data
     assert entry.options == before_options
+
+
+async def test_async_migrate_entry_leaf_offset_malformed_falls_back_to_default(
+    hass: HomeAssistant,
+) -> None:
+    """Malformed V1 leaf offset values should not crash migration."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=1,
+        data={CONF_LEAF_OFFSET: "not-a-number"},
+        options={},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry) is True
+    assert entry.options["global_policy"][CONF_LEAF_OFFSET] == DEFAULT_LEAF_OFFSET
+
+
+async def test_async_migrate_entry_leaf_offset_non_finite_falls_back_to_default(
+    hass: HomeAssistant,
+) -> None:
+    """Non-finite V1 leaf offset values should fall back to default."""
+    for leaf_offset in ("nan", "inf", "-inf"):
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            version=1,
+            data={CONF_LEAF_OFFSET: leaf_offset},
+            options={},
+        )
+        entry.add_to_hass(hass)
+
+        assert await async_migrate_entry(hass, entry) is True
+        assert entry.options["global_policy"][CONF_LEAF_OFFSET] == DEFAULT_LEAF_OFFSET
