@@ -32,7 +32,6 @@ from custom_components.vpd_air_auto.models import DeviceSnapshot, DeviceTopology
 from custom_components.vpd_air_auto.sensor import (
     PARALLEL_UPDATES,
     DerivedValueSensor,
-    _registry_entry_kind,
     async_setup_entry,
 )
 
@@ -181,17 +180,9 @@ def test_sensor_unavailable_without_snapshot(hass: HomeAssistant) -> None:
     assert not sensor.extra_state_attributes
 
 
-def test_registry_entry_kind_and_parallel_updates() -> None:
-    """Test registry entry kind and parallel updates."""
+def test_parallel_updates() -> None:
+    """Test parallel updates constant."""
     assert PARALLEL_UPDATES == 0
-    assert _registry_entry_kind("prefix_vpdair") == SENSOR_KIND_AIR
-    assert _registry_entry_kind("prefix_vpdleaf") == SENSOR_KIND_LEAF
-    assert (
-        _registry_entry_kind("prefix_absolute_humidity")
-        == SENSOR_KIND_ABSOLUTE_HUMIDITY
-    )
-    assert _registry_entry_kind("prefix_dew_point") == SENSOR_KIND_DEW_POINT
-    assert _registry_entry_kind("prefix_unknown") is None
 
 
 def test_unique_id_building_matches_public_helpers(hass: HomeAssistant) -> None:
@@ -203,12 +194,31 @@ def test_unique_id_building_matches_public_helpers(hass: HomeAssistant) -> None:
 
     assert sensor_air.unique_id == make_vpdair_unique_id(sensor_air._device_id)
     assert sensor_leaf.unique_id == make_vpdleaf_unique_id(
-        sensor_leaf._device_id)
+        sensor_leaf._device_id
+    )
     assert sensor_abs.unique_id == make_absolute_humidity_unique_id(
         sensor_abs._device_id
     )
     assert sensor_dew.unique_id == make_dew_point_unique_id(
-        sensor_dew._device_id)
+        sensor_dew._device_id
+    )
+
+
+def test_sensor_with_missing_device_entry_is_safe(hass: HomeAssistant) -> None:
+    """Test sensor handles missing device registry entry safely."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    unknown_device_id = "missing-device-id"
+    sensor = DerivedValueSensor(
+        hass, coordinator, unknown_device_id, SENSOR_KIND_AIR
+    )
+
+    assert sensor.device_entry is None
+    assert sensor.available is False
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes == {}
+    assert sensor.unique_id == make_vpdair_unique_id(unknown_device_id)
 
 
 async def test_sensor_added_and_removed_notifies_context_tracking(
@@ -332,7 +342,11 @@ async def test_setup_entry_entities_attach_to_existing_device_registry_device(
                 DOMAIN,
                 new_entity.unique_id,
                 config_entry=entry,
-                device_id=new_entity.device_entry.id if new_entity.device_entry else None,
+                device_id=(
+                    new_entity.device_entry.id
+                    if new_entity.device_entry
+                    else None
+                ),
                 original_name=new_entity.name,
             )
 

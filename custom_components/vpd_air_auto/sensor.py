@@ -30,15 +30,6 @@ from .models import DeviceSnapshot
 PARALLEL_UPDATES = 0
 
 
-def _registry_entry_kind(unique_id: str) -> SensorKind | None:
-    """Determine the sensor kind from a registry unique ID."""
-    for kind in SensorKind:
-        definition = get_sensor_definition(kind)
-        if unique_id.endswith(f"_{definition.unique_id_suffix}"):
-            return kind
-    return None
-
-
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: VpdAirConfigEntry,
