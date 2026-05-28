@@ -107,7 +107,7 @@
       "area_policy_edit": {
         "title": "Bereichsrichtlinie bearbeiten",
         "data": {
-          "scope_id": "Bereichs-ID"
+          "scope_id": "Bereich"
         }
       },
       "area_policy_delete": {
@@ -122,7 +122,7 @@
       "device_policy_edit": {
         "title": "Geräterichtlinie bearbeiten",
         "data": {
-          "scope_id": "Geräte-ID"
+          "scope_id": "Gerät"
         }
       },
       "device_policy_delete": {
@@ -139,9 +139,9 @@
       "source_override_edit": {
         "title": "Quellüberschreibung bearbeiten",
         "data": {
-          "scope_id": "Geräte-ID",
-          "temperature_entity_id": "Temperatur-Entity-ID",
-          "humidity_entity_id": "Feuchte-Entity-ID"
+          "scope_id": "Gerät",
+          "temperature_entity_id": "Temperatur-Quellentität",
+          "humidity_entity_id": "Luftfeuchte-Quellentität"
         }
       },
       "source_override_delete": {
@@ -157,7 +157,11 @@
       "invalid_absolute_humidity_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
       "invalid_absolute_humidity_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
       "invalid_dew_point_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
-      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben."
+      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_scope_id": "Bitte einen gültigen Bereich oder ein gültiges Gerät auswählen.",
+      "invalid_temperature_entity": "Bitte eine gültige Temperatur-Sensor-Entität auswählen (sensor.*).",
+      "invalid_humidity_entity": "Bitte eine gültige Luftfeuchte-Sensor-Entität auswählen (sensor.*).",
+      "missing_source_override": "Bitte mindestens eine Quellentität setzen (Temperatur und/oder Luftfeuchte)."
     }
   },
   "entity": {

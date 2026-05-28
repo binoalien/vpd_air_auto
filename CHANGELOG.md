@@ -4,12 +4,28 @@ All notable changes to VPD Air Auto are documented in this file.
 
 ## 2.0.0 (unreleased)
 
+### Added
+
+- V2 policy architecture with explicit Global Defaults, Area Policies and Device Policies.
+- Source Override support for manual temperature/humidity source binding per target device.
+- Dew Point and Absolute Humidity derived sensor support in the V2 options and policy model.
+- Diagnostics 2.0 payload sections for policy repository state, effective device policy resolution and per-device entity planning.
+- Translation coverage for menu-based V2 Options Flow editing across global, area, device and source-override scopes.
+
 ### Changed
 
-- Finalize V2 documentation and options-flow translations for menu-based Global/Area/Device policy editing and source overrides.
-- Extend diagnostics payloads with repository policy data, effective per-device policy values including source metadata, area context, and per-device entity plans (enabled/blocked/creatable kinds).
-- Remove obsolete V1-oriented docs descriptions in favor of V2 architecture behavior.
+- Finalized option-flow UX as a menu-based V2 model (`global_defaults`, `area_policies`, `device_policies`, `source_overrides`).
+- Hardened policy and options parsing against malformed stored values while preserving valid data where possible.
+- Finalized source-selection semantics so valid manual overrides remain stable through temporary `unknown` / `unavailable` states.
+- Finalized deterministic policy precedence: **Device Policy > Area Policy > Global Defaults**.
+- Finalized non-destructive entity lifecycle behavior to prevent unnecessary entity churn when policy/source states fluctuate.
+- Expanded release documentation for 2.0.0 installation, compatibility, configuration and policy behavior.
 
+### Fixed
+
+- Improved duplicate-protection behavior to avoid creating equivalent derived sensors when matching sensors already exist on a device.
+- Improved migration handling from legacy V1 flat options to V2 policy structures.
+- Improved diagnostics clarity for blocked entity creation reasons and source/policy decision traces.
 
 ## 1.5.13
 

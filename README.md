@@ -1,39 +1,61 @@
 # VPD Air Auto
 
-VPD Air Auto is a Home Assistant custom integration for HACS. It automatically creates derived climate sensors for each Home Assistant device that exposes both a temperature sensor and a relative humidity sensor.
+## Overview
 
-Derived sensors:
+**VPD Air Auto** is a Home Assistant custom integration for HACS.
 
-| Sensor | Unit | Device class |
+It automatically creates derived climate sensors for each Home Assistant device that exposes both:
+
+- a temperature sensor, and
+- a relative humidity sensor.
+
+The integration is designed for indoor climate control, greenhouse environments, grow rooms, and general environmental monitoring.
+
+## Derived sensors
+
+VPD Air Auto can generate the following derived sensors:
+
+| Sensor | Unit | Description |
 | --- | --- | --- |
-| VPDair | kPa | none |
-| VPDleaf | kPa | none |
-| Absolute Humidity | g/m³ | `absolute_humidity` |
-| Dew Point | °C | `temperature` |
+| VPDair | kPa | Vapor pressure deficit using air temperature |
+| VPDleaf | kPa | Vapor pressure deficit using estimated leaf temperature |
+| Absolute Humidity | g/m³ | Water vapor mass per air volume |
+| Dew Point | °C | Temperature where condensation would begin |
 
-## Features
+Notes:
 
-- UI setup through Home Assistant config flow.
-- V2 policy model with Global Defaults, Area Policies and Device Policies.
-- Policy priority: Device > Area > Global.
-- Global display names and icons for every derived sensor type.
-- Optional manual source overrides per device (temperature/humidity entity IDs).
-- Configurable VPDleaf temperature offset per scope.
-- Automatic device discovery based on existing temperature and humidity sensors.
-- Duplicate protection when a device already exposes equivalent sensors.
-- Diagnostics support for troubleshooting.
-- English and German backend translations.
+- **VPDleaf** uses a configurable leaf temperature offset.
+- **Dew Point** uses Home Assistant's `temperature` device class.
+- **Absolute Humidity** uses Home Assistant's `absolute_humidity` device class.
 
-## HACS installation
+## 2.0.0 feature summary
 
-1. Open HACS.
+Version 2.0.0 finalizes the V2 architecture and user workflows:
+
+- V2 policy model for structured behavior control.
+- **Global Defaults** for baseline behavior.
+- **Area Policies** for per-area overrides.
+- **Device Policies** for per-device overrides.
+- **Source Overrides** for manual temperature/humidity source selection.
+- Deterministic policy priority: **Device > Area > Global**.
+- Robust migration from legacy V1 flat options to V2 structures.
+- Non-destructive entity lifecycle behavior.
+- Diagnostics 2.0 for improved troubleshooting visibility.
+- Automatic duplicate protection for already-existing equivalent sensors.
+- Stable manual source overrides during temporary `unknown` / `unavailable` states.
+
+## Installation
+
+### HACS custom repository
+
+1. Open **HACS**.
 2. Open **Integrations**.
-3. Add this repository as a custom repository with category **Integration**.
+3. Add this repository as a **custom repository** with category **Integration**.
 4. Install **VPD Air Auto**.
 5. Restart Home Assistant.
-6. Go to **Settings → Devices & services → Add integration** and add **VPD Air Auto**.
+6. Go to **Settings → Devices & services** and add **VPD Air Auto**.
 
-## Manual installation
+### Manual installation
 
 Copy this folder into your Home Assistant configuration directory:
 
@@ -43,32 +65,65 @@ custom_components/vpd_air_auto
 
 Then restart Home Assistant and add **VPD Air Auto** from **Settings → Devices & services**.
 
-## Configuration
-
-The integration is configured entirely through the Home Assistant UI. YAML configuration is not supported.
-
-Options are organized in a menu-based V2 Options Flow:
-
-- **Global defaults**
-  - Topology rescan interval
-  - Global enable/disable flags for all derived kinds
-  - Global VPDleaf offset
-  - Global display names and icons
-- **Area policies**
-  - Add/edit/delete area-level behavior overrides
-  - Override enable/disable flags and VPDleaf offset for one area
-- **Device policies**
-  - Add/edit/delete device-level behavior overrides
-  - Override enable/disable flags and VPDleaf offset for one device
-- **Source overrides**
-  - Add/edit/delete manual source entity IDs per device
-  - Optional `temperature_entity_id` and `humidity_entity_id`
-
-Policy resolution is deterministic: **Device > Area > Global**.
-
 ## Compatibility
 
-This repository targets the 2.0.0 release series. The minimum supported Home Assistant version is declared in `hacs.json`.
+- Current release line: **2.0.0**.
+- Minimum supported Home Assistant version is declared in `hacs.json`.
+- Minimum supported HACS version is declared in `hacs.json`.
+- No YAML configuration is supported.
+- One integration instance only.
+
+At the time of this release line, `hacs.json` declares Home Assistant `2026.4.0` and HACS `2.0.0`.
+
+## Configuration
+
+VPD Air Auto is configured through the Home Assistant UI (Options Flow).
+
+### Global defaults
+
+Configure integration-wide defaults:
+
+- topology rescan interval
+- enable/disable derived sensor kinds globally
+- global VPDleaf offset
+- global names/icons
+
+### Area policies
+
+Create area-level overrides:
+
+- override enable flags and leaf offset per Home Assistant area
+- selected through an Area selector
+- unspecified values inherit from global defaults
+
+### Device policies
+
+Create device-level overrides:
+
+- override enable flags and leaf offset per Home Assistant device
+- selected through a Device selector
+- unspecified values inherit from Area/Global values
+- device policy wins over Area and Global
+
+### Source overrides
+
+Create optional manual source mappings:
+
+- target selected through a Device selector
+- optional temperature source entity
+- optional humidity source entity
+- partial override is allowed:
+  - temperature only
+  - humidity only
+  - both
+- if a manual override is temporarily `unknown` / `unavailable`, it remains selected when metadata is valid
+- invalid manual override metadata falls back to automatic selection
+
+## Policy priority
+
+```text
+Device Policy > Area Policy > Global Defaults
+```
 
 ## Development container
 
@@ -95,8 +150,6 @@ Install development dependencies:
 ```bash
 python -m pip install -r requirements_dev.txt
 ```
-
-This now includes `homeassistant` itself so the repository can be used directly inside the included devcontainer or a local virtual environment.
 
 Run checks:
 
