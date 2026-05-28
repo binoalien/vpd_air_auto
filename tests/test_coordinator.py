@@ -392,6 +392,11 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
         SENSOR_KIND_DEW_POINT,
         SENSOR_KIND_LEAF,
     ]
+    assert diagnostics["entity_plan"]["device-1"]["disabled_by_policy_kinds"] == []
+    assert diagnostics["entity_plan"]["device-1"]["non_creatable_reasons"] == {
+        SENSOR_KIND_LEAF: "blocked_existing_duplicate"
+    }
+    assert diagnostics["source_tracking"]["tracked_source_to_device"] == {}
 
 
 def _contexts(device_ids: set[str]):

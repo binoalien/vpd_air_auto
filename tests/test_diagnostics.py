@@ -125,6 +125,29 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
                 "blocked_sensor_kinds": ["leaf"],
                 "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
+                "disabled_by_policy_kinds": [],
+                "non_creatable_reasons": {"leaf": "blocked_existing_duplicate"},
+                "has_active_generated_sensor": True,
+                "topology_without_active_generated_sensor": False,
+                "source_entities_selected": {
+                    "temperature_entity_id": "sensor.grow_tent_temperature",
+                    "humidity_entity_id": "sensor.grow_tent_humidity",
+                },
+            },
+            "selected_source_entities": {
+                "temperature": {
+                    "entity_id": "sensor.grow_tent_temperature",
+                    "selection_mode": "auto",
+                },
+                "humidity": {
+                    "entity_id": "sensor.grow_tent_humidity",
+                    "selection_mode": "auto",
+                },
+            },
+            "policy_sources": {
+                "behavior_source": "global",
+                "leaf_offset_source": "global",
+                "source_override_applied": False,
             },
         }
     )
@@ -157,3 +180,5 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
         "dew_point",
     ]
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+    assert diagnostics["selected_source_entities"]["temperature"]["selection_mode"] == "auto"
+    assert diagnostics["policy_sources"]["behavior_source"] == "global"

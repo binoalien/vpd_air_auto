@@ -196,6 +196,52 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         )
 
     @callback
+    def _build_device_entity_plan_details(
+        self,
+        *,
+        topology: DeviceTopology,
+        enabled_kinds: set[str],
+        blocked_sensor_kinds: set[str],
+        creatable_kinds: set[str],
+    ) -> dict[str, Any]:
+        """Build diagnostics that explain final sensor creation decisions."""
+        non_creatable_reasons: dict[str, str] = {}
+        for kind in sorted(enabled_kinds):
+            if kind in creatable_kinds:
+                continue
+            if kind in blocked_sensor_kinds:
+                non_creatable_reasons[kind] = "blocked_existing_duplicate"
+                continue
+            non_creatable_reasons[kind] = "not_creatable_unknown"
+
+        disabled_by_policy = sorted(
+            {
+                "air",
+                "leaf",
+                "absolute_humidity",
+                "dew_point",
+            }.difference(enabled_kinds)
+        )
+
+        all_non_creatable = {
+            **{kind: "disabled_by_policy" for kind in disabled_by_policy},
+            **non_creatable_reasons,
+        }
+        return {
+            "creatable_kinds": sorted(creatable_kinds),
+            "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
+            "enabled_kinds": sorted(enabled_kinds),
+            "disabled_by_policy_kinds": disabled_by_policy,
+            "non_creatable_reasons": all_non_creatable,
+            "has_active_generated_sensor": bool(creatable_kinds),
+            "topology_without_active_generated_sensor": not creatable_kinds,
+            "source_entities_selected": {
+                "temperature_entity_id": topology.temperature_entity_id,
+                "humidity_entity_id": topology.humidity_entity_id,
+            },
+        }
+
+    @callback
     def diagnostics_payload(self) -> dict[str, Any]:
         """Return a sanitized diagnostics payload for the whole config entry."""
         effective_policies: dict[str, Any] = {}
@@ -214,11 +260,12 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 effective_policy,
             )
             effective_policies[device_id] = asdict(effective_policy)
-            entity_plan[device_id] = {
-                "creatable_kinds": sorted(creatable_kinds),
-                "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
-                "enabled_kinds": sorted(enabled_kinds),
-            }
+            entity_plan[device_id] = self._build_device_entity_plan_details(
+                topology=topology,
+                enabled_kinds=enabled_kinds,
+                blocked_sensor_kinds=blocked_sensor_kinds,
+                creatable_kinds=creatable_kinds,
+            )
 
         return {
             "options": asdict(self.options),
@@ -234,6 +281,12 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             "policy": self._policy_repository.as_dict(),
             "effective_policies": effective_policies,
             "entity_plan": entity_plan,
+            "source_tracking": {
+                "tracked_entity_ids": sorted(
+                    self._subscription_manager.tracked_entity_ids
+                ),
+                "tracked_source_to_device": dict(sorted(self._source_to_device.items())),
+            },
         }
 
     @callback
@@ -262,6 +315,56 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             else set()
         )
 
+        selected_sources = {
+            "temperature": {
+                "entity_id": topology.temperature_entity_id if topology else None,
+                "selection_mode": (
+                    "manual_override"
+                    if effective_policy
+                    and effective_policy.source_override
+                    and effective_policy.source_override.temperature_entity_id
+                    == topology.temperature_entity_id
+                    else "auto"
+                    if topology
+                    else None
+                ),
+            },
+            "humidity": {
+                "entity_id": topology.humidity_entity_id if topology else None,
+                "selection_mode": (
+                    "manual_override"
+                    if effective_policy
+                    and effective_policy.source_override
+                    and effective_policy.source_override.humidity_entity_id
+                    == topology.humidity_entity_id
+                    else "auto"
+                    if topology
+                    else None
+                ),
+            },
+        }
+        entity_plan_details = (
+            self._build_device_entity_plan_details(
+                topology=topology,
+                enabled_kinds=enabled_kinds,
+                blocked_sensor_kinds=blocked_sensor_kinds,
+                creatable_kinds=creatable_kinds,
+            )
+            if topology is not None
+            else {
+                "creatable_kinds": [],
+                "blocked_sensor_kinds": [],
+                "enabled_kinds": [],
+                "disabled_by_policy_kinds": [],
+                "non_creatable_reasons": {},
+                "has_active_generated_sensor": False,
+                "topology_without_active_generated_sensor": False,
+                "source_entities_selected": {
+                    "temperature_entity_id": None,
+                    "humidity_entity_id": None,
+                },
+            }
+        )
         return {
             "device_id": device_id,
             "area_id": topology.area_id if topology else None,
@@ -272,11 +375,18 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             "effective_policy": asdict(effective_policy)
             if effective_policy is not None
             else None,
-            "entity_plan": {
-                "creatable_kinds": sorted(creatable_kinds),
-                "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
-                "enabled_kinds": sorted(enabled_kinds),
-            },
+            "entity_plan": entity_plan_details,
+            "selected_source_entities": selected_sources,
+            "policy_sources": (
+                {
+                    "behavior_source": effective_policy.behavior_source,
+                    "leaf_offset_source": effective_policy.leaf_offset_source,
+                    "source_override_applied": effective_policy.source_override
+                    is not None,
+                }
+                if effective_policy is not None
+                else None
+            ),
             "topology": asdict(topology) if topology else None,
             "snapshot": (
                 asdict(self.data[device_id])
