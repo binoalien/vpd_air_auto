@@ -32,7 +32,6 @@ from custom_components.vpd_air_auto.models import DeviceSnapshot, DeviceTopology
 from custom_components.vpd_air_auto.sensor import (
     PARALLEL_UPDATES,
     DerivedValueSensor,
-    _registry_entry_kind,
     async_setup_entry,
 )
 
@@ -181,17 +180,9 @@ def test_sensor_unavailable_without_snapshot(hass: HomeAssistant) -> None:
     assert not sensor.extra_state_attributes
 
 
-def test_registry_entry_kind_and_parallel_updates() -> None:
-    """Test registry entry kind and parallel updates."""
+def test_parallel_updates() -> None:
+    """Test parallel updates."""
     assert PARALLEL_UPDATES == 0
-    assert _registry_entry_kind("prefix_vpdair") == SENSOR_KIND_AIR
-    assert _registry_entry_kind("prefix_vpdleaf") == SENSOR_KIND_LEAF
-    assert (
-        _registry_entry_kind("prefix_absolute_humidity")
-        == SENSOR_KIND_ABSOLUTE_HUMIDITY
-    )
-    assert _registry_entry_kind("prefix_dew_point") == SENSOR_KIND_DEW_POINT
-    assert _registry_entry_kind("prefix_unknown") is None
 
 
 def test_unique_id_building_matches_public_helpers(hass: HomeAssistant) -> None:
@@ -234,10 +225,10 @@ def test_handle_coordinator_update_writes_state(hass: HomeAssistant) -> None:
     sensor.async_write_ha_state.assert_called_once()
 
 
-async def test_async_setup_entry_adds_and_removes_expected_entities(
+async def test_async_setup_entry_entity_lifecycle_without_registry_deletions(
     hass: HomeAssistant,
 ) -> None:
-    """Test async setup entry adds and removes expected entities."""
+    """Test lifecycle sync adds expected entities and avoids duplicates/deletions."""
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.add_to_hass(hass)
 
@@ -249,9 +240,8 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
         name="Setup Entry Device",
     )
     coordinator.data = {device.id: _snapshot(device.id)}
-    coordinator.creatable_kinds_for_device = Mock(
-        return_value=[SENSOR_KIND_AIR, SENSOR_KIND_LEAF]
-    )
+    creatable_kinds = [SENSOR_KIND_AIR, SENSOR_KIND_LEAF]
+    coordinator.creatable_kinds_for_device = Mock(return_value=creatable_kinds)
 
     remove_callback = Mock()
     coordinator.async_add_listener = Mock(return_value=remove_callback)
@@ -274,21 +264,17 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
     }
     coordinator.async_add_listener.assert_called_once()
 
-    entity_registry = er.async_get(hass)
-    stale = entity_registry.async_get_or_create(
-        "sensor",
-        DOMAIN,
-        make_absolute_humidity_unique_id(device.id),
-        config_entry=entry,
-        device_id=device.id,
-        original_name="Absolute Humidity",
-    )
-    entity_registry.async_remove = Mock(wraps=entity_registry.async_remove)
-
     sync_callback = coordinator.async_add_listener.call_args.args[0]
     sync_callback()
+    assert len(added_entities) == 2
 
-    entity_registry.async_remove.assert_called_once_with(stale.entity_id)
+    creatable_kinds[:] = [SENSOR_KIND_AIR, SENSOR_KIND_LEAF, SENSOR_KIND_DEW_POINT]
+    sync_callback()
+    assert {(entity._device_id, entity._kind) for entity in added_entities} == {
+        (device.id, SENSOR_KIND_AIR),
+        (device.id, SENSOR_KIND_LEAF),
+        (device.id, SENSOR_KIND_DEW_POINT),
+    }
     if entry._on_unload is not None:
         unload_callback = entry._on_unload[-1]
         maybe_result = unload_callback()
@@ -297,3 +283,132 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
         remove_callback.assert_called_once()
     else:
         remove_callback.assert_not_called()
+
+
+async def test_sensor_attaches_to_existing_device_registry_entry(
+    hass: HomeAssistant,
+) -> None:
+    """Test derived sensor attaches to source device and does not create a new one."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    entry.runtime_data = coordinator
+    device_registry = dr.async_get(hass)
+    source_device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "device-attach")},
+        name="Attached Device",
+    )
+    coordinator.data = {source_device.id: _snapshot(source_device.id)}
+    coordinator.creatable_kinds_for_device = Mock(return_value=[SENSOR_KIND_AIR])
+    coordinator.async_add_listener = Mock(return_value=Mock())
+    added_entities: list[DerivedValueSensor] = []
+
+    await async_setup_entry(
+        hass,
+        entry,
+        lambda entities, **kwargs: added_entities.extend(entities),
+    )
+
+    assert len(added_entities) == 1
+    sensor = added_entities[0]
+    assert sensor.device_entry is source_device
+    assert len(list(device_registry.devices.values())) == 1
+
+    entity_registry = er.async_get(hass)
+    reg = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        sensor.unique_id,
+        config_entry=entry,
+        device_id=source_device.id,
+        original_name=sensor.name,
+    )
+    assert reg.device_id == source_device.id
+
+
+async def test_non_creatable_kind_keeps_registry_entry(hass: HomeAssistant) -> None:
+    """Test policy/duplicate blocked kinds do not delete existing registry entries."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    entry.runtime_data = coordinator
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "blocked-kind")},
+        name="Blocked Device",
+    )
+    coordinator.data = {device.id: _snapshot(device.id)}
+    coordinator.creatable_kinds_for_device = Mock(return_value=[SENSOR_KIND_AIR])
+    coordinator.async_add_listener = Mock(return_value=Mock())
+    added_entities: list[DerivedValueSensor] = []
+    entity_registry = er.async_get(hass)
+    existing = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        make_absolute_humidity_unique_id(device.id),
+        config_entry=entry,
+        device_id=device.id,
+        original_name="Absolute Humidity",
+    )
+
+    await async_setup_entry(
+        hass,
+        entry,
+        lambda entities, **kwargs: added_entities.extend(entities),
+    )
+    sync_callback = coordinator.async_add_listener.call_args.args[0]
+    sync_callback()
+
+    assert entity_registry.async_get(existing.entity_id) is not None
+    assert not any(entity._kind == SENSOR_KIND_ABSOLUTE_HUMIDITY for entity in added_entities)
+
+
+async def test_missing_coordinator_data_keeps_registry_entries(
+    hass: HomeAssistant,
+) -> None:
+    """Test missing coordinator data does not remove generated registry entries."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    entry.runtime_data = coordinator
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "missing-data")},
+        name="Missing Data Device",
+    )
+    coordinator.data = {device.id: _snapshot(device.id)}
+    coordinator.creatable_kinds_for_device = Mock(return_value=[SENSOR_KIND_AIR])
+    coordinator.async_add_listener = Mock(return_value=Mock())
+    added_entities: list[DerivedValueSensor] = []
+    entity_registry = er.async_get(hass)
+    entry_air = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        make_vpdair_unique_id(device.id),
+        config_entry=entry,
+        device_id=device.id,
+        original_name="VPDair",
+    )
+    entry_leaf = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        make_vpdleaf_unique_id(device.id),
+        config_entry=entry,
+        device_id=device.id,
+        original_name="VPDleaf",
+    )
+
+    await async_setup_entry(
+        hass,
+        entry,
+        lambda entities, **kwargs: added_entities.extend(entities),
+    )
+
+    coordinator.data = {}
+    sync_callback = coordinator.async_add_listener.call_args.args[0]
+    sync_callback()
+
+    assert entity_registry.async_get(entry_air.entity_id) is not None
+    assert entity_registry.async_get(entry_leaf.entity_id) is not None
+    assert len(added_entities) == 1
