@@ -162,6 +162,11 @@
       "invalid_temperature_entity": "Select a valid temperature entity ID (sensor domain).",
       "invalid_humidity_entity": "Select a valid humidity entity ID (sensor domain).",
       "missing_source_override": "Provide at least one source entity (temperature and/or humidity)."
+    },
+    "abort": {
+      "no_area_policies_configured": "No area policies are configured yet.",
+      "no_device_policies_configured": "No device policies are configured yet.",
+      "no_source_overrides_configured": "No source overrides are configured yet."
     }
   },
   "entity": {

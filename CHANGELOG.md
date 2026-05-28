@@ -9,9 +9,11 @@ All notable changes to VPD Air Auto are documented in this file.
 - Release-readiness QA tests for English/German translation key parity.
 - Translation QA checks for required release-critical errors/aborts used by config/options flows.
 - Release metadata consistency checks covering `manifest.json` version and required HACS metadata presence.
+- Release workflow configuration checks for CI/Hassfest main-branch readiness before tagging `v2.0.0`.
 
 ### Changed
 
+- Added a final release checklist note: before tagging `v2.0.0`, verify the latest `main` branch CI and Hassfest runs are green.
 - Finalized README documentation for the 2.0.0 user experience: derived sensors, V2 policy model, source overrides, compatibility, installation, and policy priority.
 - Documented migration and lifecycle expectations for ConfigEntry schema v2, stable unique IDs, and non-destructive registry handling.
 - Finalized troubleshooting guidance for Diagnostics 2.0 (`source_selection`, policy sources, entity plan, and not-created reasons).
