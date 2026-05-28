@@ -1,102 +1,142 @@
 # VPD Air Auto
 
-VPD Air Auto is a Home Assistant custom integration for HACS. It automatically creates derived climate sensors for each Home Assistant device that exposes both a temperature sensor and a relative humidity sensor.
+## Overview
 
-Derived sensors:
+**VPD Air Auto** is a Home Assistant custom integration for HACS.
+It automatically creates derived climate sensors for Home Assistant devices that expose **both** temperature and relative humidity.
 
-| Sensor | Unit | Device class |
+It is designed for indoor climate monitoring, greenhouse/grow-room operation, and general environmental monitoring.
+
+## Derived sensors
+
+The integration can generate the following derived sensors per eligible device:
+
+| Sensor | Unit | Description |
 | --- | --- | --- |
-| VPDair | kPa | none |
-| VPDleaf | kPa | none |
-| Absolute Humidity | g/m³ | `absolute_humidity` |
-| Dew Point | °C | `temperature` |
+| VPDair | kPa | Vapor pressure deficit calculated from air temperature |
+| VPDleaf | kPa | Vapor pressure deficit calculated from estimated leaf temperature |
+| Absolute Humidity | g/m³ | Water vapor mass per cubic meter of air |
+| Dew Point | °C | Temperature at which condensation starts |
 
-## Features
+Notes:
+- **VPDleaf** uses a configurable leaf temperature offset.
+- **Dew Point** uses the Home Assistant `temperature` device class.
+- **Absolute Humidity** uses the Home Assistant `absolute_humidity` device class.
 
-- UI setup through Home Assistant config flow.
-- V2 policy model with Global Defaults, Area Policies and Device Policies.
-- Policy priority: Device > Area > Global.
-- Global display names and icons for every derived sensor type.
-- Optional manual source overrides per device (temperature/humidity entity IDs).
-- Configurable VPDleaf temperature offset per scope.
-- Automatic device discovery based on existing temperature and humidity sensors.
-- Duplicate protection when a device already exposes equivalent sensors.
-- Diagnostics support for troubleshooting.
-- English and German backend translations.
+## 2.0.0 feature summary
 
-## HACS installation
+The 2.0.0 release line introduces a finalized policy-based architecture:
 
-1. Open HACS.
+- V2 policy model with hierarchical scopes.
+- **Global Defaults** for integration-wide behavior.
+- **Area Policies** for area-level overrides.
+- **Device Policies** for device-level overrides.
+- **Source Overrides** for manually selecting source entities per device.
+- Deterministic policy priority: **Device > Area > Global**.
+- Robust migration from legacy V1 flat options to V2 storage.
+- Non-destructive entity lifecycle behavior (safe add/remove decisions).
+- Diagnostics 2.0 with policy and source decision visibility.
+- Automatic duplicate protection against equivalent pre-existing entities.
+- Stable manual source overrides when selected entities are temporarily `unknown`/`unavailable` and still metadata-valid.
+
+## Installation
+
+### HACS (custom repository)
+
+1. Open **HACS**.
 2. Open **Integrations**.
-3. Add this repository as a custom repository with category **Integration**.
+3. Add this repository as a **Custom repository** with category **Integration**.
 4. Install **VPD Air Auto**.
 5. Restart Home Assistant.
-6. Go to **Settings → Devices & services → Add integration** and add **VPD Air Auto**.
+6. Add the integration via **Settings → Devices & services**.
 
-## Manual installation
+### Manual installation
 
-Copy this folder into your Home Assistant configuration directory:
+Copy the integration folder into your Home Assistant configuration directory:
 
 ```text
 custom_components/vpd_air_auto
 ```
 
-Then restart Home Assistant and add **VPD Air Auto** from **Settings → Devices & services**.
-
-## Configuration
-
-The integration is configured entirely through the Home Assistant UI. YAML configuration is not supported.
-
-Options are organized in a menu-based V2 Options Flow:
-
-- **Global defaults**
-  - Topology rescan interval
-  - Global enable/disable flags for all derived kinds
-  - Global VPDleaf offset
-  - Global display names and icons
-- **Area policies**
-  - Add/edit/delete area-level behavior overrides
-  - Override enable/disable flags and VPDleaf offset for one area
-- **Device policies**
-  - Add/edit/delete device-level behavior overrides
-  - Override enable/disable flags and VPDleaf offset for one device
-- **Source overrides**
-  - Add/edit/delete manual source entity IDs per device
-  - Optional `temperature_entity_id` and `humidity_entity_id`
-
-Policy resolution is deterministic: **Device > Area > Global**.
+Then restart Home Assistant and add **VPD Air Auto** via **Settings → Devices & services**.
 
 ## Compatibility
 
-This repository targets the 2.0.0 release series. The minimum supported Home Assistant version is declared in `hacs.json`.
+- Current release line: **2.0.0**.
+- Minimum Home Assistant version is declared in `hacs.json`.
+- Minimum HACS version is declared in `hacs.json`.
+- YAML configuration is **not** supported.
+- One integration instance only.
 
-## Development container
+## Configuration
 
-This repository ships with a VS Code devcontainer inspired by the Home Assistant custom-component cookiecutter template. It provides a dedicated development container, a local Home Assistant instance on port `9123`, a debugpy attachment option, and VS Code tasks for starting Home Assistant and switching versions. See [`.devcontainer/README.md`](.devcontainer/README.md) for details.
+The integration is configured entirely through the Home Assistant UI (V2 Options Flow).
+
+### Global defaults
+
+Global defaults configure baseline behavior:
+
+- topology rescan interval
+- enable/disable each derived sensor kind globally
+- global VPDleaf offset
+- global sensor names and icons
+
+### Area policies
+
+Area policies provide per-area overrides:
+
+- override enable flags and leaf offset for a selected Home Assistant area
+- selected via an **Area selector**
+- unspecified values inherit from Global Defaults
+
+### Device policies
+
+Device policies provide per-device overrides:
+
+- override enable flags and leaf offset for a selected Home Assistant device
+- selected via a **Device selector**
+- unspecified values inherit from Area/Global
+- device policy always wins over area/global
+
+### Source overrides
+
+Source overrides allow manual source mapping per target device:
+
+- target selected via a **Device selector**
+- optional manual temperature source entity
+- optional manual humidity source entity
+- partial override is supported:
+  - temperature only
+  - humidity only
+  - both
+- manual override remains selected when entity state is temporarily `unknown`/`unavailable` but metadata is still valid
+- invalid manual override automatically falls back to auto-selection
+
+## Policy priority
+
+```text
+Device Policy > Area Policy > Global Defaults
+```
+
+## Diagnostics and troubleshooting
+
+Diagnostics 2.0 includes:
+
+- repository policy data snapshots
+- effective per-device policy values
+- area context visibility
+- source selection metadata
+- per-device entity plans (enabled / blocked / creatable)
+
+This helps validate policy and source behavior without changing runtime data.
 
 ## Development
-
-This repository is structured as a standalone HACS custom integration repository.
-
-Runtime code:
-
-```text
-custom_components/vpd_air_auto/
-```
-
-Tests:
-
-```text
-tests/
-```
 
 Install development dependencies:
 
 ```bash
 python -m pip install -r requirements_dev.txt
 ```
-
-This now includes `homeassistant` itself so the repository can be used directly inside the included devcontainer or a local virtual environment.
 
 Run checks:
 
@@ -105,8 +145,6 @@ ruff check .
 pylint custom_components/vpd_air_auto tests
 pytest --cov=custom_components.vpd_air_auto --cov-report=term-missing
 ```
-
-Run Hassfest in CI through the included GitHub workflow.
 
 ## License
 
