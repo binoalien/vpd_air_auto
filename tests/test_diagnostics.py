@@ -126,6 +126,7 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "blocked_sensor_kinds": ["leaf"],
                 "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
             },
+            "decision": {"entity_creation": {"not_created_kinds": {"leaf": "blocked_duplicate_detected"}}},
         }
     )
 
@@ -157,3 +158,4 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
         "dew_point",
     ]
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+    assert diagnostics["decision"]["entity_creation"]["not_created_kinds"]["leaf"] == "blocked_duplicate_detected"

@@ -28,6 +28,10 @@ from .const import (
     CONF_LEAF_ICON,
     CONF_LEAF_OFFSET,
     DOMAIN,
+    SENSOR_KIND_ABSOLUTE_HUMIDITY,
+    SENSOR_KIND_AIR,
+    SENSOR_KIND_DEW_POINT,
+    SENSOR_KIND_LEAF,
     IntegrationOptions,
 )
 from .discovery.duplicates import DuplicateDetectionService
@@ -40,6 +44,12 @@ from .services.snapshot_builder import SnapshotBuilder
 from .services.subscriptions import SubscriptionManager
 
 _LOGGER = logging.getLogger(__name__)
+_ALL_SENSOR_KINDS = (
+    SENSOR_KIND_AIR,
+    SENSOR_KIND_LEAF,
+    SENSOR_KIND_ABSOLUTE_HUMIDITY,
+    SENSOR_KIND_DEW_POINT,
+)
 
 
 def _policy_data_from_options(
@@ -200,6 +210,8 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
         """Return a sanitized diagnostics payload for the whole config entry."""
         effective_policies: dict[str, Any] = {}
         entity_plan: dict[str, Any] = {}
+        device_decisions: dict[str, Any] = {}
+        inactive_devices: dict[str, Any] = {}
         for device_id, topology in self._topology.items():
             effective_policy = self._policy_resolver.resolve_for_device(
                 device_id=device_id,
@@ -219,6 +231,20 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
                 "enabled_kinds": sorted(enabled_kinds),
             }
+            decision = self._device_decision_payload(
+                topology=topology,
+                effective_policy=effective_policy,
+                enabled_kinds=enabled_kinds,
+                blocked_sensor_kinds=blocked_sensor_kinds,
+                creatable_kinds=creatable_kinds,
+            )
+            device_decisions[device_id] = decision
+            if not creatable_kinds:
+                inactive_devices[device_id] = {
+                    "device_name": topology.device_name,
+                    "reason": "all_enabled_kinds_blocked_or_disabled",
+                    "not_created_kinds": decision["entity_creation"]["not_created_kinds"],
+                }
 
         return {
             "options": asdict(self.options),
@@ -234,6 +260,8 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             "policy": self._policy_repository.as_dict(),
             "effective_policies": effective_policies,
             "entity_plan": entity_plan,
+            "device_decisions": device_decisions,
+            "inactive_devices": inactive_devices,
         }
 
     @callback
@@ -277,12 +305,85 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
                 "enabled_kinds": sorted(enabled_kinds),
             },
+            "decision": self._device_decision_payload(
+                topology=topology,
+                effective_policy=effective_policy,
+                enabled_kinds=enabled_kinds,
+                blocked_sensor_kinds=blocked_sensor_kinds,
+                creatable_kinds=creatable_kinds,
+            )
+            if topology is not None and effective_policy is not None
+            else None,
             "topology": asdict(topology) if topology else None,
             "snapshot": (
                 asdict(self.data[device_id])
                 if self.data and device_id in self.data
                 else None
             ),
+        }
+
+    @staticmethod
+    def _device_decision_payload(
+        *,
+        topology: DeviceTopology,
+        effective_policy: Any,
+        enabled_kinds: set[str],
+        blocked_sensor_kinds: set[str],
+        creatable_kinds: set[str],
+    ) -> dict[str, Any]:
+        """Build verbose diagnostics explaining entity and policy decisions."""
+        source_override = effective_policy.source_override
+        source_selection = {
+            "temperature": {
+                "entity_id": topology.temperature_entity_id,
+                "selection_mode": "manual_override"
+                if source_override and source_override.temperature_entity_id
+                else "automatic",
+                "override_requested_entity_id": (
+                    source_override.temperature_entity_id if source_override else None
+                ),
+            },
+            "humidity": {
+                "entity_id": topology.humidity_entity_id,
+                "selection_mode": "manual_override"
+                if source_override and source_override.humidity_entity_id
+                else "automatic",
+                "override_requested_entity_id": (
+                    source_override.humidity_entity_id if source_override else None
+                ),
+            },
+        }
+        policy_field_sources = {
+            "enable_air": effective_policy.behavior_source,
+            "enable_leaf": effective_policy.behavior_source,
+            "enable_absolute_humidity": effective_policy.behavior_source,
+            "enable_dew_point": effective_policy.behavior_source,
+            "leaf_offset_c": effective_policy.leaf_offset_source,
+        }
+        not_created_kinds: dict[str, str] = {}
+        for kind in _ALL_SENSOR_KINDS:
+            if kind in creatable_kinds:
+                continue
+            if kind in blocked_sensor_kinds:
+                not_created_kinds[kind] = "blocked_duplicate_detected"
+            elif kind not in enabled_kinds:
+                not_created_kinds[kind] = "disabled_by_policy"
+            else:
+                not_created_kinds[kind] = "not_creatable_unknown"
+
+        return {
+            "source_selection": source_selection,
+            "policy_summary": {
+                "effective_behavior_source": effective_policy.behavior_source,
+                "effective_leaf_offset_source": effective_policy.leaf_offset_source,
+                "policy_field_sources": policy_field_sources,
+            },
+            "entity_creation": {
+                "enabled_kinds": sorted(enabled_kinds),
+                "blocked_kinds": sorted(blocked_sensor_kinds),
+                "creatable_kinds": sorted(creatable_kinds),
+                "not_created_kinds": not_created_kinds,
+            },
         }
 
     @callback

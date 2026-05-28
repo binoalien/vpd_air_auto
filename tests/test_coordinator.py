@@ -392,6 +392,9 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
         SENSOR_KIND_DEW_POINT,
         SENSOR_KIND_LEAF,
     ]
+    assert diagnostics["device_decisions"]["device-1"]["source_selection"]["temperature"]["selection_mode"] == "automatic"
+    assert diagnostics["device_decisions"]["device-1"]["entity_creation"]["not_created_kinds"][SENSOR_KIND_LEAF] == "blocked_duplicate_detected"
+    assert diagnostics["inactive_devices"] == {}
 
 
 def _contexts(device_ids: set[str]):
