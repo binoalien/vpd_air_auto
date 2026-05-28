@@ -284,6 +284,9 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         user_input: dict[str, Any] | None,
     ) -> ConfigFlowResult:
         scope_map = self._scope_map(scope_level)
+        if not scope_map:
+            return self.async_abort(reason=self._empty_scope_abort_reason(scope_level))
+
         if user_input is not None:
             selected_scope = user_input.get("scope_id")
             if isinstance(selected_scope, str) and selected_scope in scope_map:
@@ -308,6 +311,9 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         user_input: dict[str, Any] | None,
     ) -> ConfigFlowResult:
         scope_map = self._scope_map(scope_level)
+        if not scope_map:
+            return self.async_abort(reason=self._empty_scope_abort_reason(scope_level))
+
         if user_input is not None:
             selected_scope = user_input.get("scope_id")
             if isinstance(selected_scope, str) and selected_scope in scope_map:
@@ -378,6 +384,12 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         """Return scoped map for area/device with options-data fallback."""
         return self._entry_mapping(f"{scope_level}_policies")
 
+    def _empty_scope_abort_reason(self, scope_level: str) -> str:
+        """Return the empty-state abort reason for a scoped policy level."""
+        if scope_level == "area":
+            return "no_area_policies_configured"
+        return "no_device_policies_configured"
+
     def _build_updated_options(
         self,
         scope_level: str,
@@ -398,7 +410,7 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
     def _scope_select_schema(self, scope_map: dict[str, Any]) -> vol.Schema:
         """Build selector schema for choosing a scope id."""
         default_scope = next(iter(scope_map), "")
-        choices = list(scope_map) or [""]
+        choices = list(scope_map)
         return vol.Schema(
             {vol.Required("scope_id", default=default_scope): vol.In(choices)}
         )
@@ -413,6 +425,9 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None
     ) -> ConfigFlowResult:
         source_overrides = self._entry_mapping("source_overrides")
+        if not source_overrides:
+            return self.async_abort(reason="no_source_overrides_configured")
+
         if user_input is not None:
             selected_scope = user_input.get("scope_id")
             if (
@@ -436,6 +451,9 @@ class VpdAirAutoOptionsFlow(OptionsFlowWithReload):
         self, user_input: dict[str, Any] | None
     ) -> ConfigFlowResult:
         source_overrides = self._entry_mapping("source_overrides")
+        if not source_overrides:
+            return self.async_abort(reason="no_source_overrides_configured")
+
         if user_input is not None:
             selected_scope = user_input.get("scope_id")
             if (

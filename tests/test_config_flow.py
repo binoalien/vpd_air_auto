@@ -174,6 +174,118 @@ async def test_options_flow_returns_form_with_entry_values(hass: HomeAssistant) 
     ]
 
 
+async def _start_options_menu(
+    hass: HomeAssistant, entry: MockConfigEntry, menu_step: str
+) -> dict:
+    """Start an options flow and enter a submenu."""
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": menu_step}
+    )
+    return init_result
+
+
+async def _assert_empty_options_action_aborts(
+    hass: HomeAssistant,
+    *,
+    menu_step: str,
+    action_step: str,
+    reason: str,
+    options: dict[str, object] | None = None,
+) -> None:
+    """Assert an empty edit/delete options action aborts with the expected reason."""
+    entry = MockConfigEntry(
+        domain=DOMAIN, data=_valid_user_input(), options=options or {}
+    )
+    entry.add_to_hass(hass)
+
+    init_result = await _start_options_menu(hass, entry, menu_step)
+    result = await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": action_step}
+    )
+
+    assert result.get("type") is FlowResultType.ABORT
+    assert result.get("reason") == reason
+
+
+async def test_area_policy_edit_aborts_when_no_area_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test area policy edit aborts when no area policies exist."""
+    await _assert_empty_options_action_aborts(
+        hass,
+        menu_step="area_policies",
+        action_step="area_policy_edit",
+        reason="no_area_policies_configured",
+        options={"area_policies": {}},
+    )
+
+
+async def test_area_policy_delete_aborts_when_no_area_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test area policy delete aborts when no area policies exist."""
+    await _assert_empty_options_action_aborts(
+        hass,
+        menu_step="area_policies",
+        action_step="area_policy_delete",
+        reason="no_area_policies_configured",
+        options={"area_policies": {}},
+    )
+
+
+async def test_device_policy_edit_aborts_when_no_device_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test device policy edit aborts when no device policies exist."""
+    await _assert_empty_options_action_aborts(
+        hass,
+        menu_step="device_policies",
+        action_step="device_policy_edit",
+        reason="no_device_policies_configured",
+        options={"device_policies": {}},
+    )
+
+
+async def test_device_policy_delete_aborts_when_no_device_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test device policy delete aborts when no device policies exist."""
+    await _assert_empty_options_action_aborts(
+        hass,
+        menu_step="device_policies",
+        action_step="device_policy_delete",
+        reason="no_device_policies_configured",
+        options={"device_policies": {}},
+    )
+
+
+async def test_source_override_edit_aborts_when_no_source_overrides_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test source override edit aborts when no source overrides exist."""
+    await _assert_empty_options_action_aborts(
+        hass,
+        menu_step="source_overrides",
+        action_step="source_override_edit",
+        reason="no_source_overrides_configured",
+        options={"source_overrides": {}},
+    )
+
+
+async def test_source_override_delete_aborts_when_no_source_overrides_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test source override delete aborts when no source overrides exist."""
+    await _assert_empty_options_action_aborts(
+        hass,
+        menu_step="source_overrides",
+        action_step="source_override_delete",
+        reason="no_source_overrides_configured",
+        options={"source_overrides": {}},
+    )
+
+
 async def test_source_override_menu_adds_edits_and_deletes(
     hass: HomeAssistant,
 ) -> None:

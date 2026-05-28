@@ -162,6 +162,11 @@
       "invalid_temperature_entity": "Bitte eine gültige Temperatur-Entity-ID aus der Domain sensor auswählen.",
       "invalid_humidity_entity": "Bitte eine gültige Luftfeuchte-Entity-ID aus der Domain sensor auswählen.",
       "missing_source_override": "Bitte mindestens eine Quell-Entity angeben (Temperatur und/oder Luftfeuchte)."
+    },
+    "abort": {
+      "no_area_policies_configured": "Es sind noch keine Bereichsrichtlinien konfiguriert.",
+      "no_device_policies_configured": "Es sind noch keine Geräterichtlinien konfiguriert.",
+      "no_source_overrides_configured": "Es sind noch keine Quellüberschreibungen konfiguriert."
     }
   },
   "entity": {
