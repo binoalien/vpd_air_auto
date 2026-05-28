@@ -140,8 +140,8 @@
         "title": "Edit source override",
         "data": {
           "scope_id": "Device ID",
-          "temperature_entity_id": "Temperature entity ID",
-          "humidity_entity_id": "Humidity entity ID"
+          "temperature_entity_id": "Temperature source entity",
+          "humidity_entity_id": "Humidity source entity"
         }
       },
       "source_override_delete": {
@@ -157,7 +157,11 @@
       "invalid_absolute_humidity_icon": "Enter a valid non-empty icon string.",
       "invalid_absolute_humidity_display_name": "Enter a valid non-empty sensor name.",
       "invalid_dew_point_icon": "Enter a valid non-empty icon string.",
-      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name."
+      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_scope_id": "Select a valid area or device.",
+      "invalid_temperature_entity": "Select a valid temperature entity ID (sensor domain).",
+      "invalid_humidity_entity": "Select a valid humidity entity ID (sensor domain).",
+      "missing_source_override": "Provide at least one source entity (temperature and/or humidity)."
     }
   },
   "entity": {

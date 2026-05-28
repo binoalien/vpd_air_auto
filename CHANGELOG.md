@@ -4,11 +4,19 @@ All notable changes to VPD Air Auto are documented in this file.
 
 ## 2.0.0 (unreleased)
 
+### Added
+
+- Add release-readiness QA tests for translation parity, required translation error keys, and release metadata consistency.
+
 ### Changed
 
-- Finalize V2 documentation and options-flow translations for menu-based Global/Area/Device policy editing and source overrides.
-- Extend diagnostics payloads with repository policy data, effective per-device policy values including source metadata, area context, and per-device entity plans (enabled/blocked/creatable kinds).
-- Remove obsolete V1-oriented docs descriptions in favor of V2 architecture behavior.
+- Finalize README documentation for the 2.0.0 V2 policy model, derived sensors, compatibility, installation, and configuration guidance.
+- Finalize English and German translations for source override validation errors and consistent Area/Device/Source Override wording.
+- Expand 2.0.0 release notes to summarize hardening outcomes across policy resolution, migrations, diagnostics, source override behavior, and non-destructive entity lifecycle behavior.
+
+### Fixed
+
+- Close translation coverage gaps for source override validation messages (`invalid_scope_id`, invalid source entity IDs, and missing source override input).
 
 
 ## 1.5.13
