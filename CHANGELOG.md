@@ -6,6 +6,7 @@ All notable changes to VPD Air Auto are documented in this file.
 
 ### Added
 
+- Release-gate workflow QA checks for required CI and Hassfest triggers/commands.
 - Release-readiness QA tests for English/German translation key parity.
 - Translation QA checks for required release-critical errors/aborts used by config/options flows.
 - Release metadata consistency checks covering `manifest.json` version and required HACS metadata presence.
@@ -19,8 +20,14 @@ All notable changes to VPD Air Auto are documented in this file.
 
 ### Fixed
 
+- Improved empty edit/delete options-flow states for area policies, device policies, and source overrides.
+- Aligned humidity unit source ranking with accepted relative-humidity unit metadata variants.
 - Closed translation coverage gaps for source override validation (`invalid_scope_id`, invalid source entity IDs, and missing source override input).
 - Aligned source override field labels in edit/add flows to consistently describe source entities.
+
+### Release checklist
+
+- Before tagging `v2.0.0`, verify the latest `main` branch has CI success and Hassfest success.
 
 ## 1.5.13
 

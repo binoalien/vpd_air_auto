@@ -44,6 +44,14 @@ def test_release_required_translation_error_keys_exist() -> None:
 
     assert "single_instance_allowed" in en["config"]["abort"]
 
+    required_abort_keys = {
+        "no_area_policies_configured",
+        "no_device_policies_configured",
+        "no_source_overrides_configured",
+    }
+
+    assert required_abort_keys.issubset(set(en["options"]["abort"].keys()))
+
     required_error_keys = {
         "invalid_icon",
         "invalid_display_name",
@@ -79,3 +87,26 @@ def test_changelog_has_release_ready_200_heading() -> None:
 
     assert "## 2.0.0\n" in changelog
     assert "## 2.0.0 (unreleased)" not in changelog
+
+
+def test_release_gate_workflows_cover_required_main_checks() -> None:
+    """Release-critical workflows should keep required triggers and commands."""
+    ci_text = (ROOT / ".github" / "workflows" / "ci.yaml").read_text(
+        encoding="utf-8"
+    )
+    hassfest_text = (ROOT / ".github" / "workflows" / "hassfest.yaml").read_text(
+        encoding="utf-8"
+    )
+
+    for expected in (
+        "pull_request",
+        "push",
+        "main",
+        "ruff check .",
+        "pylint custom_components/vpd_air_auto tests",
+        "pytest --cov=custom_components.vpd_air_auto --cov-report=term-missing",
+    ):
+        assert expected in ci_text
+
+    for expected in ("pull_request", "push", "main", "hassfest"):
+        assert expected in hassfest_text
