@@ -121,10 +121,36 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "source_override": None,
                 "display": {"display_name": "VPDair"},
             },
+            "source_selection": {
+                "temperature": {
+                    "selected_entity_id": "sensor.grow_tent_temperature",
+                    "selection_source": "automatic",
+                    "override_requested": False,
+                    "override_entity_id": None,
+                    "override_applied": False,
+                },
+                "humidity": {
+                    "selected_entity_id": "sensor.grow_tent_humidity",
+                    "selection_source": "automatic",
+                    "override_requested": False,
+                    "override_entity_id": None,
+                    "override_applied": False,
+                },
+            },
             "entity_plan": {
                 "creatable_kinds": ["absolute_humidity", "air", "dew_point"],
                 "blocked_sensor_kinds": ["leaf"],
                 "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
+                "blocked_by_duplicates": ["leaf"],
+                "disabled_by_policy": [],
+                "not_created_reasons": {"leaf": "blocked_by_duplicate_detection"},
+                "policy_field_sources": {
+                    "enable_air": "global",
+                    "enable_leaf": "global",
+                    "enable_absolute_humidity": "global",
+                    "enable_dew_point": "global",
+                    "leaf_offset_c": "global",
+                },
             },
         }
     )
@@ -157,3 +183,13 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
         "dew_point",
     ]
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+
+
+async def test_device_diagnostics_includes_source_selection(hass: HomeAssistant) -> None:
+    """Device diagnostics should expose source selection explanation."""
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(config_entry_id=entry.entry_id, identifiers={("test", "grow-tent-2")}, name="Grow Tent 2")
+    entry.runtime_data = SimpleNamespace(device_diagnostics_payload=lambda _device_id: {"topology": None, "snapshot": None, "area_id": None, "area_name": None, "creatable_kinds": [], "blocked_sensor_kinds": [], "enabled_kinds": [], "effective_policy": None, "source_selection": {"temperature": {"selection_source": "manual_override"}, "humidity": {"selection_source": "automatic"}}, "entity_plan": {"creatable_kinds": [], "blocked_sensor_kinds": [], "enabled_kinds": []}})
+    diagnostics = await async_get_device_diagnostics(hass, entry, device)
+    assert diagnostics["source_selection"]["temperature"]["selection_source"] == "manual_override"

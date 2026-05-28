@@ -13,6 +13,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.const import (
     CONF_ENABLE_AIR,
+    CONF_ENABLE_DEW_POINT,
     CONF_ENABLE_LEAF,
     CONF_LEAF_OFFSET,
     DOMAIN,
@@ -392,6 +393,16 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
         SENSOR_KIND_DEW_POINT,
         SENSOR_KIND_LEAF,
     ]
+    assert diagnostics["source_selection"]["device-1"]["temperature"]["selection_source"] == "automatic"
+    assert diagnostics["source_selection"]["device-1"]["humidity"]["selection_source"] == "automatic"
+    assert diagnostics["entity_plan"]["device-1"]["blocked_by_duplicates"] == [
+        SENSOR_KIND_LEAF
+    ]
+    assert diagnostics["entity_plan"]["device-1"]["disabled_by_policy"] == []
+    assert diagnostics["entity_plan"]["device-1"]["not_created_reasons"] == {
+        SENSOR_KIND_LEAF: "blocked_by_duplicate_detection"
+    }
+    assert diagnostics["entity_plan"]["device-1"]["policy_field_sources"]["leaf_offset_c"] == "global"
 
 
 def _contexts(device_ids: set[str]):
@@ -709,3 +720,44 @@ async def test_device_policy_overrides_area_and_global_at_runtime(
     assert policy.leaf_offset_c == -1.4
     assert policy.behavior_source == "device"
     assert policy.leaf_offset_source == "device"
+
+
+def test_device_diagnostics_payload_includes_source_selection_and_not_created_reasons(
+    hass: HomeAssistant,
+) -> None:
+    """Device diagnostics should explain source and non-created sensor reasons."""
+    coordinator = _build_coordinator(
+        hass,
+        entry_options={
+            "source_overrides": {
+                "device-1": {"temperature_entity_id": "sensor.manual_temp"}
+            },
+            "device_policies": {
+                "device-1": {
+                    CONF_ENABLE_DEW_POINT: False,
+                }
+            },
+        },
+    )
+    coordinator._topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.auto_temp",
+            humidity_entity_id="sensor.auto_hum",
+            blocked_sensor_kinds=frozenset({SENSOR_KIND_LEAF}),
+        )
+    }
+
+    payload = coordinator.device_diagnostics_payload("device-1")
+
+    assert payload["source_selection"]["temperature"]["selection_source"] == "automatic_fallback"
+    assert payload["source_selection"]["temperature"]["override_requested"] is True
+    assert payload["source_selection"]["temperature"]["override_applied"] is False
+    assert payload["source_selection"]["humidity"]["selection_source"] == "automatic"
+    assert payload["entity_plan"]["not_created_reasons"][SENSOR_KIND_LEAF] == (
+        "blocked_by_duplicate_detection"
+    )
+    assert payload["entity_plan"]["not_created_reasons"][SENSOR_KIND_DEW_POINT] == (
+        "disabled_by_policy"
+    )
