@@ -263,7 +263,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             "options": asdict(self.options),
             "tracked_entity_ids": sorted(self._subscription_manager.tracked_entity_ids),
             "topology": {
-                device_id: asdict(topology)
+                device_id: self._serialize_topology(topology)
                 for device_id, topology in self._topology.items()
             },
             "snapshots": {
@@ -349,7 +349,7 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 if topology is not None
                 else False,
             },
-            "topology": asdict(topology) if topology else None,
+            "topology": self._serialize_topology(topology) if topology else None,
             "snapshot": (
                 asdict(self.data[device_id])
                 if self.data and device_id in self.data
@@ -400,6 +400,13 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 ),
             },
         }
+
+    @staticmethod
+    def _serialize_topology(topology: DeviceTopology) -> dict[str, Any]:
+        """Serialize topology dataclass into JSON-friendly diagnostics structure."""
+        serialized = asdict(topology)
+        serialized["blocked_sensor_kinds"] = sorted(topology.blocked_sensor_kinds)
+        return serialized
 
     @staticmethod
     def _entity_plan_diagnostics(

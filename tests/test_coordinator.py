@@ -373,9 +373,9 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
         "sensor.grow_tent_humidity",
         "sensor.grow_tent_temperature",
     ]
-    assert diagnostics["topology"]["device-1"]["blocked_sensor_kinds"] == frozenset(
-        {SENSOR_KIND_LEAF}
-    )
+    assert diagnostics["topology"]["device-1"]["blocked_sensor_kinds"] == [
+        SENSOR_KIND_LEAF
+    ]
     assert diagnostics["snapshots"]["device-1"]["vpd_air_kpa"] == 1.27
     assert diagnostics["snapshots"]["device-1"]["dew_point_c"] == 16.68
     assert diagnostics["policy"]["global_policy"]["enable_air"] is True
