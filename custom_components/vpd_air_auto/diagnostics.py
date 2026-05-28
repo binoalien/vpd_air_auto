@@ -59,6 +59,9 @@ async def async_get_device_diagnostics(
             "enabled_kinds": payload["enabled_kinds"],
             "effective_policy": payload["effective_policy"],
             "entity_plan": payload["entity_plan"],
+            "policy_field_sources": payload["policy_field_sources"],
+            "source_selection": payload["source_selection"],
+            "source_tracking": payload["source_tracking"],
         },
         _TO_REDACT,
     )

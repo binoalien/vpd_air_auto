@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 from homeassistant.core import HomeAssistant
@@ -126,6 +127,15 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "blocked_sensor_kinds": ["leaf"],
                 "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
             },
+            "policy_field_sources": {
+                "enable_air": "global",
+                "enable_leaf": "area",
+            },
+            "source_selection": {
+                "temperature": {"origin": "automatic"},
+                "humidity": {"origin": "manual_override"},
+            },
+            "source_tracking": {"active_snapshot": True},
         }
     )
 
@@ -157,3 +167,35 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
         "dew_point",
     ]
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+    assert diagnostics["policy_field_sources"]["enable_leaf"] == "area"
+    assert diagnostics["source_selection"]["humidity"]["origin"] == "manual_override"
+    assert diagnostics["source_tracking"]["active_snapshot"] is True
+
+
+async def test_device_diagnostics_json_serializable(hass: HomeAssistant) -> None:
+    """Device diagnostics response is JSON serializable."""
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "grow-tent-json")},
+        name="Grow Tent JSON",
+    )
+    entry.runtime_data = SimpleNamespace(
+        device_diagnostics_payload=lambda device_id: {
+            "topology": None,
+            "snapshot": None,
+            "area_id": None,
+            "area_name": None,
+            "creatable_kinds": [],
+            "blocked_sensor_kinds": [],
+            "enabled_kinds": [],
+            "effective_policy": None,
+            "entity_plan": {},
+            "policy_field_sources": {},
+            "source_selection": None,
+            "source_tracking": {},
+        }
+    )
+    diagnostics = await async_get_device_diagnostics(hass, entry, device)
+    json.dumps(diagnostics)
