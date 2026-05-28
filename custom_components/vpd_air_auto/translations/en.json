@@ -157,7 +157,14 @@
       "invalid_absolute_humidity_icon": "Enter a valid non-empty icon string.",
       "invalid_absolute_humidity_display_name": "Enter a valid non-empty sensor name.",
       "invalid_dew_point_icon": "Enter a valid non-empty icon string.",
-      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name."
+      "invalid_dew_point_display_name": "Enter a valid non-empty sensor name.",
+      "invalid_scope_id": "Select a valid Area/Device from the list.",
+      "invalid_temperature_entity": "Select a valid temperature entity (domain: sensor or number).",
+      "invalid_humidity_entity": "Select a valid humidity entity (domain: sensor or number).",
+      "missing_source_override": "Set at least one source override (temperature and/or humidity).",
+      "no_area_policies": "No area policies are currently configured.",
+      "no_device_policies": "No device policies are currently configured.",
+      "no_source_overrides": "No source overrides are currently configured."
     }
   },
   "entity": {

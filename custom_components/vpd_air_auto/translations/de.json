@@ -157,7 +157,14 @@
       "invalid_absolute_humidity_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
       "invalid_absolute_humidity_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
       "invalid_dew_point_icon": "Bitte einen gültigen, nicht leeren Icon-String eingeben.",
-      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben."
+      "invalid_dew_point_display_name": "Bitte einen gültigen, nicht leeren Sensornamen eingeben.",
+      "invalid_scope_id": "Bitte einen gültigen Bereich/ein gültiges Gerät aus der Liste auswählen.",
+      "invalid_temperature_entity": "Bitte eine gültige Temperatur-Entität auswählen (Domäne: sensor oder number).",
+      "invalid_humidity_entity": "Bitte eine gültige Luftfeuchte-Entität auswählen (Domäne: sensor oder number).",
+      "missing_source_override": "Bitte mindestens eine Quellüberschreibung setzen (Temperatur und/oder Luftfeuchte).",
+      "no_area_policies": "Es sind derzeit keine Bereichsrichtlinien konfiguriert.",
+      "no_device_policies": "Es sind derzeit keine Geräterichtlinien konfiguriert.",
+      "no_source_overrides": "Es sind derzeit keine Quellüberschreibungen konfiguriert."
     }
   },
   "entity": {
