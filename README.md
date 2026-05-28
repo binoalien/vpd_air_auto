@@ -39,7 +39,7 @@ The 2.0.0 release line finalizes the V2 architecture:
 
 ## Installation
 
-## HACS (recommended)
+### HACS (recommended)
 
 1. Open **HACS** in Home Assistant.
 2. Open **Integrations**.
@@ -48,7 +48,7 @@ The 2.0.0 release line finalizes the V2 architecture:
 5. Restart Home Assistant.
 6. Go to **Settings → Devices & services** and add **VPD Air Auto**.
 
-## Manual installation
+### Manual installation
 
 1. Copy this repository's integration folder into your Home Assistant configuration directory:
 
@@ -120,6 +120,26 @@ Source overrides define manual input source entities for a specific target devic
 ```text
 Device Policy > Area Policy > Global Defaults
 ```
+
+## Migration
+
+- Config entries are stored with schema version **2**.
+- Existing V1 flat options are migrated automatically to the V2 policy/options structure.
+- Sensor unique IDs stay stable across migration, so existing entity registry entries are preserved.
+
+## Entity lifecycle
+
+- Generated registry entities are not deleted only because a derived kind is currently disabled, blocked, or temporarily unavailable.
+- Entity creation/removal decisions are based on discovery and duplicate safety rules, while preserving existing registry stability.
+
+## Diagnostics and troubleshooting
+
+Diagnostics include release-relevant troubleshooting context for each managed device, including:
+
+- selected source information (`source_selection`)
+- resolved policy values and where each value came from (global/area/device)
+- per-device `entity_plan` with enabled/blocked/creatable kinds
+- explicit not-created reasons (for example duplicate protection or missing valid inputs)
 
 ## Development container
 
