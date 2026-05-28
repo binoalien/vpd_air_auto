@@ -9,7 +9,6 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -19,7 +18,6 @@ from .const import (
     UNRECORDED_ATTRIBUTE_HUMIDITY_ENTITY_ID,
     UNRECORDED_ATTRIBUTE_LEAF_TEMPERATURE_OFFSET_C,
     UNRECORDED_ATTRIBUTE_TEMPERATURE_ENTITY_ID,
-    device_id_from_unique_id,
     make_absolute_humidity_unique_id,
     make_dew_point_unique_id,
     make_vpdair_unique_id,
@@ -49,30 +47,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the sensor platform."""
     coordinator = entry.runtime_data
-    entity_registry = er.async_get(hass)
     known_entities: set[tuple[str, SensorKind]] = set()
-
-    @callback
-    def _remove_stale_registry_entities(
-        current_entities: set[tuple[str, SensorKind]]
-    ) -> None:
-        for registry_entry in er.async_entries_for_config_entry(
-            entity_registry, entry.entry_id
-        ):
-            if registry_entry.domain != "sensor" or registry_entry.platform != DOMAIN:
-                continue
-
-            device_id = device_id_from_unique_id(registry_entry.unique_id)
-            kind = _registry_entry_kind(registry_entry.unique_id)
-            entity_key = (
-                (device_id, kind)
-                if device_id is not None and kind is not None
-                else None
-            )
-            if entity_key is not None and entity_key in current_entities:
-                continue
-
-            entity_registry.async_remove(registry_entry.entity_id)
 
     @callback
     def _sync_entities() -> None:
@@ -81,7 +56,6 @@ async def async_setup_entry(
             for device_id in (coordinator.data or {})
             for kind in coordinator.creatable_kinds_for_device(device_id)
         }
-        _remove_stale_registry_entities(current_entities)
 
         removed_entities = known_entities - current_entities
         if removed_entities:

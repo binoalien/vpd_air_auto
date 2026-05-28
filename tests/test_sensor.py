@@ -237,7 +237,7 @@ def test_handle_coordinator_update_writes_state(hass: HomeAssistant) -> None:
 async def test_async_setup_entry_adds_and_removes_expected_entities(
     hass: HomeAssistant,
 ) -> None:
-    """Test async setup entry adds and removes expected entities."""
+    """Test async setup entry adds expected entities without duplicates."""
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.add_to_hass(hass)
 
@@ -274,21 +274,19 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
     }
     coordinator.async_add_listener.assert_called_once()
 
-    entity_registry = er.async_get(hass)
-    stale = entity_registry.async_get_or_create(
-        "sensor",
-        DOMAIN,
-        make_absolute_humidity_unique_id(device.id),
-        config_entry=entry,
-        device_id=device.id,
-        original_name="Absolute Humidity",
-    )
-    entity_registry.async_remove = Mock(wraps=entity_registry.async_remove)
-
     sync_callback = coordinator.async_add_listener.call_args.args[0]
     sync_callback()
+    assert len(added_entities) == 2
 
-    entity_registry.async_remove.assert_called_once_with(stale.entity_id)
+    coordinator.creatable_kinds_for_device = Mock(
+        return_value=[SENSOR_KIND_AIR, SENSOR_KIND_LEAF, SENSOR_KIND_DEW_POINT]
+    )
+    sync_callback()
+    assert {(entity._device_id, entity._kind) for entity in added_entities} == {
+        (device.id, SENSOR_KIND_AIR),
+        (device.id, SENSOR_KIND_LEAF),
+        (device.id, SENSOR_KIND_DEW_POINT),
+    }
     if entry._on_unload is not None:
         unload_callback = entry._on_unload[-1]
         maybe_result = unload_callback()
@@ -297,3 +295,115 @@ async def test_async_setup_entry_adds_and_removes_expected_entities(
         remove_callback.assert_called_once()
     else:
         remove_callback.assert_not_called()
+
+
+async def test_generated_sensor_attaches_to_existing_device_and_registry(
+    hass: HomeAssistant,
+) -> None:
+    """Test generated sensors attach to the source device in registries."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    device_registry = dr.async_get(hass)
+    source_device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "source-device")},
+        name="Source Device",
+    )
+    coordinator.data = {source_device.id: _snapshot(source_device.id)}
+
+    sensor = DerivedValueSensor(hass, coordinator, source_device.id, SENSOR_KIND_AIR)
+    assert sensor.device_entry == source_device
+
+    entity_registry = er.async_get(hass)
+    registry_entry = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        sensor.unique_id,
+        config_entry=entry,
+        device_id=source_device.id,
+        original_name=sensor.name,
+    )
+    assert registry_entry.device_id == source_device.id
+    assert len(dr.async_entries_for_config_entry(device_registry, entry.entry_id)) == 1
+
+
+async def test_non_creatable_registry_entities_are_not_removed(
+    hass: HomeAssistant,
+) -> None:
+    """Test stale generated registry entities are preserved."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    entry.runtime_data = coordinator
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "non-creatable")},
+        name="Non Creatable Device",
+    )
+    coordinator.data = {device.id: _snapshot(device.id)}
+    coordinator.creatable_kinds_for_device = Mock(return_value=[SENSOR_KIND_AIR])
+    coordinator.async_add_listener = Mock(return_value=Mock())
+    added_entities: list[Entity] = []
+
+    def _capture_add_entities(new_entities: Iterable[Entity], **_: object) -> None:
+        added_entities.extend(new_entities)
+
+    entity_registry = er.async_get(hass)
+    stale = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        make_vpdleaf_unique_id(device.id),
+        config_entry=entry,
+        device_id=device.id,
+        original_name="VPDleaf",
+    )
+
+    await async_setup_entry(hass, entry, _capture_add_entities)
+    sync_callback = coordinator.async_add_listener.call_args.args[0]
+    sync_callback()
+
+    assert entity_registry.async_get(stale.entity_id) is not None
+    assert {(entity._device_id, entity._kind) for entity in added_entities} == {
+        (device.id, SENSOR_KIND_AIR)
+    }
+
+
+async def test_missing_coordinator_data_does_not_remove_registry_entities(
+    hass: HomeAssistant,
+) -> None:
+    """Test missing coordinator data keeps existing registry entries."""
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator = VpdAirCoordinator(hass, entry, _options())
+    entry.runtime_data = coordinator
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "missing-data")},
+        name="Missing Data Device",
+    )
+    coordinator.data = {device.id: _snapshot(device.id)}
+    coordinator.creatable_kinds_for_device = Mock(return_value=[SENSOR_KIND_AIR])
+    coordinator.async_add_listener = Mock(return_value=Mock())
+    added_entities: list[Entity] = []
+
+    def _capture_add_entities(new_entities: Iterable[Entity], **_: object) -> None:
+        added_entities.extend(new_entities)
+
+    entity_registry = er.async_get(hass)
+    existing = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        make_vpdair_unique_id(device.id),
+        config_entry=entry,
+        device_id=device.id,
+        original_name="VPDair",
+    )
+
+    await async_setup_entry(hass, entry, _capture_add_entities)
+    coordinator.data = {}
+    sync_callback = coordinator.async_add_listener.call_args.args[0]
+    sync_callback()
+
+    assert entity_registry.async_get(existing.entity_id) is not None
+    assert len(added_entities) == 1
