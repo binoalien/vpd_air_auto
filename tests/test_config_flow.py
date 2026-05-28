@@ -717,3 +717,109 @@ async def test_area_delete_removes_selected_area_id(
     assert result["data"]["source_overrides"] == entry.options["source_overrides"]
     assert "global_policy" in result["data"]
     assert result["data"]["global_policy"][CONF_ENABLE_AIR] is True
+
+
+async def _select_options_menu(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    menu_step: str,
+    action_step: str,
+) -> dict[str, object]:
+    """Open an options flow submenu and choose an action."""
+    init_result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": menu_step}
+    )
+    return await hass.config_entries.options.async_configure(
+        init_result["flow_id"], user_input={"next_step_id": action_step}
+    )
+
+
+async def test_area_policy_edit_aborts_when_no_area_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test area policy edit aborts when no area policies exist."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input(), options={})
+    entry.add_to_hass(hass)
+
+    result = await _select_options_menu(
+        hass, entry, "area_policies", "area_policy_edit"
+    )
+
+    assert result.get("type") is FlowResultType.ABORT
+    assert result.get("reason") == "no_area_policies_configured"
+
+
+async def test_area_policy_delete_aborts_when_no_area_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test area policy delete aborts when no area policies exist."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input(), options={})
+    entry.add_to_hass(hass)
+
+    result = await _select_options_menu(
+        hass, entry, "area_policies", "area_policy_delete"
+    )
+
+    assert result.get("type") is FlowResultType.ABORT
+    assert result.get("reason") == "no_area_policies_configured"
+
+
+async def test_device_policy_edit_aborts_when_no_device_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test device policy edit aborts when no device policies exist."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input(), options={})
+    entry.add_to_hass(hass)
+
+    result = await _select_options_menu(
+        hass, entry, "device_policies", "device_policy_edit"
+    )
+
+    assert result.get("type") is FlowResultType.ABORT
+    assert result.get("reason") == "no_device_policies_configured"
+
+
+async def test_device_policy_delete_aborts_when_no_device_policies_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test device policy delete aborts when no device policies exist."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input(), options={})
+    entry.add_to_hass(hass)
+
+    result = await _select_options_menu(
+        hass, entry, "device_policies", "device_policy_delete"
+    )
+
+    assert result.get("type") is FlowResultType.ABORT
+    assert result.get("reason") == "no_device_policies_configured"
+
+
+async def test_source_override_edit_aborts_when_no_source_overrides_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test source override edit aborts when no source overrides exist."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input(), options={})
+    entry.add_to_hass(hass)
+
+    result = await _select_options_menu(
+        hass, entry, "source_overrides", "source_override_edit"
+    )
+
+    assert result.get("type") is FlowResultType.ABORT
+    assert result.get("reason") == "no_source_overrides_configured"
+
+
+async def test_source_override_delete_aborts_when_no_source_overrides_configured(
+    hass: HomeAssistant,
+) -> None:
+    """Test source override delete aborts when no source overrides exist."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input(), options={})
+    entry.add_to_hass(hass)
+
+    result = await _select_options_menu(
+        hass, entry, "source_overrides", "source_override_delete"
+    )
+
+    assert result.get("type") is FlowResultType.ABORT
+    assert result.get("reason") == "no_source_overrides_configured"

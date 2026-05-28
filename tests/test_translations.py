@@ -10,6 +10,8 @@ EN_PATH = ROOT / "custom_components" / "vpd_air_auto" / "translations" / "en.jso
 DE_PATH = ROOT / "custom_components" / "vpd_air_auto" / "translations" / "de.json"
 HACS_PATH = ROOT / "hacs.json"
 MANIFEST_PATH = ROOT / "custom_components" / "vpd_air_auto" / "manifest.json"
+CI_WORKFLOW_PATH = ROOT / ".github" / "workflows" / "ci.yaml"
+HASSFEST_WORKFLOW_PATH = ROOT / ".github" / "workflows" / "hassfest.yaml"
 
 
 def _load_json(path: Path) -> dict:
@@ -62,6 +64,14 @@ def test_release_required_translation_error_keys_exist() -> None:
 
     assert required_error_keys.issubset(set(en["options"]["error"].keys()))
 
+    required_abort_keys = {
+        "no_area_policies_configured",
+        "no_device_policies_configured",
+        "no_source_overrides_configured",
+    }
+
+    assert required_abort_keys.issubset(set(en["options"]["abort"].keys()))
+
 
 def test_release_version_metadata_is_consistent() -> None:
     """Release metadata should consistently target 2.0.0."""
@@ -79,3 +89,22 @@ def test_changelog_has_release_ready_200_heading() -> None:
 
     assert "## 2.0.0\n" in changelog
     assert "## 2.0.0 (unreleased)" not in changelog
+
+
+def test_release_workflows_include_required_main_branch_gates() -> None:
+    """Release workflows should retain CI and Hassfest main-branch gates."""
+    ci = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+    hassfest = HASSFEST_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    for expected_ci_text in (
+        "pull_request",
+        "push",
+        "main",
+        "ruff check .",
+        "pylint custom_components/vpd_air_auto tests",
+        "pytest --cov=custom_components.vpd_air_auto --cov-report=term-missing",
+    ):
+        assert expected_ci_text in ci
+
+    for expected_hassfest_text in ("pull_request", "push", "main", "hassfest"):
+        assert expected_hassfest_text in hassfest

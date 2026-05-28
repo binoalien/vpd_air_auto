@@ -6,6 +6,7 @@ from custom_components.vpd_air_auto.discovery.selection import (
     TARGET_HUMIDITY,
     TARGET_TEMPERATURE,
     SourceCandidate,
+    candidate_score,
     choose_best_entity_id,
     normalize_identifier,
 )
@@ -94,4 +95,62 @@ def test_temperature_unit_score_does_not_prefer_kelvin_over_celsius() -> None:
     assert (
         choose_best_entity_id(candidates, TARGET_TEMPERATURE)
         == "sensor.grow_tent_air_temperature"
+    )
+
+
+def _humidity_score_for_unit(
+    unit: str | None,
+) -> tuple[int, int, int, int, int, int, int, str]:
+    """Return candidate score for a humidity candidate with the given unit."""
+    return candidate_score(
+        SourceCandidate(
+            entity_id="sensor.grow_tent_humidity",
+            device_class=TARGET_HUMIDITY,
+            unit_of_measurement=unit,
+            entity_category=None,
+            value_valid=True,
+            normalized_identifiers=frozenset({"humidity"}),
+        ),
+        TARGET_HUMIDITY,
+    )
+
+
+def test_humidity_unit_score_accepts_supported_percent_variants() -> None:
+    """Humidity scoring should match supported metadata unit variants."""
+    expected_unit_score = _humidity_score_for_unit("%")[2]
+
+    for unit in ("%", "%RH", "RH%", "percent", "percentage", "relative humidity"):
+        assert _humidity_score_for_unit(unit)[2] == expected_unit_score == 25
+
+
+def test_humidity_unit_score_rejects_unsupported_units() -> None:
+    """Unsupported humidity units should not receive unit-score preference."""
+    assert _humidity_score_for_unit("g/m³")[2] == 0
+    assert _humidity_score_for_unit("foo")[2] == 0
+
+
+def test_humidity_percent_rh_unit_beats_unsupported_unit() -> None:
+    """A %RH candidate should rank ahead of an otherwise equal unsupported unit."""
+    candidates = [
+        SourceCandidate(
+            entity_id="sensor.unsupported_humidity",
+            device_class=TARGET_HUMIDITY,
+            unit_of_measurement="foo",
+            entity_category=None,
+            value_valid=True,
+            normalized_identifiers=frozenset({"humidity"}),
+        ),
+        SourceCandidate(
+            entity_id="sensor.percent_rh_humidity",
+            device_class=TARGET_HUMIDITY,
+            unit_of_measurement="%RH",
+            entity_category=None,
+            value_valid=True,
+            normalized_identifiers=frozenset({"humidity"}),
+        ),
+    ]
+
+    assert (
+        choose_best_entity_id(candidates, TARGET_HUMIDITY)
+        == "sensor.percent_rh_humidity"
     )
