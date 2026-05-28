@@ -286,6 +286,31 @@ async def test_source_override_delete_aborts_when_no_source_overrides_configured
     )
 
 
+async def test_missing_policy_and_source_maps_abort_like_empty_maps(
+    hass: HomeAssistant,
+) -> None:
+    """Test missing options maps use the same empty-state aborts as empty maps."""
+    entry = MockConfigEntry(domain=DOMAIN, data=_valid_user_input(), options={})
+    entry.add_to_hass(hass)
+
+    for menu_step, action_step, reason in (
+        ("area_policies", "area_policy_edit", "no_area_policies_configured"),
+        ("device_policies", "device_policy_edit", "no_device_policies_configured"),
+        (
+            "source_overrides",
+            "source_override_edit",
+            "no_source_overrides_configured",
+        ),
+    ):
+        init_result = await _start_options_menu(hass, entry, menu_step)
+        result = await hass.config_entries.options.async_configure(
+            init_result["flow_id"], user_input={"next_step_id": action_step}
+        )
+
+        assert result.get("type") is FlowResultType.ABORT
+        assert result.get("reason") == reason
+
+
 async def test_source_override_menu_adds_edits_and_deletes(
     hass: HomeAssistant,
 ) -> None:
