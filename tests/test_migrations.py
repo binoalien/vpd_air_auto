@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.core import HomeAssistant
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.const import (
@@ -159,14 +160,15 @@ async def test_async_migrate_entry_skips_future_versions(hass: HomeAssistant) ->
     assert entry.options == before_options
 
 
+@pytest.mark.parametrize("legacy_value", ["bad-float", None, {}, [], "nan", "inf", "-inf"])
 async def test_async_migrate_entry_invalid_leaf_offset_uses_default(
-    hass: HomeAssistant,
+    hass: HomeAssistant, legacy_value: object
 ) -> None:
-    """Malformed legacy leaf offsets fallback to integration default."""
+    """Invalid or non-finite legacy leaf offsets fallback to integration default."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         version=1,
-        data={CONF_LEAF_OFFSET: "bad-float"},
+        data={CONF_LEAF_OFFSET: legacy_value},
         options={},
     )
     entry.add_to_hass(hass)
@@ -176,19 +178,22 @@ async def test_async_migrate_entry_invalid_leaf_offset_uses_default(
     assert entry.options["global_policy"][CONF_LEAF_OFFSET] == DEFAULT_LEAF_OFFSET
 
 
-async def test_async_migrate_entry_non_finite_leaf_offset_uses_default(
-    hass: HomeAssistant,
+@pytest.mark.parametrize(
+    ("legacy_value", "expected"),
+    [("-1.5", -1.5), (2, 2.0), (2.5, 2.5)],
+)
+async def test_async_migrate_entry_valid_leaf_offset_preserved(
+    hass: HomeAssistant, legacy_value: object, expected: float
 ) -> None:
-    """NaN/inf legacy leaf offsets fallback to integration default."""
-    for value in ("nan", "inf", "-inf"):
-        entry = MockConfigEntry(
-            domain=DOMAIN,
-            version=1,
-            data={CONF_LEAF_OFFSET: value},
-            options={},
-        )
-        entry.add_to_hass(hass)
+    """Convertible finite legacy leaf offsets are preserved during migration."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=1,
+        data={CONF_LEAF_OFFSET: legacy_value},
+        options={},
+    )
+    entry.add_to_hass(hass)
 
-        assert await async_migrate_entry(hass, entry) is True
+    assert await async_migrate_entry(hass, entry) is True
 
-        assert entry.options["global_policy"][CONF_LEAF_OFFSET] == DEFAULT_LEAF_OFFSET
+    assert entry.options["global_policy"][CONF_LEAF_OFFSET] == expected
