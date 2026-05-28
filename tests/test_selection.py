@@ -68,3 +68,30 @@ def test_prefers_humidity_suffix_over_generic_name() -> None:
         choose_best_entity_id(candidates, TARGET_HUMIDITY)
         == "sensor.device_relative_humidity"
     )
+
+
+def test_temperature_unit_score_does_not_prefer_kelvin_over_celsius() -> None:
+    """Kelvin should not receive unit-score preference over Celsius/Fahrenheit."""
+    candidates = [
+        SourceCandidate(
+            entity_id="sensor.grow_tent_temperature",
+            device_class=TARGET_TEMPERATURE,
+            unit_of_measurement="K",
+            entity_category=None,
+            value_valid=True,
+            normalized_identifiers=frozenset({"temperature"}),
+        ),
+        SourceCandidate(
+            entity_id="sensor.grow_tent_air_temperature",
+            device_class=TARGET_TEMPERATURE,
+            unit_of_measurement="°C",
+            entity_category=None,
+            value_valid=True,
+            normalized_identifiers=frozenset({"temperature"}),
+        ),
+    ]
+
+    assert (
+        choose_best_entity_id(candidates, TARGET_TEMPERATURE)
+        == "sensor.grow_tent_air_temperature"
+    )

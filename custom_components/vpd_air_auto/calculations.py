@@ -10,6 +10,10 @@ from homeassistant.core import State
 _DEW_POINT_A = 17.625
 _DEW_POINT_B = 243.04
 
+_CELSIUS_UNITS = frozenset({None, "°C", "°c", "C", "c"})
+_FAHRENHEIT_UNITS = frozenset({"°F", "°f", "F", "f"})
+_KELVIN_UNITS = frozenset({"K", "k", "°K", "°k"})
+
 
 def coerce_number(value: str | None) -> float | None:
     """Convert a Home Assistant state string to a float."""
@@ -17,9 +21,10 @@ def coerce_number(value: str | None) -> float | None:
         return None
 
     try:
-        return float(value)
+        number = float(value)
     except TypeError, ValueError:
         return None
+    return number if math.isfinite(number) else None
 
 
 def coerce_temperature_c(state: State | None) -> float | None:
@@ -32,11 +37,21 @@ def coerce_temperature_c(state: State | None) -> float | None:
         return None
 
     unit = state.attributes.get("unit_of_measurement")
-    if unit in (None, "°C", "°c", "C", "c"):
-        return value
-    if unit in ("°F", "°f", "F", "f"):
-        return (value - 32.0) * 5.0 / 9.0
-    return None
+    if unit in _CELSIUS_UNITS:
+        conversion = value
+    elif unit in _FAHRENHEIT_UNITS:
+        conversion = (value - 32.0) * 5.0 / 9.0
+    elif unit in _KELVIN_UNITS:
+        conversion = _coerce_kelvin_to_celsius(value)
+    else:
+        conversion = None
+    return conversion
+
+
+def _coerce_kelvin_to_celsius(value: float) -> float | None:
+    if value < 0:
+        return None
+    return value - 273.15
 
 
 def coerce_humidity_pct(state: State | None) -> float | None:

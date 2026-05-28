@@ -55,12 +55,16 @@ def test_coerce_number_handles_unknown_invalid_and_numeric_values() -> None:
     assert coerce_number(None) is None
     assert coerce_number(STATE_UNKNOWN) is None
     assert coerce_number(STATE_UNAVAILABLE) is None
+    assert coerce_number("nan") is None
+    assert coerce_number("inf") is None
+    assert coerce_number("-inf") is None
     assert coerce_number("abc") is None
     assert coerce_number("12.5") == 12.5
 
 
-def test_coerce_temperature_c_handles_celsius_fahrenheit_and_invalid_units() -> None:
-    """Test coerce temperature c handles celsius fahrenheit and invalid units."""
+def test_coerce_temperature_c_handles_supported_and_invalid_units(
+) -> None:
+    """Test coerce temperature c handles celsius fahrenheit kelvin and invalid units."""
     assert coerce_temperature_c(None) is None
     assert (
         coerce_temperature_c(
@@ -73,9 +77,25 @@ def test_coerce_temperature_c_handles_celsius_fahrenheit_and_invalid_units() -> 
     )
     assert result is not None
     assert round(result, 3) == 25.0
+    result = coerce_temperature_c(
+        State("sensor.temp_k_zero", "273.15", {"unit_of_measurement": "K"}, None)
+    )
+    assert result is not None
+    assert round(result, 3) == 0.0
+    result = coerce_temperature_c(
+        State("sensor.temp_k", "298.15", {"unit_of_measurement": "K"}, None)
+    )
+    assert result is not None
+    assert round(result, 3) == 25.0
     assert (
         coerce_temperature_c(
-            State("sensor.temp_invalid", "12", {"unit_of_measurement": "K"}, None)
+            State("sensor.temp_k_invalid", "-1", {"unit_of_measurement": "K"}, None)
+        )
+        is None
+    )
+    assert (
+        coerce_temperature_c(
+            State("sensor.temp_invalid", "12", {"unit_of_measurement": "R"}, None)
         )
         is None
     )
@@ -92,6 +112,8 @@ def test_coerce_humidity_pct_handles_none_invalid_and_out_of_range() -> None:
     assert (
         coerce_humidity_pct(State("sensor.humidity_negative", "-1", {}, None)) is None
     )
+    assert coerce_humidity_pct(State("sensor.humidity_nan", "nan", {}, None)) is None
+    assert coerce_humidity_pct(State("sensor.humidity_inf", "inf", {}, None)) is None
     assert coerce_humidity_pct(State("sensor.humidity_over", "101", {}, None)) is None
     assert coerce_humidity_pct(State("sensor.humidity_valid", "45", {}, None)) == 45.0
 
