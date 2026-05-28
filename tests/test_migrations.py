@@ -157,3 +157,38 @@ async def test_async_migrate_entry_skips_future_versions(hass: HomeAssistant) ->
     assert entry.version == 3
     assert entry.data == before_data
     assert entry.options == before_options
+
+
+async def test_async_migrate_entry_invalid_leaf_offset_uses_default(
+    hass: HomeAssistant,
+) -> None:
+    """Malformed legacy leaf offsets fallback to integration default."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=1,
+        data={CONF_LEAF_OFFSET: "bad-float"},
+        options={},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry) is True
+
+    assert entry.options["global_policy"][CONF_LEAF_OFFSET] == DEFAULT_LEAF_OFFSET
+
+
+async def test_async_migrate_entry_non_finite_leaf_offset_uses_default(
+    hass: HomeAssistant,
+) -> None:
+    """NaN/inf legacy leaf offsets fallback to integration default."""
+    for value in ("nan", "inf", "-inf"):
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            version=1,
+            data={CONF_LEAF_OFFSET: value},
+            options={},
+        )
+        entry.add_to_hass(hass)
+
+        assert await async_migrate_entry(hass, entry) is True
+
+        assert entry.options["global_policy"][CONF_LEAF_OFFSET] == DEFAULT_LEAF_OFFSET

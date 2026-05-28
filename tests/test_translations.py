@@ -71,3 +71,11 @@ def test_release_version_metadata_is_consistent() -> None:
     assert manifest["version"] == "2.0.0"
     assert hacs["homeassistant"]
     assert hacs["hacs"]
+
+
+def test_changelog_has_release_ready_200_heading() -> None:
+    """Changelog must use a release-ready heading for 2.0.0."""
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert "## 2.0.0\n" in changelog
+    assert "## 2.0.0 (unreleased)" not in changelog
