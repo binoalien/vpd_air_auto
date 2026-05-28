@@ -217,7 +217,7 @@ def test_sensor_with_missing_device_entry_is_safe(hass: HomeAssistant) -> None:
     assert sensor.device_entry is None
     assert sensor.available is False
     assert sensor.native_value is None
-    assert sensor.extra_state_attributes == {}
+    assert not sensor.extra_state_attributes
     assert sensor.unique_id == make_vpdair_unique_id(unknown_device_id)
 
 
