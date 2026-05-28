@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
 import pytest
+from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.vpd_air_auto.const import (
@@ -160,7 +160,10 @@ async def test_async_migrate_entry_skips_future_versions(hass: HomeAssistant) ->
     assert entry.options == before_options
 
 
-@pytest.mark.parametrize("legacy_value", ["bad-float", None, {}, [], "nan", "inf", "-inf"])
+@pytest.mark.parametrize(
+    "legacy_value",
+    ["bad-float", None, {}, [], "nan", "inf", "-inf"],
+)
 async def test_async_migrate_entry_invalid_leaf_offset_uses_default(
     hass: HomeAssistant, legacy_value: object
 ) -> None:
