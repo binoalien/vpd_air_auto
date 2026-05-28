@@ -126,6 +126,15 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
                 "blocked_sensor_kinds": ["leaf"],
                 "enabled_kinds": ["absolute_humidity", "air", "dew_point", "leaf"],
             },
+            "policy_field_sources": {
+                "enable_air": "global",
+                "enable_leaf": "area",
+            },
+            "source_selection": {
+                "temperature": {"selection_source": "automatic"},
+                "humidity": {"selection_source": "manual_override"},
+            },
+            "source_tracking": {"tracked_for_updates": True},
         }
     )
 
@@ -157,3 +166,6 @@ async def test_device_diagnostics_contains_topology_snapshot_and_creatable_kinds
         "dew_point",
     ]
     assert diagnostics["creatable_kinds"] == ["absolute_humidity", "air", "dew_point"]
+    assert diagnostics["policy_field_sources"]["enable_leaf"] == "area"
+    assert diagnostics["source_selection"]["humidity"]["selection_source"] == "manual_override"
+    assert diagnostics["source_tracking"]["tracked_for_updates"] is True

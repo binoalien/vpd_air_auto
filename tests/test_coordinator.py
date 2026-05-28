@@ -392,6 +392,9 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
         SENSOR_KIND_DEW_POINT,
         SENSOR_KIND_LEAF,
     ]
+    assert diagnostics["source_selection"]["device-1"]["temperature"]["selection_source"] == "automatic"
+    assert diagnostics["source_tracking"]["device-1"]["tracked_for_updates"] is True
+    assert diagnostics["inactive_devices"] == []
 
 
 def _contexts(device_ids: set[str]):
@@ -709,3 +712,42 @@ async def test_device_policy_overrides_area_and_global_at_runtime(
     assert policy.leaf_offset_c == -1.4
     assert policy.behavior_source == "device"
     assert policy.leaf_offset_source == "device"
+
+
+def test_device_diagnostics_payload_contains_policy_source_and_reasoning(
+    hass: HomeAssistant,
+) -> None:
+    """Device payload should explain source and non-creatable reasons."""
+    coordinator = _build_coordinator(
+        hass,
+        options=_options(enable_air=False),
+        entry_options={
+            "area_policies": {"area-1": {CONF_ENABLE_LEAF: True}},
+            "source_overrides": {
+                "device-1": {"temperature_entity_id": "sensor.manual_temperature"}
+            },
+        },
+    )
+    coordinator._topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.manual_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+            blocked_sensor_kinds=frozenset({SENSOR_KIND_LEAF}),
+            area_id="area-1",
+        )
+    }
+
+    payload = coordinator.device_diagnostics_payload("device-1")
+
+    assert payload["policy_field_sources"]["enable_air"] == "global"
+    assert payload["policy_field_sources"]["enable_leaf"] == "area"
+    assert (
+        payload["source_selection"]["temperature"]["selection_source"]
+        == "manual_override"
+    )
+    assert (
+        payload["entity_plan"]["not_created_reasons"][SENSOR_KIND_LEAF]
+        == "blocked_duplicate_existing_sensor"
+    )
