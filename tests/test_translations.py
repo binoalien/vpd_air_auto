@@ -10,6 +10,7 @@ EN_PATH = ROOT / "custom_components" / "vpd_air_auto" / "translations" / "en.jso
 DE_PATH = ROOT / "custom_components" / "vpd_air_auto" / "translations" / "de.json"
 HACS_PATH = ROOT / "hacs.json"
 MANIFEST_PATH = ROOT / "custom_components" / "vpd_air_auto" / "manifest.json"
+CHANGELOG_PATH = ROOT / "CHANGELOG.md"
 
 
 def _load_json(path: Path) -> dict:
@@ -71,3 +72,11 @@ def test_release_version_metadata_is_consistent() -> None:
     assert manifest["version"] == "2.0.0"
     assert hacs["homeassistant"]
     assert hacs["hacs"]
+
+
+def test_changelog_release_heading_is_not_unreleased() -> None:
+    """Changelog release heading should be ready for 2.0.0 tagging."""
+    changelog = CHANGELOG_PATH.read_text(encoding="utf-8")
+
+    assert "## 2.0.0 (unreleased)" not in changelog
+    assert "## 2.0.0" in changelog

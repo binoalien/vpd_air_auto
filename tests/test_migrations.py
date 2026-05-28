@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -157,3 +158,24 @@ async def test_async_migrate_entry_skips_future_versions(hass: HomeAssistant) ->
     assert entry.version == 3
     assert entry.data == before_data
     assert entry.options == before_options
+
+
+@pytest.mark.parametrize(
+    "raw_leaf_offset",
+    ["not-a-float", object(), None, "nan", "inf", "-inf"],
+)
+async def test_async_migrate_entry_invalid_leaf_offset_falls_back_to_default(
+    hass: HomeAssistant, raw_leaf_offset: object
+) -> None:
+    """Malformed or non-finite V1 leaf offsets fall back to default."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=1,
+        data={CONF_LEAF_OFFSET: raw_leaf_offset},
+        options={},
+    )
+    entry.add_to_hass(hass)
+
+    assert await async_migrate_entry(hass, entry) is True
+
+    assert entry.options["global_policy"][CONF_LEAF_OFFSET] == DEFAULT_LEAF_OFFSET

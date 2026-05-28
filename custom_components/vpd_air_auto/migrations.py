@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -49,6 +50,15 @@ def _as_bool_or_default(value: Any, default: bool) -> bool:
     return value if isinstance(value, bool) else default
 
 
+def _leaf_offset_or_default(value: Any, default: float) -> float:
+    """Return a finite float leaf offset, or default for malformed values."""
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if math.isfinite(parsed) else default
+
+
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate V1 flat config fields into V2 nested policy structure."""
     if entry.version >= V2_ENTRY_VERSION:
@@ -75,8 +85,9 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _effective_value(entry, CONF_ENABLE_DEW_POINT, DEFAULT_ENABLE_DEW_POINT),
             DEFAULT_ENABLE_DEW_POINT,
         ),
-        CONF_LEAF_OFFSET: float(
-            _effective_value(entry, CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET)
+        CONF_LEAF_OFFSET: _leaf_offset_or_default(
+            _effective_value(entry, CONF_LEAF_OFFSET, DEFAULT_LEAF_OFFSET),
+            DEFAULT_LEAF_OFFSET,
         ),
         CONF_ICON: str(_effective_value(entry, CONF_ICON, DEFAULT_ICON)),
         CONF_DISPLAY_NAME: str(
