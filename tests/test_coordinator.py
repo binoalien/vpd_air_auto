@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Any
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
@@ -392,8 +393,15 @@ def test_diagnostics_payload_contains_options_topology_snapshots_and_tracked_sou
         SENSOR_KIND_DEW_POINT,
         SENSOR_KIND_LEAF,
     ]
-    assert diagnostics["source_selection"]["device-1"]["temperature"]["selection_source"] == "automatic"
-    assert diagnostics["source_tracking"]["device-1"]["tracked_for_updates"] is True
+    assert (
+        diagnostics["source_selection"]["device-1"]["temperature"]["origin"]
+        == "automatic"
+    )
+    assert diagnostics["source_tracking"]["device-1"]["active_snapshot"] is True
+    assert diagnostics["source_tracking"]["device-1"]["source_entities_tracked"] is True
+    assert diagnostics["discovered_device_ids"] == ["device-1"]
+    assert diagnostics["active_device_ids"] == ["device-1"]
+    assert diagnostics["inactive_discovered_device_ids"] == []
     assert diagnostics["inactive_devices"] == []
 
 
@@ -741,13 +749,52 @@ def test_device_diagnostics_payload_contains_policy_source_and_reasoning(
 
     payload = coordinator.device_diagnostics_payload("device-1")
 
-    assert payload["policy_field_sources"]["enable_air"] == "global"
+    assert payload["policy_field_sources"]["enable_air"] == "area"
     assert payload["policy_field_sources"]["enable_leaf"] == "area"
     assert (
-        payload["source_selection"]["temperature"]["selection_source"]
-        == "manual_override"
+        payload["source_selection"]["temperature"]["origin"] == "manual_override"
     )
     assert (
         payload["entity_plan"]["not_created_reasons"][SENSOR_KIND_LEAF]
-        == "blocked_duplicate_existing_sensor"
+        == "blocked_by_duplicate"
     )
+
+
+def test_diagnostics_not_created_reasons_variants(hass: HomeAssistant) -> None:
+    """Diagnostics should explain disabled/blocked combinations."""
+    coordinator = _build_coordinator(
+        hass,
+        options=_options(enable_air=False, enable_dew_point=False),
+    )
+    coordinator._topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.grow_tent_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+            blocked_sensor_kinds=frozenset({SENSOR_KIND_AIR, SENSOR_KIND_LEAF}),
+        )
+    }
+    reasons = coordinator.diagnostics_payload()["entity_plan"]["device-1"][
+        "not_created_reasons"
+    ]
+    assert reasons[SENSOR_KIND_AIR] == "disabled_and_blocked"
+    assert reasons[SENSOR_KIND_DEW_POINT] == "disabled_by_policy"
+    assert reasons[SENSOR_KIND_LEAF] == "blocked_by_duplicate"
+    assert SENSOR_KIND_ABSOLUTE_HUMIDITY not in reasons
+
+
+def test_diagnostics_json_serializable(hass: HomeAssistant) -> None:
+    """Coordinator diagnostics payloads are JSON serializable."""
+    coordinator = _build_coordinator(hass)
+    coordinator._topology = {
+        "device-1": DeviceTopology(
+            device_id="device-1",
+            device_name="Grow Tent",
+            temperature_entity_id="sensor.grow_tent_temperature",
+            humidity_entity_id="sensor.grow_tent_humidity",
+        )
+    }
+    coordinator.data = {"device-1": _snapshot("device-1")}
+    json.dumps(coordinator.diagnostics_payload())
+    json.dumps(coordinator.device_diagnostics_payload("device-1"))

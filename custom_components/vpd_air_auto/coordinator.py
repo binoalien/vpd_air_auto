@@ -28,6 +28,10 @@ from .const import (
     CONF_LEAF_ICON,
     CONF_LEAF_OFFSET,
     DOMAIN,
+    SENSOR_KIND_ABSOLUTE_HUMIDITY,
+    SENSOR_KIND_AIR,
+    SENSOR_KIND_DEW_POINT,
+    SENSOR_KIND_LEAF,
     IntegrationOptions,
 )
 from .discovery.duplicates import DuplicateDetectionService
@@ -40,6 +44,12 @@ from .services.snapshot_builder import SnapshotBuilder
 from .services.subscriptions import SubscriptionManager
 
 _LOGGER = logging.getLogger(__name__)
+ALL_SENSOR_KINDS = {
+    SENSOR_KIND_AIR,
+    SENSOR_KIND_LEAF,
+    SENSOR_KIND_ABSOLUTE_HUMIDITY,
+    SENSOR_KIND_DEW_POINT,
+}
 
 
 def _policy_data_from_options(
@@ -217,29 +227,24 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 effective_policy,
             )
             effective_policies[device_id] = asdict(effective_policy)
+            plan = self._entity_plan_diagnostics(
+                enabled_kinds,
+                blocked_sensor_kinds,
+                creatable_kinds,
+            )
             entity_plan[device_id] = {
                 "creatable_kinds": sorted(creatable_kinds),
                 "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
                 "enabled_kinds": sorted(enabled_kinds),
-                "disabled_by_policy_kinds": sorted(enabled_kinds.difference(creatable_kinds)),
-                "blocked_by_duplicate_kinds": sorted(
-                    blocked_sensor_kinds.intersection(enabled_kinds)
-                ),
-                "not_created_reasons": self._not_created_reasons(
-                    enabled_kinds,
-                    blocked_sensor_kinds,
-                    creatable_kinds,
-                ),
+                **plan,
             }
             source_selection[device_id] = self._source_selection_diagnostics(topology)
             source_tracking[device_id] = {
-                "tracked_for_updates": device_id in (self.data or {}),
-                "tracked_entity_ids": sorted(
-                    [
-                        topology.temperature_entity_id,
-                        topology.humidity_entity_id,
-                    ]
+                "active_snapshot": device_id in (self.data or {}),
+                "source_entity_ids": sorted(
+                    [topology.temperature_entity_id, topology.humidity_entity_id]
                 ),
+                "source_entities_tracked": self._source_entities_tracked(topology),
             }
             if not creatable_kinds:
                 inactive_devices.append(
@@ -248,14 +253,12 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                         "device_name": topology.device_name,
                         "enabled_kinds": sorted(enabled_kinds),
                         "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
-                        "not_created_reasons": self._not_created_reasons(
-                            enabled_kinds,
-                            blocked_sensor_kinds,
-                            creatable_kinds,
-                        ),
+                        "not_created_reasons": plan["not_created_reasons"],
                     }
                 )
 
+        active_device_ids = sorted((self.data or {}).keys())
+        discovered_device_ids = sorted(self._topology.keys())
         return {
             "options": asdict(self.options),
             "tracked_entity_ids": sorted(self._subscription_manager.tracked_entity_ids),
@@ -272,7 +275,15 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             "entity_plan": entity_plan,
             "source_selection": source_selection,
             "source_tracking": source_tracking,
-            "inactive_devices": sorted(inactive_devices, key=lambda item: item["device_id"]),
+            "inactive_devices": sorted(
+                inactive_devices,
+                key=lambda item: item["device_id"],
+            ),
+            "discovered_device_ids": discovered_device_ids,
+            "active_device_ids": active_device_ids,
+            "inactive_discovered_device_ids": sorted(
+                set(discovered_device_ids).difference(active_device_ids)
+            ),
         }
 
     @callback
@@ -315,27 +326,28 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
                 "creatable_kinds": sorted(creatable_kinds),
                 "blocked_sensor_kinds": sorted(blocked_sensor_kinds),
                 "enabled_kinds": sorted(enabled_kinds),
-                "disabled_by_policy_kinds": sorted(enabled_kinds.difference(creatable_kinds)),
-                "blocked_by_duplicate_kinds": sorted(
-                    blocked_sensor_kinds.intersection(enabled_kinds)
-                ),
-                "not_created_reasons": self._not_created_reasons(
+                **self._entity_plan_diagnostics(
                     enabled_kinds,
                     blocked_sensor_kinds,
                     creatable_kinds,
                 ),
             },
-            "policy_field_sources": self._policy_field_sources(device_id, topology.area_id if topology else None),
+            "policy_field_sources": self._policy_field_sources(
+                effective_policy,
+            ),
             "source_selection": self._source_selection_diagnostics(topology)
             if topology is not None
             else None,
             "source_tracking": {
-                "tracked_for_updates": device_id in (self.data or {}),
-                "tracked_entity_ids": sorted(
+                "active_snapshot": device_id in (self.data or {}),
+                "source_entity_ids": sorted(
                     [topology.temperature_entity_id, topology.humidity_entity_id]
                 )
                 if topology is not None
                 else [],
+                "source_entities_tracked": self._source_entities_tracked(topology)
+                if topology is not None
+                else False,
             },
             "topology": asdict(topology) if topology else None,
             "snapshot": (
@@ -345,55 +357,64 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
             ),
         }
 
-    def _policy_field_sources(self, device_id: str, area_id: str | None) -> dict[str, str]:
+    def _policy_field_sources(self, effective_policy: Any | None) -> dict[str, str]:
         """Resolve source layer per behavior field for diagnostics only."""
-        area_override = self._policy_repository.area_policies.get(area_id) if area_id else None
-        device_override = self._policy_repository.device_policies.get(device_id)
-        fields = (
-            "enable_air",
-            "enable_leaf",
-            "enable_absolute_humidity",
-            "enable_dew_point",
-            "leaf_offset_c",
-        )
-        sources: dict[str, str] = {}
-        for field in fields:
-            if device_override is not None and getattr(device_override, field) is not None:
-                sources[field] = "device"
-            elif area_override is not None and getattr(area_override, field) is not None:
-                sources[field] = "area"
-            else:
-                sources[field] = "global"
-        return sources
+        if effective_policy is None:
+            return {
+                "enable_air": "global",
+                "enable_leaf": "global",
+                "enable_absolute_humidity": "global",
+                "enable_dew_point": "global",
+                "leaf_offset_c": "global",
+            }
+        return {
+            "enable_air": effective_policy.behavior_source,
+            "enable_leaf": effective_policy.behavior_source,
+            "enable_absolute_humidity": effective_policy.behavior_source,
+            "enable_dew_point": effective_policy.behavior_source,
+            "leaf_offset_c": effective_policy.leaf_offset_source,
+        }
 
     def _source_selection_diagnostics(self, topology: DeviceTopology) -> dict[str, Any]:
         """Summarize source entity selection and override status for diagnostics."""
-        source_override = self._policy_repository.source_overrides.get(topology.device_id)
+        source_override = self._policy_repository.source_overrides.get(
+            topology.device_id
+        )
         return {
             "temperature": {
-                "selected_entity_id": topology.temperature_entity_id,
-                "selection_source": (
-                    "manual_override"
-                    if source_override
-                    and source_override.temperature_entity_id == topology.temperature_entity_id
-                    else "automatic"
-                ),
-                "override_entity_id": (
-                    source_override.temperature_entity_id if source_override else None
+                **self._single_source_selection(
+                    selected_entity_id=topology.temperature_entity_id,
+                    override_entity_id=(
+                        source_override.temperature_entity_id
+                        if source_override
+                        else None
+                    ),
                 ),
             },
             "humidity": {
-                "selected_entity_id": topology.humidity_entity_id,
-                "selection_source": (
-                    "manual_override"
-                    if source_override
-                    and source_override.humidity_entity_id == topology.humidity_entity_id
-                    else "automatic"
-                ),
-                "override_entity_id": (
-                    source_override.humidity_entity_id if source_override else None
+                **self._single_source_selection(
+                    selected_entity_id=topology.humidity_entity_id,
+                    override_entity_id=(
+                        source_override.humidity_entity_id if source_override else None
+                    ),
                 ),
             },
+        }
+
+    @staticmethod
+    def _entity_plan_diagnostics(
+        enabled_kinds: set[str],
+        blocked_sensor_kinds: set[str],
+        creatable_kinds: set[str],
+    ) -> dict[str, Any]:
+        disabled_by_policy_kinds = ALL_SENSOR_KINDS.difference(enabled_kinds)
+        blocked_by_duplicate_kinds = blocked_sensor_kinds.intersection(enabled_kinds)
+        return {
+            "disabled_by_policy_kinds": sorted(disabled_by_policy_kinds),
+            "blocked_by_duplicate_kinds": sorted(blocked_by_duplicate_kinds),
+            "not_created_reasons": VpdAirCoordinator._not_created_reasons(
+                enabled_kinds, blocked_sensor_kinds, creatable_kinds
+            ),
         }
 
     @staticmethod
@@ -404,17 +425,57 @@ class VpdAirCoordinator(DataUpdateCoordinator[dict[str, DeviceSnapshot]]):  # py
     ) -> dict[str, str]:
         """Explain why each non-creatable kind was not created."""
         reasons: dict[str, str] = {}
-        all_kinds = enabled_kinds.union(blocked_sensor_kinds)
-        for kind in sorted(all_kinds):
+        for kind in sorted(ALL_SENSOR_KINDS):
             if kind in creatable_kinds:
                 continue
-            if kind in blocked_sensor_kinds and kind in enabled_kinds:
-                reasons[kind] = "blocked_duplicate_existing_sensor"
-            elif kind in blocked_sensor_kinds:
-                reasons[kind] = "blocked_duplicate_existing_sensor"
-            else:
+            if kind not in enabled_kinds and kind in blocked_sensor_kinds:
+                reasons[kind] = "disabled_and_blocked"
+            elif kind not in enabled_kinds:
                 reasons[kind] = "disabled_by_policy"
+            elif kind in blocked_sensor_kinds:
+                reasons[kind] = "blocked_by_duplicate"
+            else:
+                reasons[kind] = "not_creatable_unknown"
         return reasons
+
+    def _source_entities_tracked(self, topology: DeviceTopology) -> bool:
+        tracked = self._subscription_manager.tracked_entity_ids
+        return (
+            topology.temperature_entity_id in tracked
+            and topology.humidity_entity_id in tracked
+        )
+
+    @staticmethod
+    def _single_source_selection(
+        *,
+        selected_entity_id: str | None,
+        override_entity_id: str | None,
+    ) -> dict[str, Any]:
+        override_configured = override_entity_id is not None
+        override_accepted = (
+            override_configured and selected_entity_id == override_entity_id
+        )
+        fallback_used = (
+            override_configured
+            and not override_accepted
+            and selected_entity_id is not None
+        )
+        if not override_configured:
+            origin = "automatic"
+        elif override_accepted:
+            origin = "manual_override"
+        elif selected_entity_id is None:
+            origin = "missing"
+        else:
+            origin = "fallback_auto"
+        return {
+            "entity_id": selected_entity_id,
+            "origin": origin,
+            "override_entity_id": override_entity_id,
+            "override_configured": override_configured,
+            "override_accepted": override_accepted,
+            "fallback_used": fallback_used,
+        }
 
     @callback
     def _refresh_state_listener(self) -> None:
